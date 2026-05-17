@@ -1,40 +1,48 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:smart_fin/src/utils/app_theme.dart';
+import 'package:smart_fin/constants/color_style.dart';
+import 'package:smart_fin/constants/text_style.dart';
 
-class DashboardView extends ConsumerWidget {
+class DashboardView extends StatelessWidget {
   const DashboardView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.cream,
       appBar: AppBar(
-        title: const Text('SmartFin'),
+        title: Text('SmartFin', style: AppTextStyles.screenTitle),
+        backgroundColor: AppColors.cream,
+        elevation: 0,
         actions: [
           IconButton(
             onPressed: () {},
-            icon: const FaIcon(FontAwesomeIcons.solidBell, size: 20),
+            icon: const FaIcon(FontAwesomeIcons.solidBell, size: 20, color: AppColors.textDark),
           ),
           IconButton(
             onPressed: () {},
-            icon: const FaIcon(FontAwesomeIcons.circleUser, size: 20),
+            icon: const FaIcon(FontAwesomeIcons.circleUser, size: 20, color: AppColors.textDark),
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: 150, // Added padding to clear the floating nav bar
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Welcome back, Alex!',
-              style: Theme.of(context).textTheme.displayLarge,
+              style: AppTextStyles.displayLarge,
             ),
             const SizedBox(height: 8),
             Text(
               'Your financial health is looking good today.',
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textMuted),
             ),
             const SizedBox(height: 30),
             _buildSummaryCards(context),
@@ -44,11 +52,6 @@ class DashboardView extends ConsumerWidget {
             _buildRecentTransactions(context),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: AppTheme.accentGold,
-        child: const Icon(Icons.add, color: AppTheme.primaryNavy),
       ),
     );
   }
@@ -61,7 +64,7 @@ class DashboardView extends ConsumerWidget {
             title: 'Balance',
             amount: '\$12,450',
             icon: FontAwesomeIcons.wallet,
-            color: AppTheme.primaryNavy,
+            color: AppColors.primary,
           ),
         ),
         const SizedBox(width: 16),
@@ -70,7 +73,7 @@ class DashboardView extends ConsumerWidget {
             title: 'Savings',
             amount: '\$4,200',
             icon: FontAwesomeIcons.piggyBank,
-            color: Colors.green.shade800,
+            color: AppColors.income,
           ),
         ),
       ],
@@ -82,8 +85,9 @@ class DashboardView extends ConsumerWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.cardDark,
-        borderRadius: BorderRadius.circular(20),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,17 +95,17 @@ class DashboardView extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Spending Overview', style: Theme.of(context).textTheme.titleLarge),
-              const Icon(Icons.more_horiz, color: AppTheme.textGray),
+              Text('Spending Overview', style: AppTextStyles.displayMedium.copyWith(fontSize: 20)),
+              const Icon(Icons.more_horiz, color: AppColors.textMuted),
             ],
           ),
           const SizedBox(height: 20),
           Container(
             height: 200,
             alignment: Alignment.center,
-            child: const Text(
+            child: Text(
               'Chart Placeholder (fl_chart)',
-              style: TextStyle(color: AppTheme.textGray),
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textMuted),
             ),
           ),
         ],
@@ -116,21 +120,21 @@ class DashboardView extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Recent Transactions', style: Theme.of(context).textTheme.titleLarge),
+            Text('Recent Transactions', style: AppTextStyles.screenTitle),
             TextButton(
               onPressed: () {},
-              child: const Text('See All', style: TextStyle(color: AppTheme.accentGold)),
+              child: Text('See All', style: AppTextStyles.bodyBold.copyWith(color: AppColors.primary)),
             ),
           ],
         ),
         const SizedBox(height: 10),
-        _TransactionTile(
+        const _TransactionTile(
           title: 'Starbucks Coffee',
           subtitle: 'Food & Drink • Today',
           amount: '-\$5.50',
           icon: FontAwesomeIcons.mugHot,
         ),
-        _TransactionTile(
+        const _TransactionTile(
           title: 'Rent Payment',
           subtitle: 'Housing • Yesterday',
           amount: '-\$1,200.00',
@@ -159,18 +163,18 @@ class _SummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.cardDark,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           FaIcon(icon, color: color, size: 24),
           const SizedBox(height: 16),
-          Text(title, style: const TextStyle(color: AppTheme.textGray, fontSize: 14)),
+          Text(title, style: AppTextStyles.label.copyWith(color: AppColors.textMuted)),
           const SizedBox(height: 4),
-          Text(amount, style: const TextStyle(color: AppTheme.textLight, fontSize: 22, fontWeight: FontWeight.bold)),
+          Text(amount, style: AppTextStyles.greeting.copyWith(fontSize: 22, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -196,34 +200,34 @@ class _TransactionTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardDark,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.primaryNavy.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
+              color: AppColors.primarySoft,
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: FaIcon(icon, color: AppTheme.primaryNavy, size: 18),
+            child: FaIcon(icon, color: AppColors.primary, size: 18),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.bold)),
-                Text(subtitle, style: const TextStyle(color: AppTheme.textGray, fontSize: 12)),
+                Text(title, style: AppTextStyles.transactionName),
+                Text(subtitle, style: AppTextStyles.transactionMeta.copyWith(color: AppColors.textMuted)),
               ],
             ),
           ),
           Text(
             amount,
-            style: TextStyle(
-              color: amount.startsWith('-') ? Colors.redAccent : Colors.greenAccent,
-              fontWeight: FontWeight.bold,
+            style: AppTextStyles.bodyBold.copyWith(
+              color: amount.startsWith('-') ? Colors.redAccent : AppColors.income,
             ),
           ),
         ],

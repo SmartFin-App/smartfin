@@ -1,0 +1,8 @@
+# ignores .env, binary files, and vendor folder
+.env
+/vendor/
+*.exe
+*.out
+*.app
+*.bin
+smartfin-credentials.json

@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "1028996394137",
+    "project_id": "fir-auth-login-udacity",
+    "storage_bucket": "fir-auth-login-udacity.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1028996394137:android:94cf4b53a5f71230821c08",
+        "android_client_info": {
+          "package_name": "com.example.smart_fin"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1028996394137-8nssc9294dj08b1v27bf6rfochoaei79.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.smart_fin",
+            "certificate_hash": "2b1a8dfd81653adcd893d1c516bb9415453729e2"
+          }
+        },
+        {
+          "client_id": "1028996394137-qroguikol1ud7dabubgpn18b3l78ohne.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB_zkV1WOszI1LK79zlMLJZMkwDQKgceng"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1028996394137-qroguikol1ud7dabubgpn18b3l78ohne.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1028996394137-baeqnt923frvdi91u9o77tn6qcdofrs0.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.smartFin"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

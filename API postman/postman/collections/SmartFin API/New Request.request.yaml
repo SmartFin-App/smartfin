@@ -1,0 +1,7 @@
+$kind: http-request
+name: New Request
+url: |+
+  http://localhost:3000/api/summary/8TGrpDSX20fjn0HK4atu5BwVZ6N2/history
+
+method: GET
+order: 1774979628602
