@@ -62,8 +62,20 @@ func (h *CoachHandler) AskCoach(c *fiber.Ctx) error {
 	var user models.User
 	err := h.usersCollection.FindOne(ctx, bson.M{"firebase_uid": req.UserID}).Decode(&user)
 	if err != nil {
-		log.Printf("User not found for coach: %v", err)
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
+		if err == mongo.ErrNoDocuments {
+			log.Printf("User profile not found for coach: %v (using default profile)", err)
+			user = models.User{
+				Name:            "SmartFin User",
+				MonthlyIncome:   30000,
+				IncomeBracket:   "Medium",
+				CurrentStatus:   "Balanced",
+				FinancialHealth: "Growth",
+				BudgetLimit:     15000,
+			}
+		} else {
+			log.Printf("Error fetching user: %v", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch user"})
+		}
 	}
 
 	// Fetch last 50 transactions sorted by date descending
@@ -163,7 +175,7 @@ If the user asks something unrelated to finance, gently redirect them.`,
 	}
 	defer geminiClient.Close()
 
-	model := geminiClient.GenerativeModel("gemini-2.5-flash")
+	model := geminiClient.GenerativeModel("gemini-1.5-flash")
 	model.SetTemperature(0.7)
 	model.SystemInstruction = &genai.Content{
 		Parts: []genai.Part{genai.Text(systemPrompt)},
