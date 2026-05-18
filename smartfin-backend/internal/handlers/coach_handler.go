@@ -175,11 +175,9 @@ If the user asks something unrelated to finance, gently redirect them.`,
 	}
 	defer geminiClient.Close()
 
-	model := geminiClient.GenerativeModel("gemini-1.5-flash")
+	model := geminiClient.GenerativeModel("gemini-2.5-flash")
 	model.SetTemperature(0.7)
-	model.SystemInstruction = &genai.Content{
-		Parts: []genai.Part{genai.Text(systemPrompt)},
-	}
+	model.SystemInstruction = genai.NewUserContent(genai.Text(systemPrompt))
 
 	// Use chat session with conversation history
 	chat := model.StartChat()

@@ -1,9 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -13,9 +14,6 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderStateMixin {
-  CameraController? _cameraController;
-  bool _isCameraInitialized = false;
-  bool _flashOn = false;
   late AnimationController _scanAnimationController;
   late CurvedAnimation _curvedAnimation;
 
@@ -30,46 +28,21 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
       parent: _scanAnimationController,
       curve: Curves.easeInOut,
     );
-    _initCamera();
-  }
-
-  Future<void> _initCamera() async {
-    try {
-      final cameras = await availableCameras();
-      if (cameras.isNotEmpty) {
-        _cameraController = CameraController(
-          cameras[0],
-          ResolutionPreset.high,
-          enableAudio: false,
-        );
-        await _cameraController!.initialize();
-        if (mounted) {
-          setState(() {
-            _isCameraInitialized = true;
-          });
-        }
-      }
-    } catch (e) {
-      // Silently fail backwards (e.g., if emulator has no camera)
-      debugPrint("Camera config failed: $e");
-    }
-  }
-
-  void _toggleFlash() {
-    if (!_isCameraInitialized || _cameraController == null) return;
-    setState(() {
-      _flashOn = !_flashOn;
-    });
-    _cameraController!.setFlashMode(
-      _flashOn ? FlashMode.torch : FlashMode.off,
-    );
   }
 
   @override
   void dispose() {
     _scanAnimationController.dispose();
-    _cameraController?.dispose();
     super.dispose();
+  }
+
+  /// Copies the bundled sample receipt asset to a temp file and returns it.
+  Future<File> _getReceiptFile() async {
+    final byteData = await rootBundle.load('assets/images/sample_receipt.png');
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/sample_receipt.png');
+    await file.writeAsBytes(byteData.buffer.asUint8List());
+    return file;
   }
 
   @override
@@ -82,11 +55,14 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1. Camera Preview Layer
+          // 1. Static Receipt Image (demo mode — replaces live camera)
           Positioned.fill(
-            child: _isCameraInitialized && _cameraController != null
-                ? CameraPreview(_cameraController!)
-                : Container(color: Colors.black),
+            child: Image.asset(
+              'assets/images/sample_receipt.png',
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+            ),
           ),
           
           // 2. Overlay Scanning Frame
@@ -155,22 +131,19 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
                         child: const Icon(Icons.chevron_left, color: Colors.white, size: 22),
                       ),
                     ),
-                    // Flash
-                    GestureDetector(
-                      onTap: _toggleFlash,
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: const Color.fromRGBO(255, 255, 255, 0.05),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color.fromRGBO(255, 255, 255, 0.1)),
-                        ),
-                        child: Icon(
-                          _flashOn ? Icons.flashlight_on : Icons.flashlight_off,
-                          color: Colors.white,
-                          size: 22,
-                        ),
+                    // Flash (decorative in demo mode)
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color.fromRGBO(255, 255, 255, 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color.fromRGBO(255, 255, 255, 0.1)),
+                      ),
+                      child: const Icon(
+                        Icons.flashlight_off,
+                        color: Colors.white,
+                        size: 22,
                       ),
                     ),
                   ],
@@ -245,17 +218,16 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
                             ),
                           ),
                           
-                          // Center Shutter Button
+                          // Center Shutter Button (uses sample receipt in demo mode)
                           GestureDetector(
                             onTap: () async {
-                              if (!_isCameraInitialized || _cameraController == null) return;
                               try {
-                                final xFile = await _cameraController!.takePicture();
+                                final file = await _getReceiptFile();
                                 if (mounted) {
-                                  context.go('/processing', extra: File(xFile.path));
+                                  context.go('/processing', extra: file);
                                 }
                               } catch (e) {
-                                debugPrint('Capture error: $e');
+                                debugPrint('Demo capture error: $e');
                               }
                             },
                             child: Container(

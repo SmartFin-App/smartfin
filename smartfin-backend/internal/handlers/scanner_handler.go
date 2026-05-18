@@ -80,7 +80,7 @@ func (h *ScannerHandler) ProcessReceipt(c *fiber.Ctx) error {
 	defer client.Close()
 
 	// Use gemini-1.5-flash model
-	model := client.GenerativeModel("gemini-1.5-flash")
+	model := client.GenerativeModel("gemini-2.5-flash")
 	model.SetTemperature(0)
 
 	// Build the prompt
