@@ -12,7 +12,7 @@ body{font-family:'Inter',sans-serif;background:#0f172a;color:#e2e8f0;min-height:
 .header h1{font-size:2.5em;font-weight:800;background:linear-gradient(135deg,#6366f1,#8b5cf6,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
 .header p{color:#94a3b8;font-size:1.1em}
 .overall{text-align:center;margin:32px 0;padding:32px;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.15));border-radius:20px;border:1px solid rgba(139,92,246,0.3)}
-.overall-score{font-size:4em;font-weight:800;color:#f59e0b}
+.overall-score{font-size:4em;font-weight:800;color:#10b981}
 .overall-label{color:#94a3b8;font-size:1.1em;margin-top:4px}
 .metrics-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin:32px 0}
 @media(max-width:800px){.metrics-grid{grid-template-columns:repeat(2,1fr)}}
@@ -29,37 +29,37 @@ tr:hover{background:rgba(255,255,255,0.03)}
     <div class="header">
         <h1>🐾 SmartFin RAG Evaluation</h1>
         <p>AI Financial Coach — Performance Report</p>
-        <p style="color:#64748b;font-size:0.9em;margin-top:8px">May 19, 2026 at 10:40 PM</p>
+        <p style="color:#64748b;font-size:0.9em;margin-top:8px">May 20, 2026 at 01:40 PM</p>
     </div>
     <div class="overall">
-        <div class="overall-score">0.74</div>
-        <div class="overall-label">Overall Score — Good</div>
+        <div class="overall-score">0.91</div>
+        <div class="overall-label">Overall Score — Excellent</div>
     </div>
     <div class="metrics-grid">
         <div style="background:rgba(255,255,255,0.05);border-radius:16px;padding:24px;text-align:center;border:1px solid rgba(255,255,255,0.1)">
             <div style="font-size:0.85em;color:#94a3b8;margin-bottom:8px">Faithfulness</div>
-            <div style="font-size:2.2em;font-weight:700;color:#10b981">0.85</div>
-            <div style="font-size:0.75em;color:#10b981;margin-top:4px">Excellent</div>
+            <div style="font-size:2.2em;font-weight:700;color:#f59e0b">0.78</div>
+            <div style="font-size:0.75em;color:#f59e0b;margin-top:4px">Good</div>
         </div>
         <div style="background:rgba(255,255,255,0.05);border-radius:16px;padding:24px;text-align:center;border:1px solid rgba(255,255,255,0.1)">
             <div style="font-size:0.85em;color:#94a3b8;margin-bottom:8px">Answer Relevancy</div>
-            <div style="font-size:2.2em;font-weight:700;color:#10b981">0.91</div>
+            <div style="font-size:2.2em;font-weight:700;color:#10b981">0.95</div>
             <div style="font-size:0.75em;color:#10b981;margin-top:4px">Excellent</div>
         </div>
         <div style="background:rgba(255,255,255,0.05);border-radius:16px;padding:24px;text-align:center;border:1px solid rgba(255,255,255,0.1)">
             <div style="font-size:0.85em;color:#94a3b8;margin-bottom:8px">Context Precision</div>
-            <div style="font-size:2.2em;font-weight:700;color:#10b981">0.86</div>
+            <div style="font-size:2.2em;font-weight:700;color:#10b981">0.92</div>
             <div style="font-size:0.75em;color:#10b981;margin-top:4px">Excellent</div>
         </div>
         <div style="background:rgba(255,255,255,0.05);border-radius:16px;padding:24px;text-align:center;border:1px solid rgba(255,255,255,0.1)">
             <div style="font-size:0.85em;color:#94a3b8;margin-bottom:8px">Context Recall</div>
-            <div style="font-size:2.2em;font-weight:700;color:#ef4444">0.30</div>
-            <div style="font-size:0.75em;color:#ef4444;margin-top:4px">Needs Work</div>
+            <div style="font-size:2.2em;font-weight:700;color:#10b981">1.00</div>
+            <div style="font-size:0.75em;color:#10b981;margin-top:4px">Excellent</div>
         </div>
         <div style="background:rgba(255,255,255,0.05);border-radius:16px;padding:24px;text-align:center;border:1px solid rgba(255,255,255,0.1)">
             <div style="font-size:0.85em;color:#94a3b8;margin-bottom:8px">Answer Correctness</div>
-            <div style="font-size:2.2em;font-weight:700;color:#f59e0b">0.79</div>
-            <div style="font-size:0.75em;color:#f59e0b;margin-top:4px">Good</div>
+            <div style="font-size:2.2em;font-weight:700;color:#10b981">0.89</div>
+            <div style="font-size:0.75em;color:#10b981;margin-top:4px">Excellent</div>
         </div></div>
     <h2 style="margin:32px 0 0;font-size:1.3em;color:#a5b4fc">📋 Detailed Results</h2>
     <table>
@@ -69,49 +69,58 @@ tr:hover{background:rgba(255,255,255,0.03)}
         </tr></thead>
         <tbody><tr>
             <td style="max-width:200px">How much did I spend on food this month?</td>
-            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีค่ะ! 🐾 จากข้อมูลที่คุณมีในตอนนี้ ยังไม่มีรายการธุรกรรมใดๆ บันทึกไว้เลยค่ะ ...</td>
-            <td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">0.95</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#ef4444;font-weight:600">0.00</td><td style="color:#10b981;font-weight:600">1.00</td>
+            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีค่ะ Bone 🐾! สำหรับเดือนพฤษภาคม 2026 นี้ คุณยังไม่มีรายการใช้จ่ายในหมวดอาหา...</td>
+            <td style="color:#ef4444;font-weight:600">0.50</td><td style="color:#f59e0b;font-weight:600">0.70</td><td style="color:#10b981;font-weight:600">0.90</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">0.90</td>
         </tr><tr>
             <td style="max-width:200px">Am I over budget this month?</td>
-            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีค่ะ! 🐾 จากข้อมูลที่คุณมีตอนนี้ ยังไม่มีรายการใช้จ่ายบันทึกเข้ามาเลยนะคะ ดั...</td>
-            <td style="color:#ef4444;font-weight:600">0.50</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td>
+            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีค่ะ Bone! 🐾
+
+ใช่แล้วค่ะ สำหรับเดือนพฤษภาคมนี้ คุณใช้จ่ายเกินงบประมาณไป ฿15...</td>
+            <td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td>
         </tr><tr>
             <td style="max-width:200px">What is my biggest spending category?</td>
-            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีค่ะ SmartFin User! 🐾 จากข้อมูลที่คุณมีในตอนนี้ ยังไม่มีการบันทึกรายการใช้จ...</td>
-            <td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">0.95</td><td style="color:#10b981;font-weight:600">0.90</td><td style="color:#ef4444;font-weight:600">0.00</td><td style="color:#10b981;font-weight:600">0.90</td>
+            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีครับ Bone! 🐾 จากข้อมูลค่าใช้จ่ายทั้งหมดของคุณ หมวดหมู่ที่คุณใช้จ่ายมากที่ส...</td>
+            <td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">0.90</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td>
         </tr><tr>
             <td style="max-width:200px">How much did I spend on transport?</td>
-            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีค่ะ SmartFin User! 🐾 จากข้อมูลที่คุณมีอยู่ตอนนี้ ยังไม่มีรายการธุรกรรมบันท...</td>
-            <td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">0.90</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#ef4444;font-weight:600">0.00</td><td style="color:#10b981;font-weight:600">0.90</td>
+            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีครับ Bone! 🐾 มาดูกันว่าคุณใช้จ่ายไปกับค่าเดินทางเท่าไหร่บ้างนะครับ
+
+จากราย...</td>
+            <td style="color:#f59e0b;font-weight:600">0.70</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#ef4444;font-weight:600">0.20</td>
         </tr><tr>
             <td style="max-width:200px">Can I afford to spend 5000 baht more this month?</td>
-            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีครับ! 🐾 จากข้อมูลที่คุณมีในเดือนนี้ ยังไม่มีการบันทึกรายการใช้จ่ายเลยครับ
-...</td>
+            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีค่ะคุณ Bone! 🐾 มาดูสถานการณ์เดือนพฤษภาคมกันนะคะ
+
+ตอนนี้คุณ Bone มีเงินเหลื...</td>
             <td style="color:#f59e0b;font-weight:600">0.70</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td>
         </tr><tr>
             <td style="max-width:200px">What are my spending trends over the last few months?</td>
-            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีค่ะ SmartFin User! 🐾
+            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีค่ะคุณ Bone! 🐾 มาดูแนวโน้มการใช้จ่ายในช่วงที่ผ่านมากันนะคะ
 
-จากการตรวจสอบข้อมูลการใช้จ่ายย้อนหลัง 6 เดือนที่ผ่าน...</td>
-            <td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">0.95</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#ef4444;font-weight:600">0.00</td><td style="color:#10b981;font-weight:600">1.00</td>
+เดือนพฤษภาคมมี...</td>
+            <td style="color:#10b981;font-weight:600">0.95</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#f59e0b;font-weight:600">0.60</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">0.85</td>
         </tr><tr>
             <td style="max-width:200px">How much did I save last month?</td>
-            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีค่ะ SmartFin User! 🐾 สำหรับเดือนพฤษภาคม 2569 ที่ผ่านมา ยังไม่มีการบันทึกข้...</td>
-            <td style="color:#10b981;font-weight:600">0.90</td><td style="color:#f59e0b;font-weight:600">0.70</td><td style="color:#10b981;font-weight:600">0.95</td><td style="color:#ef4444;font-weight:600">0.00</td><td style="color:#ef4444;font-weight:600">0.40</td>
+            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีค่ะ Bone! 🐾
+
+จากข้อมูลทางการเงินของคุณ เดือนเมษายนที่ผ่านมา คุณมีเงินเหลือ...</td>
+            <td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">0.95</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td>
         </tr><tr>
             <td style="max-width:200px">Give me tips to reduce my spending</td>
-            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีค่ะ SmartFin User! 🐾 ยอดเยี่ยมเลยค่ะที่ตั้งใจจะลดค่าใช้จ่ายเพื่อเป้าหมายกา...</td>
-            <td style="color:#f59e0b;font-weight:600">0.70</td><td style="color:#f59e0b;font-weight:600">0.65</td><td style="color:#ef4444;font-weight:600">0.00</td><td style="color:#ef4444;font-weight:600">0.00</td><td style="color:#ef4444;font-weight:600">0.10</td>
+            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีครับคุณ Bone! 🐾 ยอดเยี่ยมเลยครับที่คุณกำลังมองหาวิธีลดค่าใช้จ่ายเพื่อบรรลุ...</td>
+            <td style="color:#ef4444;font-weight:600">0.00</td><td style="color:#10b981;font-weight:600">0.90</td><td style="color:#10b981;font-weight:600">0.80</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td>
         </tr><tr>
             <td style="max-width:200px">What is my monthly income?</td>
-            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีค่ะ SmartFin User! 🐾
+            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีค่ะ Bone! 🐾
 
-รายได้ต่อเดือนของคุณคือ ฿30,000 ค่ะ 😊</td>
+รายได้ต่อเดือนของคุณคือ ฿75000 ค่ะ</td>
             <td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">1.00</td>
         </tr><tr>
             <td style="max-width:200px">How is my financial health?</td>
-            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีค่ะ SmartFin User! 🐾 จากข้อมูลโปรไฟล์ของคุณ ตอนนี้สถานะทางการเงินของคุณอยู...</td>
-            <td style="color:#f59e0b;font-weight:600">0.70</td><td style="color:#10b981;font-weight:600">0.95</td><td style="color:#f59e0b;font-weight:600">0.75</td><td style="color:#ef4444;font-weight:600">0.00</td><td style="color:#f59e0b;font-weight:600">0.60</td>
+            <td style="max-width:250px;font-size:0.85em;color:#94a3b8">สวัสดีครับ Bone! 🐾 มาดูกันเรื่องสุขภาพการเงินของคุณกันนะครับ
+
+โดยรวมแล้ว คุณจัดก...</td>
+            <td style="color:#10b981;font-weight:600">0.95</td><td style="color:#10b981;font-weight:600">0.98</td><td style="color:#10b981;font-weight:600">0.95</td><td style="color:#10b981;font-weight:600">1.00</td><td style="color:#10b981;font-weight:600">0.95</td>
         </tr></tbody>
     </table>
     <div class="footer">

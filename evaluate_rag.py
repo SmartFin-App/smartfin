@@ -70,7 +70,7 @@ TEST_CASES = [
 ]
 
 
-def call_backend(question: str, user_id: str = "test_uid") -> dict:
+def call_backend(question: str, user_id: str = "8TGrpDSX20fjn0HK4atu5BwVZ6N2") -> dict:
     """Call the SmartFin backend coach endpoint."""
     try:
         resp = requests.post(BACKEND_URL, json={
