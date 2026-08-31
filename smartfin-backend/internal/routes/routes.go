@@ -19,6 +19,7 @@ func SetupRoutes(app *fiber.App) {
 	scannerHandler := handlers.NewScannerHandler()
 	coachHandler := handlers.NewCoachHandler()
 	summaryHandler := handlers.NewSummaryHandler()
+	notificationHandler := handlers.NewNotificationHandler()
 
 	// Setup an API group with prefix /api
 	api := app.Group("/api")
@@ -51,6 +52,10 @@ func SetupRoutes(app *fiber.App) {
 	summary := api.Group("/summary")
 	summary.Get("/:user_id/history", summaryHandler.GetSummaryHistory)
 	summary.Get("/:user_id", summaryHandler.GetMonthlySummary)
+
+	// Notification routes under /api/notifications
+	notifications := api.Group("/notifications")
+	notifications.Post("", notificationHandler.ProcessNotification)
 
 	// Admin routes
 	app.Post("/admin/seed-transactions", func(c *fiber.Ctx) error {

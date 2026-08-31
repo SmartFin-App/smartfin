@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:smart_fin/constants/color_style.dart';
 import 'package:smart_fin/core/di/injection_container.dart' as di;
 import 'package:smart_fin/core/router/app_router.dart';
+import 'package:smart_fin/features/notifications/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,6 +14,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  final notificationService = NotificationService();
+  await notificationService.initialize();
 
   runApp(const SmartFinApp());
 }

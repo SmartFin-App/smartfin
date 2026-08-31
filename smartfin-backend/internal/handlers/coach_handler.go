@@ -2,34 +2,30 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/generative-ai-go/genai"
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"google.golang.org/api/option"
 
-	"github.com/SmartFin-App/smartfin-backend/config"
-	"github.com/SmartFin-App/smartfin-backend/internal/models"
+	"github.com/SmartFin-App/smartfin-backend/internal/agents"
 )
 
-// CoachHandler handles AI coach requests
+// CoachHandler handles AI coach requests, acting as the main Gemini Agent
 type CoachHandler struct {
-	transactionsCollection *mongo.Collection
-	usersCollection        *mongo.Collection
+	retrievalAgent *agents.RetrievalAgent
+	actionAgent    *agents.ActionAgent
 }
 
 // NewCoachHandler creates a new CoachHandler
 func NewCoachHandler() *CoachHandler {
 	return &CoachHandler{
-		transactionsCollection: config.GetCollection("transactions"),
-		usersCollection:        config.GetCollection("users"),
+		retrievalAgent: agents.NewRetrievalAgent(),
+		actionAgent:    agents.NewActionAgent(),
 	}
 }
 
@@ -58,114 +54,25 @@ func (h *CoachHandler) AskCoach(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Fetch user profile
-	var user models.User
-	err := h.usersCollection.FindOne(ctx, bson.M{"firebase_uid": req.UserID}).Decode(&user)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			log.Printf("User profile not found for coach: %v (using default profile)", err)
-			user = models.User{
-				Name:            "SmartFin User",
-				MonthlyIncome:   30000,
-				IncomeBracket:   "Medium",
-				CurrentStatus:   "Balanced",
-				FinancialHealth: "Growth",
-				BudgetLimit:     15000,
-			}
-		} else {
-			log.Printf("Error fetching user: %v", err)
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch user"})
-		}
-	}
+	// 1. Retrieval Agent fetches personal context
+	userContext := h.retrievalAgent.GetUserContext(ctx, req.UserID)
+	transactionContext := h.retrievalAgent.GetTransactionContext(ctx, req.UserID)
+	summaryContext := h.retrievalAgent.GetSummaryContext(ctx, req.UserID)
 
-	// Fetch last 50 transactions sorted by date descending
-	opts := options.Find().SetSort(bson.D{{Key: "date", Value: -1}}).SetLimit(50)
-	cursor, err := h.transactionsCollection.Find(ctx, bson.M{"user_id": req.UserID}, opts)
-	if err != nil {
-		log.Printf("Error fetching transactions for coach: %v", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch transactions"})
-	}
-	defer cursor.Close(ctx)
-
-	var transactions []models.Transaction
-	if err := cursor.All(ctx, &transactions); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to decode transactions"})
-	}
-
-	// Build transaction context string
-	var transactionContext strings.Builder
-	transactionContext.WriteString("User's recent transactions:\n")
-	if len(transactions) == 0 {
-		transactionContext.WriteString("- No transactions recorded yet.\n")
-	} else {
-		for _, t := range transactions {
-			transactionContext.WriteString(fmt.Sprintf(
-				"- %s: %s ฿%d (%s) on %s\n",
-				t.Type, t.Merchant, t.Amount, t.Category, t.Date.Format("Jan 2, 2006"),
-			))
-		}
-	}
-
-	// Fetch 6-month summary history for trend analysis
-	summaryHandler := NewSummaryHandler()
-	var summaryContext strings.Builder
-	summaryContext.WriteString("\nMonthly Summary History (last 6 months):\n")
-
-	now := time.Now()
-	for i := 0; i < 6; i++ {
-		targetDate := now.AddDate(0, -i, 0)
-		month := fmt.Sprintf("%d-%02d", targetDate.Year(), targetDate.Month())
-		summary, err := summaryHandler.GetOrCreateSummary(ctx, req.UserID, month)
-		if err != nil {
-			continue
-		}
-		summaryContext.WriteString(fmt.Sprintf(
-			"- %s: Income ฿%d, Expenses ฿%d, Available ฿%d, Budget Used %.1f%%\n",
-			month, summary.TotalIncome, summary.TotalExpenses,
-			summary.Available, summary.BudgetPercentage,
-		))
-		for _, cat := range summary.ExpenseByCategory {
-			summaryContext.WriteString(fmt.Sprintf(
-				"  • %s: ฿%d (%.1f%%)\n",
-				cat.Category, cat.Amount, cat.Percentage,
-			))
-		}
-	}
-
-	// Build user context string
-	userContext := fmt.Sprintf(`User Profile:
-- Name: %s
-- Monthly Income: ฿%d
-- Income Bracket: %s
-- Current Status: %s
-- Financial Health Goal: %s
-- Budget Limit: ฿%d`,
-		user.Name, user.MonthlyIncome, user.IncomeBracket,
-		user.CurrentStatus, user.FinancialHealth, user.BudgetLimit,
-	)
-
-	// Build the full RAG system prompt
 	systemPrompt := fmt.Sprintf(`You are SmartFin Coach, a friendly and knowledgeable AI financial advisor for a Thai user.
 You speak in a warm, encouraging tone. You use the paw print emoji 🐾 occasionally.
-You always give specific, actionable advice based on the user's actual data.
-You format amounts in Thai Baht (฿) with no decimals.
+You have access to the user's financial data, tools to modify their budget/goals/transactions, and Google Search for external research.
+
+%s
+
+%s
+
+%s
+
+Answer the user's question. Use the provided tools if the user wants to update their budget, set a savings goal, or add a transaction. Use Google Search if they ask a general market question (like interest rates, stock trends).
 Keep responses concise — maximum 3-4 sentences unless the user asks for detail.
-When you spot spending trends across months, mention them proactively.
-
-%s
-
-%s
-
-%s
-
-Answer the user's question based on their actual financial data above.
-If you see trends across months, mention them.
-If you need to calculate something, show the calculation briefly.
-If the user asks something unrelated to finance, gently redirect them.`,
-		userContext,
-		transactionContext.String(),
-		summaryContext.String(),
-	)
+Format amounts in Thai Baht (฿) with no decimals.`,
+		userContext, transactionContext, summaryContext)
 
 	// Create Gemini client
 	geminiClient, err := genai.NewClient(ctx, option.WithAPIKey(os.Getenv("GEMINI_API_KEY")))
@@ -179,22 +86,114 @@ If the user asks something unrelated to finance, gently redirect them.`,
 	model.SetTemperature(0.7)
 	model.SystemInstruction = genai.NewUserContent(genai.Text(systemPrompt))
 
-	// Use chat session with conversation history
+	// Define Action Agent tools
+	actionTools := &genai.Tool{
+		FunctionDeclarations: []*genai.FunctionDeclaration{
+			{
+				Name:        "set_savings_goal",
+				Description: "Sets a savings goal for the user.",
+				Parameters: &genai.Schema{
+					Type: genai.TypeObject,
+					Properties: map[string]*genai.Schema{
+						"goal_amount": {Type: genai.TypeNumber, Description: "The savings goal amount in THB"},
+					},
+					Required: []string{"goal_amount"},
+				},
+			},
+			{
+				Name:        "update_budget_limit",
+				Description: "Updates the monthly budget limit for the user.",
+				Parameters: &genai.Schema{
+					Type: genai.TypeObject,
+					Properties: map[string]*genai.Schema{
+						"budget_limit": {Type: genai.TypeNumber, Description: "The new monthly budget limit in THB"},
+					},
+					Required: []string{"budget_limit"},
+				},
+			},
+			{
+				Name:        "add_transaction",
+				Description: "Adds a new manual transaction (income or expense) for the user.",
+				Parameters: &genai.Schema{
+					Type: genai.TypeObject,
+					Properties: map[string]*genai.Schema{
+						"merchant": {Type: genai.TypeString, Description: "The name of the merchant, person, or bank"},
+						"amount":   {Type: genai.TypeNumber, Description: "The transaction amount in THB"},
+						"type":     {Type: genai.TypeString, Description: "Either 'income' or 'expense'"},
+						"category": {Type: genai.TypeString, Description: "Category like 'Food', 'Transport', 'Shopping', 'Salary', etc."},
+					},
+					Required: []string{"merchant", "amount", "type", "category"},
+				},
+			},
+		},
+	}
+
+	// Add tools (Action Agent functions)
+	model.Tools = []*genai.Tool{
+		actionTools,
+	}
+
+	// Setup chat history
 	chat := model.StartChat()
-	for _, h := range req.History {
-		role := h.Role
+	for _, hist := range req.History {
+		role := hist.Role
 		if role == "user" || role == "model" {
 			chat.History = append(chat.History, &genai.Content{
 				Role:  role,
-				Parts: []genai.Part{genai.Text(h.Content)},
+				Parts: []genai.Part{genai.Text(hist.Content)},
 			})
 		}
 	}
 
+	// Send message
 	resp, err := chat.SendMessage(ctx, genai.Text(req.Message))
 	if err != nil {
 		log.Printf("Error sending message to Gemini: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to get AI response"})
+	}
+
+	// Handle function calls
+	for len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
+		part := resp.Candidates[0].Content.Parts[0]
+		funcCall, ok := part.(genai.FunctionCall)
+		if !ok {
+			break // It's a text response, break out of loop
+		}
+
+		log.Printf("AI requested function call: %s", funcCall.Name)
+		var result string
+
+		switch funcCall.Name {
+		case "set_savings_goal":
+			if amount, ok := funcCall.Args["goal_amount"].(float64); ok {
+				result = h.actionAgent.SetSavingsGoal(ctx, req.UserID, amount)
+			}
+		case "update_budget_limit":
+			if limit, ok := funcCall.Args["budget_limit"].(float64); ok {
+				result = h.actionAgent.UpdateBudgetLimit(ctx, req.UserID, limit)
+			}
+		case "add_transaction":
+			merchant, _ := funcCall.Args["merchant"].(string)
+			amount, _ := funcCall.Args["amount"].(float64)
+			txType, _ := funcCall.Args["type"].(string)
+			category, _ := funcCall.Args["category"].(string)
+			result = h.actionAgent.AddTransaction(ctx, req.UserID, merchant, amount, txType, category)
+		default:
+			result = "Function not implemented."
+		}
+
+		// Send function result back to the model
+		resultJSON, _ := json.Marshal(map[string]string{"result": result})
+		resp, err = chat.SendMessage(ctx, genai.FunctionResponse{
+			Name: funcCall.Name,
+			Response: map[string]any{
+				"result": string(resultJSON),
+			},
+		})
+		if err != nil {
+			log.Printf("Error sending function response to Gemini: %v", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to get AI response after action"})
+		}
 	}
 
 	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
@@ -202,6 +201,17 @@ If the user asks something unrelated to finance, gently redirect them.`,
 	}
 
 	responseText := fmt.Sprintf("%v", resp.Candidates[0].Content.Parts[0])
+	
+	// Handle edge case where function response is nil/empty but text is present
+	if len(resp.Candidates[0].Content.Parts) > 1 {
+	    // Sometimes Gemini returns function call + text in same response
+	    for _, p := range resp.Candidates[0].Content.Parts {
+	        if t, ok := p.(genai.Text); ok {
+	            responseText = string(t)
+	        }
+	    }
+	}
+	
 	log.Printf("Coach response for user %s: %d chars", req.UserID, len(responseText))
 
 	return c.JSON(fiber.Map{

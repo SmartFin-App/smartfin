@@ -77,6 +77,7 @@ dependencies:
   intl: ^0.19.0
   uuid: ^4.5.1
   google_sign_in: ^6.2.1
+  notification_listener_service: ^1.0.0
 
 dev_dependencies:
   flutter_test:
