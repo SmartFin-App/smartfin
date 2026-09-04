@@ -18,6 +18,9 @@ type User struct {
 	CurrentStatus   string             `bson:"current_status" json:"current_status"`
 	FinancialHealth string             `bson:"financial_health" json:"financial_health"`
 	BudgetLimit     int64              `bson:"budget_limit" json:"budget_limit"`
+	SavingsGoal     int64              `bson:"savings_goal,omitempty" json:"savings_goal,omitempty"`
+	SavingsGoalName string             `bson:"savings_goal_name,omitempty" json:"savings_goal_name,omitempty"`
+	SavingsTargetDate string           `bson:"savings_target_date,omitempty" json:"savings_target_date,omitempty"`
 	WellnessScore   int                `bson:"wellness_score" json:"wellness_score"`
 	Level           int                `bson:"level" json:"level"`
 	CreatedAt       time.Time          `bson:"created_at" json:"created_at"`

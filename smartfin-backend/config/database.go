@@ -39,8 +39,8 @@ func ConnectDB() {
 		log.Fatal("DB_NAME environment variable is not set")
 	}
 
-	// Create a context with a 10-second timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// Create a context with a 25-second timeout for initial cloud connection
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
 
 	// Create MongoDB client options and connect
