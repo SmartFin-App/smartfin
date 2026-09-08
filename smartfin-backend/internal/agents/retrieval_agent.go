@@ -1,14 +1,9 @@
 package agents
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"log"
 	"math"
-	"net/http"
-	"os"
 	"sort"
 	"time"
 
@@ -25,7 +20,6 @@ type RetrievalAgent struct {
 	usersCol        *mongo.Collection
 	summariesCol    *mongo.Collection
 	chatMessagesCol *mongo.Collection
-	httpClient      *http.Client
 }
 
 // NewRetrievalAgent creates a new FinancialRetrievalAgent
@@ -35,7 +29,6 @@ func NewRetrievalAgent() *RetrievalAgent {
 		usersCol:        config.GetCollection("users"),
 		summariesCol:    config.GetCollection("monthly_summaries"),
 		chatMessagesCol: config.GetCollection("chat_messages"),
-		httpClient:      &http.Client{Timeout: 10 * time.Second},
 	}
 }
 
@@ -224,20 +217,10 @@ func (a *RetrievalAgent) GetRecentConversations(ctx context.Context, userID stri
 }
 
 // DetectSpendingAnomalies detects unusual transactions using an ML-service if configured,
-// or a statistical Z-score/IQR outlier baseline.
+// DetectSpendingAnomalies identifies unusual spending spikes or outliers using
+// statistical Z-score outlier baseline per category.
 func (a *RetrievalAgent) DetectSpendingAnomalies(ctx context.Context, userID string) (map[string]any, error) {
-	// 1. Check if external Isolation Forest ML-service URL is configured
-	mlServiceURL := os.Getenv("ML_SERVICE_URL")
-	if mlServiceURL != "" {
-		anomalies, err := a.queryMLIsolationForest(ctx, mlServiceURL, userID)
-		if err == nil {
-			log.Printf("Anomalies returned by ML Isolation Forest service for %s", userID)
-			return anomalies, nil
-		}
-		log.Printf("ML Service unavailable (%v), falling back to statistical anomaly baseline", err)
-	}
-
-	// 2. Statistical Baseline Anomaly Detection
+	// Statistical Anomaly Detection
 	// Fetch last 100 expense transactions to build category statistics
 	opts := options.Find().SetSort(bson.D{{Key: "date", Value: -1}}).SetLimit(100)
 	cursor, err := a.transactionsCol.Find(ctx, bson.M{"user_id": userID, "type": "expense"}, opts)
@@ -291,7 +274,7 @@ func (a *RetrievalAgent) DetectSpendingAnomalies(ctx context.Context, userID str
 		stats[cat] = catStat{mean: mean, stdDev: std}
 	}
 
-	// Flag transactions that deviate significantly (> 2.5 stddev or > 5000 over category average)
+	// Flag transactions that deviate significantly (> 2.2 stddev or > 2.5x category average)
 	var anomalies []map[string]any
 	for _, t := range txs {
 		cat := t.Category
@@ -318,46 +301,20 @@ func (a *RetrievalAgent) DetectSpendingAnomalies(ctx context.Context, userID str
 
 		if isOutlier {
 			anomalies = append(anomalies, map[string]any{
-				"id":          t.ID.Hex(),
-				"merchant":    t.Merchant,
-				"amount":      t.Amount,
-				"category":    t.Category,
-				"date":        t.Date.Format("2006-01-02"),
-				"reason":      reason,
-				"is_anomaly":  true,
+				"id":         t.ID.Hex(),
+				"merchant":   t.Merchant,
+				"amount":     t.Amount,
+				"category":   t.Category,
+				"date":       t.Date.Format("2006-01-02"),
+				"reason":     reason,
+				"is_anomaly": true,
 			})
 		}
 	}
 
 	return map[string]any{
-		"anomaly_count": len(anomalies),
-		"anomalies":     anomalies,
-		"detection_method": "statistical_baseline (ready for ML Isolation Forest)",
+		"anomaly_count":    len(anomalies),
+		"anomalies":        anomalies,
+		"detection_method": "statistical_zscore",
 	}, nil
-}
-
-// queryMLIsolationForest queries the external Python ML service when active
-func (a *RetrievalAgent) queryMLIsolationForest(ctx context.Context, mlServiceURL, userID string) (map[string]any, error) {
-	reqBody, _ := json.Marshal(map[string]string{"user_id": userID})
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, mlServiceURL+"/detect_anomalies", bytes.NewReader(reqBody))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := a.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("ml service returned status %d", resp.StatusCode)
-	}
-
-	var result map[string]any
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
-	return result, nil
 }
