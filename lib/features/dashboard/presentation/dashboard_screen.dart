@@ -8,6 +8,8 @@ import 'package:smart_fin/core/network/dio_client.dart';
 import 'package:smart_fin/widgets/bottom_nav_bar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:smart_fin/features/transactions/data/transaction_repository_impl.dart';
+import 'package:smart_fin/features/scanner/services/gallery_watcher_service.dart';
+import 'package:smart_fin/features/scanner/presentation/widgets/slip_detection_sheet.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -16,7 +18,7 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingObserver {
   Map<String, dynamic>? _monthlySummary;
   Map<String, dynamic>? _previousSummary;
   List<Map<String, dynamic>> _recentTransactions = [];
@@ -41,7 +43,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadData();
+    // Check for any newly saved slips in the background shortly after startup
+    Future.delayed(const Duration(seconds: 2), _checkForNewSlips);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // When returning from banking apps (PromptPay payment slip saved to gallery)
+    if (state == AppLifecycleState.resumed) {
+      _checkForNewSlips();
+    }
+  }
+
+  Future<void> _checkForNewSlips() async {
+    if (!mounted) return;
+    try {
+      final slip = await GalleryWatcherService().checkForNewSlips();
+      if (slip != null && mounted) {
+        SlipDetectionSheet.show(context, slip);
+      }
+    } catch (e) {
+      debugPrint('Error auto-checking slips: $e');
+    }
   }
 
   Future<void> _loadData() async {

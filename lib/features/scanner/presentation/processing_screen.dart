@@ -16,7 +16,6 @@ class ProcessingScreen extends StatefulWidget {
 
 class _ProcessingScreenState extends State<ProcessingScreen>
     with TickerProviderStateMixin {
-  bool _isProcessing = true;
   String _statusMessage = 'Scanning your receipt...';
 
   late AnimationController _bounceController;
@@ -82,14 +81,12 @@ class _ProcessingScreenState extends State<ProcessingScreen>
     if (result.success) {
       setState(() {
         _statusMessage = 'Almost done...';
-        _isProcessing = false;
       });
       await Future.delayed(const Duration(milliseconds: 500));
       if (mounted) {
         context.go('/verify', extra: result.data);
       }
     } else {
-      setState(() => _isProcessing = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result.error ?? 'Failed to process receipt')),

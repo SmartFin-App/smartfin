@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:smart_fin/features/scanner/services/gallery_watcher_service.dart';
+import 'package:smart_fin/features/scanner/presentation/widgets/slip_detection_sheet.dart';
 
 class ActionHubSheet extends StatelessWidget {
   const ActionHubSheet({super.key});
@@ -145,7 +147,46 @@ class ActionHubSheet extends StatelessWidget {
               context.go('/scanner');
             },
           ),
+
+          const SizedBox(height: 12),
+
+          // Row 1.5 - SmartFin Slips Album (Gallery Watcher)
+          _buildActionRow(
+            context: context,
+            bgColor: const Color.fromRGBO(74, 144, 226, 0.05),
+            borderColor: const Color.fromRGBO(74, 144, 226, 0.15),
+            iconBgColor: const Color(0xFF4A90E2),
+            icon: Icons.photo_album_outlined,
+            iconColor: Colors.white,
+            iconShadow: [
+              BoxShadow(
+                color: const Color.fromRGBO(74, 144, 226, 0.25),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              )
+            ],
+            title: "SmartFin Slips Album",
+            subtitle: "Auto-detect PromptPay slips",
+            onTap: () async {
+              Navigator.pop(context);
+              final slip = await GalleryWatcherService().checkForNewSlips();
+              if (slip != null && context.mounted) {
+                SlipDetectionSheet.show(context, slip);
+              } else if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      "No new slips in 'SmartFin Receipts'. Save PromptPay slips to that album to auto-detect! 🐾",
+                    ),
+                    duration: Duration(seconds: 3),
+                  ),
+                );
+              }
+            },
+          ),
           
+          const SizedBox(height: 12),
+
           // Row 2 - Manual Expense
           _buildActionRow(
             context: context,

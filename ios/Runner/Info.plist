@@ -68,6 +68,8 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>SmartFin needs camera access to scan receipts</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>SmartFin needs photo library access to detect payment slips in your SmartFin Receipts album.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

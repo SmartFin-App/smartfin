@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:smart_fin/features/scanner/services/gallery_watcher_service.dart';
+import 'package:smart_fin/features/scanner/presentation/widgets/slip_detection_sheet.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -129,6 +131,46 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
                           border: Border.all(color: const Color.fromRGBO(255, 255, 255, 0.1)),
                         ),
                         child: const Icon(Icons.chevron_left, color: Colors.white, size: 22),
+                      ),
+                    ),
+                    // Slips Album Watcher Button
+                    GestureDetector(
+                      onTap: () async {
+                        final slip = await GalleryWatcherService().checkForNewSlips();
+                        if (slip != null && context.mounted) {
+                          SlipDetectionSheet.show(context, slip);
+                        } else if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("No new slips in 'SmartFin Receipts'. Save PromptPay slips to that album! 🐾"),
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color.fromRGBO(255, 159, 41, 0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color.fromRGBO(255, 159, 41, 0.4)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.photo_album_outlined, color: Color(0xFFFF9F29), size: 16),
+                            const SizedBox(width: 6),
+                            Text(
+                              "SLIPS ALBUM 🐾",
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 10,
+                                letterSpacing: 1,
+                                color: const Color(0xFFFF9F29),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     // Flash (decorative in demo mode)

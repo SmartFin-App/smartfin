@@ -84,19 +84,19 @@ func (h *ScannerHandler) ProcessReceipt(c *fiber.Ctx) error {
 	model.SetTemperature(0)
 
 	// Build the prompt
-	prompt := `Analyze this receipt image and extract the following information. 
-Return ONLY a valid JSON object with no markdown, no code blocks, just pure JSON.
+	prompt := `Analyze this image, which is either a retail receipt or a Thai mobile banking payment confirmation slip (e-slip from PromptPay, K PLUS, SCB EASY, Krungthai NEXT, Bangkok Bank, etc.).
+Extract the following key financial information. Return ONLY a valid JSON object with no markdown, no code blocks, just pure JSON.
 
 Extract:
-- merchant_name: the store or restaurant name (if Thai text, transliterate to English)
-- total_amount: the final total amount as an integer number only (no currency symbols, no decimals)
-- date: the date in YYYY-MM-DD format (if not found use today's date)
+- merchant_name: the store, merchant, or recipient name (if written in Thai, transliterate to clear English, e.g. "Somchai Market" or "KFC Central World")
+- total_amount: the final transaction or payment amount as an integer number only (no currency symbols, no decimals, e.g. 150)
+- date: the date in YYYY-MM-DD format (if only DD/MM/YYYY or Thai Buddhist year like 2567/2569 is shown, convert properly to Gregorian YYYY-MM-DD; if not found use today's date)
 - confidence: your confidence score from 0.0 to 1.0
 
 Example response:
-{"merchant_name":"Starbucks","total_amount":150,"date":"2026-04-01","confidence":0.95}
+{"merchant_name":"Lotus's","total_amount":350,"date":"2026-04-01","confidence":0.95}
 
-If you cannot read the receipt clearly, still return your best guess with a low confidence score.`
+If you cannot read the image clearly, still return your best guess with a lower confidence score.`
 
 	// Send image + prompt to Gemini
 	imageData := genai.Blob{MIMEType: mimeType, Data: imageBytes}
