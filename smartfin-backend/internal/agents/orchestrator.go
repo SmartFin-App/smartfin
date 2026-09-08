@@ -96,7 +96,7 @@ You are equipped with specialized multi-agent tools to query data, execute finan
 
 Follow this Reasoning Process:
 1. ORCHESTRATE: Analyze what information or action the user requires:
-   - Need personal financial data? Call FinancialRetrievalAgent tools (get_budget_summary, get_transactions, get_recent_conversations, detect_spending_anomalies).
+   - Need personal financial data? Call FinancialRetrievalAgent tools (get_budget_summary, get_transactions, get_recent_conversations).
    - Need to perform a financial action? Call FinancialActionAgent tools (set_savings_goal, update_budget_limit, add_transaction).
    - Need external market/interest/tax/economic facts? Call FinancialResearchAgent (web_search).
 2. OBSERVE: Review the returned observations. If you still lack necessary details, invoke additional tools.
@@ -257,10 +257,6 @@ func (o *Orchestrator) dispatchTool(ctx context.Context, userID, toolName string
 		}
 		res, err := o.retrievalAgent.GetRecentConversations(ctx, userID, limit)
 		return map[string]any{"conversations": res}, nil, err
-
-	case "detect_spending_anomalies":
-		res, err := o.retrievalAgent.DetectSpendingAnomalies(ctx, userID)
-		return res, nil, err
 
 	// ── FinancialActionAgent Tools ──
 	case "set_savings_goal":
@@ -447,16 +443,6 @@ func (o *Orchestrator) getFunctionDeclarations() []*genai.FunctionDeclaration {
 						Description: "Number of past messages to fetch (default 5).",
 					},
 				},
-			},
-		},
-
-		// 8. detect_spending_anomalies (FinancialRetrievalAgent)
-		{
-			Name:        "detect_spending_anomalies",
-			Description: "Analyze user transactions to detect weird or unusual spending patterns, outliers, and spikes across categories.",
-			Parameters: &genai.Schema{
-				Type:       genai.TypeObject,
-				Properties: map[string]*genai.Schema{},
 			},
 		},
 	}

@@ -11,14 +11,13 @@ func TestFunctionDeclarations(t *testing.T) {
 	decls := orch.getFunctionDeclarations()
 
 	expectedTools := map[string]bool{
-		"web_search":                 false,
-		"set_savings_goal":           false,
-		"update_budget_limit":        false,
-		"add_transaction":            false,
-		"get_budget_summary":         false,
-		"get_transactions":           false,
-		"get_recent_conversations":   false,
-		"detect_spending_anomalies":  false,
+		"web_search":               false,
+		"set_savings_goal":         false,
+		"update_budget_limit":      false,
+		"add_transaction":          false,
+		"get_budget_summary":       false,
+		"get_transactions":         false,
+		"get_recent_conversations": false,
 	}
 
 	for _, d := range decls {
@@ -35,8 +34,8 @@ func TestFunctionDeclarations(t *testing.T) {
 		}
 	}
 
-	if len(decls) != 8 {
-		t.Errorf("Expected 8 declared tools, got %d", len(decls))
+	if len(decls) != 7 {
+		t.Errorf("Expected 7 declared tools, got %d", len(decls))
 	}
 }
 
