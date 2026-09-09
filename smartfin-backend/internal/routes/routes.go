@@ -19,6 +19,7 @@ func SetupRoutes(app *fiber.App) {
 	scannerHandler := handlers.NewScannerHandler()
 	coachHandler := handlers.NewCoachHandler()
 	summaryHandler := handlers.NewSummaryHandler()
+	photoHandler := handlers.NewPhotoHandler()
 
 	// Setup an API group with prefix /api
 	api := app.Group("/api")
@@ -29,6 +30,12 @@ func SetupRoutes(app *fiber.App) {
 	users.Get("/:firebase_uid", userHandler.GetUserByFirebaseUID)
 	users.Put("/:firebase_uid", userHandler.UpdateUser)
 	users.Patch("/:firebase_uid", userHandler.UpdateUser) // alias for Flutter PATCH calls
+	users.Delete("/:firebase_uid", userHandler.DeleteUser)
+
+	// Profile photo (stored in GridFS, referenced by a relative path)
+	users.Post("/:firebase_uid/photo", photoHandler.UploadPhoto)
+	users.Get("/:firebase_uid/photo", photoHandler.GetPhoto)
+	users.Delete("/:firebase_uid/photo", photoHandler.DeletePhoto)
 
 	// Transaction routes under /api/transactions
 	transactions := api.Group("/transactions")
@@ -50,6 +57,7 @@ func SetupRoutes(app *fiber.App) {
 	// Summary routes under /api/summary
 	summary := api.Group("/summary")
 	summary.Get("/:user_id/history", summaryHandler.GetSummaryHistory)
+	summary.Get("/:user_id/savings-goal", summaryHandler.GetSavingsProgress)
 	summary.Get("/:user_id", summaryHandler.GetMonthlySummary)
 
 	// Admin routes

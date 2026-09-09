@@ -15,13 +15,14 @@ import (
 
 	"github.com/SmartFin-App/smartfin-backend/config"
 	"github.com/SmartFin-App/smartfin-backend/internal/models"
+	"github.com/SmartFin-App/smartfin-backend/internal/summaries"
 )
 
 // SummaryHandler handles monthly financial summary requests
 type SummaryHandler struct {
-	summariesCollection   *mongo.Collection
+	summariesCollection    *mongo.Collection
 	transactionsCollection *mongo.Collection
-	usersCollection       *mongo.Collection
+	usersCollection        *mongo.Collection
 }
 
 // NewSummaryHandler creates a new SummaryHandler
@@ -57,21 +58,11 @@ func (h *SummaryHandler) calculateMonthlySummary(ctx context.Context, userID, mo
 		}
 	}
 
-	// Parse "2026-04" into start / end dates
-	parts := strings.Split(month, "-")
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("invalid month format: %s", month)
-	}
-	year, err := strconv.Atoi(parts[0])
+	// Parse "2026-04" into its [start, end) window
+	startDate, endDate, err := summaries.Bounds(month)
 	if err != nil {
-		return nil, fmt.Errorf("invalid year: %w", err)
+		return nil, err
 	}
-	monthNum, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return nil, fmt.Errorf("invalid month number: %w", err)
-	}
-	startDate := time.Date(year, time.Month(monthNum), 1, 0, 0, 0, 0, time.UTC)
-	endDate := startDate.AddDate(0, 1, 0) // first day of the next month
 
 	// Fetch all transactions for this user in this month
 	filter := bson.M{
@@ -127,10 +118,10 @@ func (h *SummaryHandler) calculateMonthlySummary(ctx context.Context, userID, mo
 		categorySlice = []models.CategorySummary{}
 	}
 
-	// Determine whether the month is frozen (past month = no recalculation needed)
-	now := time.Now()
-	currentMonth := fmt.Sprintf("%d-%02d", now.Year(), int(now.Month()))
-	isFrozen := month != currentMonth
+	// A month is frozen only once it has fully elapsed. Deriving this from the
+	// window (rather than comparing month strings against the server's clock)
+	// keeps a client an hour ahead of the server from freezing a live month at zero.
+	isFrozen := !time.Now().Before(endDate)
 
 	// Calculate budget percentage safely
 	budgetPct := float64(0)
@@ -180,9 +171,13 @@ func (h *SummaryHandler) GetOrCreateSummary(ctx context.Context, userID, month s
 		if err != nil {
 			return nil, err
 		}
+		// ReplaceOne, not $set: a $set document carrying _id is rejected as an
+		// immutable-field update, which silently left the cached copy stale while
+		// the caller still saw correct in-memory numbers.
 		fresh.ID = existing.ID // preserve original document ID
-		update := bson.M{"$set": fresh}
-		_, _ = h.summariesCollection.UpdateOne(ctx, filter, update)
+		if _, err := h.summariesCollection.ReplaceOne(ctx, bson.M{"_id": existing.ID}, fresh); err != nil {
+			log.Printf("Warning: could not refresh summary for %s/%s: %v", userID, month, err)
+		}
 		return fresh, nil
 	}
 
@@ -275,25 +270,110 @@ func (h *SummaryHandler) GetSummaryHistory(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Build last 6 month strings (current + 5 previous)
-	now := time.Now()
-	var summaries []models.MonthlySummary
+	// Build last 6 month strings (current + 5 previous). Anchor to the first of
+	// the month before subtracting: AddDate normalises overflow days, so running
+	// this on the 31st would otherwise skip 30-day months and duplicate others.
+	now := time.Now().In(summaries.Zone)
+	anchor := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, summaries.Zone)
+	var history []models.MonthlySummary
 
 	for i := 0; i < 6; i++ {
-		t := now.AddDate(0, -i, 0)
-		month := fmt.Sprintf("%d-%02d", t.Year(), int(t.Month()))
+		month := summaries.StringOf(anchor.AddDate(0, -i, 0))
 
 		s, err := h.GetOrCreateSummary(ctx, userID, month)
 		if err != nil {
 			log.Printf("Warning: could not get summary for %s/%s: %v", userID, month, err)
 			continue
 		}
-		summaries = append(summaries, *s)
+		history = append(history, *s)
 	}
 
 	return c.JSON(fiber.Map{
-		"history": summaries,
-		"count":   len(summaries),
+		"history": history,
+		"count":   len(history),
+	})
+}
+
+// maxSavingsMonths bounds the walk-back. Each month costs a summary lookup, and a
+// goal that counts more than two years of history stops meaning much anyway.
+const maxSavingsMonths = 24
+
+// GetSavingsProgress handles GET /api/summary/:user_id/savings-goal
+//
+// "Saved so far" is the sum of each month's savings (income minus expenses, floored
+// at zero) from the month the account was created through the current one. It is
+// derived rather than tracked separately, so there is no balance for the user to
+// keep up to date and no second source of truth to drift from the transactions.
+func (h *SummaryHandler) GetSavingsProgress(c *fiber.Ctx) error {
+	userID := c.Params("user_id")
+	if userID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "user_id is required"})
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	var user models.User
+	if err := h.usersCollection.FindOne(ctx, bson.M{"firebase_uid": userID}).Decode(&user); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch user"})
+	}
+
+	now := time.Now().In(summaries.Zone)
+	anchor := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, summaries.Zone)
+
+	// Count from account creation, but never further back than the cap.
+	months := maxSavingsMonths
+	if !user.CreatedAt.IsZero() {
+		created := user.CreatedAt.In(summaries.Zone)
+		elapsed := (anchor.Year()-created.Year())*12 + int(anchor.Month()) - int(created.Month())
+		if elapsed >= 0 && elapsed+1 < months {
+			months = elapsed + 1
+		}
+	}
+
+	var saved int64
+	var lastMonthSavings int64
+	counted := 0
+
+	for i := 0; i < months; i++ {
+		month := summaries.StringOf(anchor.AddDate(0, -i, 0))
+		s, err := h.GetOrCreateSummary(ctx, userID, month)
+		if err != nil {
+			log.Printf("Warning: savings progress skipped %s/%s: %v", userID, month, err)
+			continue
+		}
+		saved += s.Savings
+		if i == 1 {
+			lastMonthSavings = s.Savings
+		}
+		counted++
+	}
+
+	goal := user.SavingsGoal
+	percentage := float64(0)
+	var remaining int64
+	if goal > 0 {
+		remaining = maxInt64(0, goal-saved)
+		percentage = float64(saved) / float64(goal) * 100
+		if percentage > 100 {
+			percentage = 100
+		}
+	}
+
+	return c.JSON(fiber.Map{
+		"user_id":            userID,
+		"has_goal":           goal > 0,
+		"goal":               goal,
+		"goal_name":          user.SavingsGoalName,
+		"target_date":        user.SavingsTargetDate,
+		"saved":              saved,
+		"remaining":          remaining,
+		"percentage":         percentage,
+		"last_month_savings": lastMonthSavings,
+		"months_counted":     counted,
 	})
 }
 
@@ -317,6 +397,7 @@ func formatAmountCommas(amount int64) string {
 	}
 	return result.String()
 }
+
 // ResetSummaries handles DELETE /admin/reset-summaries
 func (h *SummaryHandler) ResetSummaries(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

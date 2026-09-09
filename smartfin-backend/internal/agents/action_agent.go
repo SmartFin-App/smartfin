@@ -8,6 +8,7 @@ import (
 
 	"github.com/SmartFin-App/smartfin-backend/config"
 	"github.com/SmartFin-App/smartfin-backend/internal/models"
+	"github.com/SmartFin-App/smartfin-backend/internal/summaries"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -81,12 +82,10 @@ func (a *ActionAgent) UpdateBudgetLimit(ctx context.Context, userID string, budg
 		return nil, fmt.Errorf("failed to update budget limit: %w", err)
 	}
 
-	// Also update current month's summary if it exists
-	now := time.Now()
-	currentMonth := fmt.Sprintf("%d-%02d", now.Year(), int(now.Month()))
-	_, _ = a.summariesCol.UpdateOne(ctx, bson.M{"user_id": userID, "month": currentMonth}, bson.M{
-		"$set": bson.M{"budget_limit": budgetLimit},
-	})
+	// Invalidate rather than patch the single field: patching budget_limit in place
+	// left budget_percentage computed against the old limit, so the coach quoted a
+	// percentage that did not match the limit it had just set.
+	summaries.Invalidate(ctx, a.summariesCol, userID, summaries.StringOf(time.Now()))
 
 	log.Printf("ActionAgent: UpdateBudgetLimit for user %s to ฿%d", userID, budgetLimit)
 
@@ -107,7 +106,9 @@ func (a *ActionAgent) AddTransaction(ctx context.Context, userID, merchant strin
 		return nil, fmt.Errorf("transaction amount must be greater than 0")
 	}
 	if txType != "income" && txType != "expense" {
-		txType = "expense"
+		// Surface the error to the model instead of silently recording a
+		// hallucinated type (e.g. "transfer") as spending.
+		return nil, fmt.Errorf("transaction type must be 'income' or 'expense', got %q", txType)
 	}
 	if category == "" {
 		if txType == "income" {
@@ -121,11 +122,18 @@ func (a *ActionAgent) AddTransaction(ctx context.Context, userID, merchant strin
 	if dateStr != "" {
 		// Try parsing common date formats
 		formats := []string{"2006-01-02", "2006/01/02", "02-01-2006", "02/01/2006", time.RFC3339}
+		parsedOK := false
 		for _, f := range formats {
 			if parsed, err := time.Parse(f, dateStr); err == nil {
 				txDate = parsed
+				parsedOK = true
 				break
 			}
+		}
+		if !parsedOK {
+			// Reporting this lets the model retry with a real date rather than
+			// having the transaction silently filed under today.
+			return nil, fmt.Errorf("could not parse date %q, use YYYY-MM-DD", dateStr)
 		}
 	}
 
@@ -148,21 +156,22 @@ func (a *ActionAgent) AddTransaction(ctx context.Context, userID, merchant strin
 		return nil, fmt.Errorf("failed to insert transaction: %w", err)
 	}
 
-	// Delete or refresh cached summary for that month so the next retrieval sees the new data
-	monthStr := fmt.Sprintf("%d-%02d", txDate.Year(), int(txDate.Month()))
-	_, _ = a.summariesCol.DeleteOne(ctx, bson.M{"user_id": userID, "month": monthStr, "is_frozen": false})
+	// Drop the cached summary for that month so the next retrieval recomputes it.
+	// This must not spare frozen months: a backdated entry is exactly the case that
+	// used to stay invisible to every total while still showing in the list.
+	summaries.InvalidateFor(ctx, a.summariesCol, userID, txDate)
 
 	log.Printf("ActionAgent: AddTransaction for user %s: %s ฿%d (%s) on %s", userID, txType, amount, merchant, txDate.Format("2006-01-02"))
 
 	return map[string]any{
-		"status":      "success",
-		"action":      "add_transaction",
-		"id":          tx.ID.Hex(),
-		"merchant":    merchant,
-		"amount":      amount,
-		"type":        txType,
-		"category":    category,
-		"date":        txDate.Format("2006-01-02"),
-		"message":     fmt.Sprintf("Successfully recorded %s of ฿%d at %s (%s)", txType, amount, merchant, category),
+		"status":   "success",
+		"action":   "add_transaction",
+		"id":       tx.ID.Hex(),
+		"merchant": merchant,
+		"amount":   amount,
+		"type":     txType,
+		"category": category,
+		"date":     txDate.Format("2006-01-02"),
+		"message":  fmt.Sprintf("Successfully recorded %s of ฿%d at %s (%s)", txType, amount, merchant, category),
 	}, nil
 }

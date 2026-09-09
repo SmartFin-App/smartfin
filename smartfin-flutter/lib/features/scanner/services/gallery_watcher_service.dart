@@ -18,6 +18,17 @@ class DetectedSlip {
   });
 }
 
+/// Why a slip check came back without a slip — so the UI can tell "you denied photo
+/// access" apart from "there is nothing new", which used to look identical.
+enum SlipCheckStatus { found, none, noAlbum, permissionDenied, disabled }
+
+class SlipCheckResult {
+  final SlipCheckStatus status;
+  final DetectedSlip? slip;
+
+  const SlipCheckResult(this.status, [this.slip]);
+}
+
 /// Service that monitors the "SmartFin Receipts" gallery album
 /// to detect newly saved PromptPay / mobile banking payment confirmation slips.
 class GalleryWatcherService {
@@ -99,19 +110,10 @@ class GalleryWatcherService {
         }
       }
 
-      // 4. Graceful fallback: If no dedicated slip album exists, use Download or Recent/All
-      for (final album in albums) {
-        final lower = album.name.toLowerCase();
-        if (lower == 'download' || lower == 'recent' || lower == 'recent photos' || album.isAll) {
-          debugPrint("GalleryWatcher: Falling back to general album: '${album.name}'");
-          return album;
-        }
-      }
-
-      if (albums.isNotEmpty) {
-        return albums.first;
-      }
-
+      // Deliberately no fallback to Download / Recent / All: matching those made
+      // every photo in the camera roll look like a payment slip, and auto-offered
+      // lunch photos to the scanner.
+      debugPrint("GalleryWatcher: No slip-specific album found.");
       return null;
     } catch (e) {
       debugPrint('Error finding slips album: $e');
@@ -119,19 +121,25 @@ class GalleryWatcherService {
     }
   }
 
+  /// Check for new unprocessed slips, reporting *why* when there are none.
+  Future<DetectedSlip?> checkForNewSlips() async =>
+      (await checkForNewSlipsDetailed()).slip;
+
   /// Check if there are any new unprocessed slips in the album
-  Future<DetectedSlip?> checkForNewSlips() async {
+  Future<SlipCheckResult> checkForNewSlipsDetailed() async {
     try {
       final enabled = await isWatcherEnabled();
-      if (!enabled) return null;
+      if (!enabled) return const SlipCheckResult(SlipCheckStatus.disabled);
 
       final permitted = await requestPermission();
-      if (!permitted) return null;
+      if (!permitted) {
+        return const SlipCheckResult(SlipCheckStatus.permissionDenied);
+      }
 
       final album = await findSlipsAlbum();
       if (album == null) {
         debugPrint("GalleryWatcher: Album '$targetAlbumName' not found in gallery yet.");
-        return null;
+        return const SlipCheckResult(SlipCheckStatus.noAlbum);
       }
 
       // Fetch the latest 10 images from the album
@@ -140,7 +148,7 @@ class GalleryWatcherService {
         end: 10,
       );
 
-      if (assets.isEmpty) return null;
+      if (assets.isEmpty) return const SlipCheckResult(SlipCheckStatus.none);
 
       final prefs = await SharedPreferences.getInstance();
       final processedIds = (prefs.getStringList(_processedSlipsKey) ?? []).toSet();
@@ -150,20 +158,23 @@ class GalleryWatcherService {
         if (!processedIds.contains(asset.id)) {
           final File? file = await asset.file;
           if (file != null && await file.exists()) {
-            return DetectedSlip(
-              asset: asset,
-              file: file,
-              albumName: album.name,
-              createDateTime: asset.createDateTime,
+            return SlipCheckResult(
+              SlipCheckStatus.found,
+              DetectedSlip(
+                asset: asset,
+                file: file,
+                albumName: album.name,
+                createDateTime: asset.createDateTime,
+              ),
             );
           }
         }
       }
 
-      return null;
+      return const SlipCheckResult(SlipCheckStatus.none);
     } catch (e) {
       debugPrint('Error checking for new slips: $e');
-      return null;
+      return const SlipCheckResult(SlipCheckStatus.none);
     }
   }
 

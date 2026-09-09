@@ -10,6 +10,8 @@ import 'package:smart_fin/features/scanner/presentation/verify_screen.dart';
 import 'package:smart_fin/features/coach/presentation/coach_screen.dart';
 import 'package:smart_fin/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:smart_fin/features/dashboard/presentation/profile_screen.dart';
+import 'package:smart_fin/features/dashboard/presentation/account_settings_screen.dart';
+import 'package:smart_fin/features/dashboard/presentation/security_privacy_screen.dart';
 import 'package:smart_fin/features/auth/presentation/onboarding_screen.dart';
 import 'package:smart_fin/features/auth/presentation/login_screen.dart';
 import 'package:smart_fin/features/auth/presentation/signup_screen.dart';
@@ -103,6 +105,16 @@ final GoRouter appRouter = GoRouter(
       name: 'profile',
       builder: (context, state) => const ProfileScreen(),
     ),
+    GoRoute(
+      path: '/account-settings',
+      name: 'account-settings',
+      builder: (context, state) => const AccountSettingsScreen(),
+    ),
+    GoRoute(
+      path: '/security-privacy',
+      name: 'security-privacy',
+      builder: (context, state) => const SecurityPrivacyScreen(),
+    ),
 
     // ── Scanner flow ─────────────────────────────────────────────────────
     GoRoute(
@@ -113,9 +125,19 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/processing',
       name: 'processing',
-      builder: (context, state) => ProcessingScreen(
-        imageFile: state.extra as File?,
-      ),
+      builder: (context, state) {
+        // Gallery-watcher slips pass {'file': File, 'assetId': String} so the asset
+        // can be marked processed only once its transaction is actually saved;
+        // the camera passes a bare File.
+        final extra = state.extra;
+        if (extra is Map) {
+          return ProcessingScreen(
+            imageFile: extra['file'] as File?,
+            slipAssetId: extra['assetId'] as String?,
+          );
+        }
+        return ProcessingScreen(imageFile: extra as File?);
+      },
     ),
     GoRoute(
       path: '/verify',

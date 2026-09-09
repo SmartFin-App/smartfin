@@ -2,24 +2,31 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/SmartFin-App/smartfin-backend/config"
 	"github.com/SmartFin-App/smartfin-backend/internal/models"
+	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 // UserHandler structure
 type UserHandler struct {
-	collection *mongo.Collection
+	collection             *mongo.Collection
+	transactionsCollection *mongo.Collection
+	summariesCollection    *mongo.Collection
+	chatMessagesCollection *mongo.Collection
 }
 
 // NewUserHandler returns a configured handler
 func NewUserHandler() *UserHandler {
 	return &UserHandler{
-		collection: config.GetCollection("users"),
+		collection:             config.GetCollection("users"),
+		transactionsCollection: config.GetCollection("transactions"),
+		summariesCollection:    config.GetCollection("monthly_summaries"),
+		chatMessagesCollection: config.GetCollection("chat_messages"),
 	}
 }
 
@@ -61,8 +68,6 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 		CurrentStatus:   req.CurrentStatus,
 		FinancialHealth: req.FinancialHealth,
 		BudgetLimit:     req.BudgetLimit,
-		WellnessScore:   75, // Default score
-		Level:           1,  // Default level
 		CreatedAt:       now,
 		UpdatedAt:       now,
 	}
@@ -105,15 +110,24 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "firebase_uid is required"})
 	}
 
-	var updateData map[string]interface{}
-	if err := c.BodyParser(&updateData); err != nil {
+	var req models.UpdateUserRequest
+	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	// Ensure we only update specific fields, safely ignore the immutable ones
-	delete(updateData, "_id")
-	delete(updateData, "firebase_uid")
-	delete(updateData, "created_at")
+	// Only the fields declared on UpdateUserRequest are writable, so _id,
+	// firebase_uid and created_at are unreachable by construction.
+	updateData := req.ToUpdateFields()
+	if len(updateData) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "No updatable fields provided"})
+	}
+
+	// Amounts are Thai Baht and never negative.
+	for _, field := range []string{"monthly_income", "budget_limit", "savings_goal"} {
+		if v, ok := updateData[field].(int64); ok && v < 0 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": field + " must not be negative"})
+		}
+	}
 
 	// Set updated_at directly
 	updateData["updated_at"] = time.Now()
@@ -140,4 +154,64 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "User updated successfully"})
+}
+
+// DeleteUser handles DELETE /api/users/:firebase_uid
+//
+// This erases the account and everything attached to it: transactions, monthly
+// summaries and coach conversations. It is irreversible and there is no soft
+// delete, so it must only be reachable behind a client-side reauthentication.
+//
+// NOTE: like the rest of this API it does not verify a Firebase token, so
+// possession of a UID is currently enough to wipe that user. Whoever adds token
+// verification should treat this handler as the first thing to cover.
+func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
+	firebaseUID := c.Params("firebase_uid")
+	if firebaseUID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "firebase_uid is required"})
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Delete the owned records first. If this half fails the account still exists,
+	// which is recoverable; an orphaned pile of transactions under a deleted user
+	// is not.
+	owned := bson.M{"user_id": firebaseUID}
+	deleted := map[string]int64{}
+
+	for name, col := range map[string]*mongo.Collection{
+		"transactions":  h.transactionsCollection,
+		"summaries":     h.summariesCollection,
+		"chat_messages": h.chatMessagesCollection,
+	} {
+		res, err := col.DeleteMany(ctx, owned)
+		if err != nil {
+			log.Printf("DeleteUser: failed clearing %s for %s: %v", name, firebaseUID, err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to delete account data",
+			})
+		}
+		deleted[name] = res.DeletedCount
+	}
+
+	res, err := h.collection.DeleteOne(ctx, bson.M{"firebase_uid": firebaseUID})
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete user"})
+	}
+	if res.DeletedCount == 0 {
+		// The owned records are already gone, so report success rather than 404:
+		// the caller's goal (no data for this UID) now holds either way.
+		log.Printf("DeleteUser: no profile document for %s, owned records cleared", firebaseUID)
+	}
+
+	log.Printf("DeleteUser: erased %s (%d transactions, %d summaries, %d messages)",
+		firebaseUID, deleted["transactions"], deleted["summaries"], deleted["chat_messages"])
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message":      "Account deleted successfully",
+		"transactions": deleted["transactions"],
+		"summaries":    deleted["summaries"],
+		"messages":     deleted["chat_messages"],
+	})
 }

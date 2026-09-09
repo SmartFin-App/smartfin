@@ -194,16 +194,15 @@ class SlipDetectionSheet extends StatelessWidget {
                   ),
                   shadowColor: AppColors.primaryGlow,
                 ),
-                onPressed: () async {
-                  // 1. Mark slip as processed so it won't prompt again
-                  await GalleryWatcherService().markSlipAsProcessed(slip.asset.id);
-
-                  // 2. Close bottom sheet
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-                    // 3. Route to existing receipt processing pipeline!
-                    context.go('/processing', extra: slip.file);
-                  }
+                onPressed: () {
+                  // The asset id travels with the image and is marked processed only
+                  // after the transaction saves. Marking here meant a failed scan
+                  // (server down, bad image) hid the slip from the watcher forever.
+                  Navigator.of(context).pop();
+                  context.go('/processing', extra: {
+                    'file': slip.file,
+                    'assetId': slip.asset.id,
+                  });
                 },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,

@@ -23,6 +23,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   Map<String, dynamic>? _previousSummary;
   List<Map<String, dynamic>> _recentTransactions = [];
   bool _isLoading = true;
+  bool _loadFailed = false;
+  Map<String, dynamic>? _savingsProgress;
   String _userName = 'there';
   String _currentMonth = '';
 
@@ -75,11 +77,166 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     }
   }
 
+  /// Waits briefly for Firebase to restore a persisted session before giving up,
+  /// rather than firing requests with an empty uid.
+  Future<String> _resolveUid() async {
+    final current = FirebaseAuth.instance.currentUser?.uid;
+    if (current != null && current.isNotEmpty) return current;
+    try {
+      final user = await FirebaseAuth.instance
+          .authStateChanges()
+          .firstWhere((u) => u != null)
+          .timeout(const Duration(seconds: 5));
+      return user?.uid ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  bool get _hasSavingsGoal => _savingsProgress?['has_goal'] == true;
+
+  String _baht(num amount) {
+    return '฿${amount.round().toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (m) => "${m[1]},")}';
+  }
+
+  /// Progress toward the savings goal. "Saved" is derived server-side by summing
+  /// each month's savings since the account was created, so it always agrees with
+  /// the transactions rather than being a second figure the user has to maintain.
+  Widget _buildSavingsGoalCard() {
+    final p = _savingsProgress!;
+    final goal = (p['goal'] as num?) ?? 0;
+    final saved = (p['saved'] as num?) ?? 0;
+    final remaining = (p['remaining'] as num?) ?? 0;
+    final pct = ((p['percentage'] as num?) ?? 0).toDouble().clamp(0, 100).toDouble();
+    final name = (p['goal_name'] as String?) ?? '';
+    final lastMonth = (p['last_month_savings'] as num?) ?? 0;
+    final reached = remaining <= 0 && goal > 0;
+
+    return GestureDetector(
+      onTap: () => context.go('/profile'),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.5)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color.fromRGBO(255, 159, 41, 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.savings_outlined,
+                      size: 19, color: Color(0xFFFF9F29)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name.isNotEmpty ? name : 'Savings Goal',
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: const Color(0xFF333333),
+                        ),
+                      ),
+                      Text(
+                        reached
+                            ? 'Goal reached 🐾'
+                            : '${_baht(remaining)} to go',
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                          color: reached
+                              ? const Color(0xFF4CAF50)
+                              : const Color(0xFF9E9E9E),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  '${pct.round()}%',
+                  style: GoogleFonts.bricolageGrotesque(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 20,
+                    color: reached
+                        ? const Color(0xFF4CAF50)
+                        : const Color(0xFFFF9F29),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(9999),
+              child: LinearProgressIndicator(
+                value: pct / 100,
+                minHeight: 8,
+                backgroundColor: const Color.fromRGBO(240, 235, 225, 0.8),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  reached ? const Color(0xFF4CAF50) : const Color(0xFFFF9F29),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${_baht(saved)} of ${_baht(goal)}',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    color: const Color(0xFF333333),
+                  ),
+                ),
+                if (lastMonth > 0)
+                  Text(
+                    '+${_baht(lastMonth)} last month',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
+                      color: const Color(0xFF4CAF50),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _loadData() async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _loadFailed = false;
+    });
 
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    // Firebase restores a persisted session asynchronously, so on a cold start
+    // currentUser can still be null here. Requesting with an empty uid 404s and
+    // used to render a fabricated all-zero month indistinguishable from a real one.
+    final uid = await _resolveUid();
+    if (uid.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _loadFailed = true;
+        });
+      }
+      return;
+    }
     final now = DateTime.now();
     _currentMonth = '${now.year}-${now.month.toString().padLeft(2, '0')}';
     int mongoIncome = 0;
@@ -113,6 +270,22 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             setState(() => _recentTransactions = res.data ?? []);
           }
         }),
+        // Savings goal progress — non-fatal, the rest of the dashboard stands
+        // without it.
+        // Wrapped so a failure here cannot reject the whole Future.wait and take
+        // the rest of the dashboard down with it.
+        () async {
+          try {
+            final res =
+                await DioClient.dio.get('/api/summary/$uid/savings-goal');
+            if (mounted) {
+              setState(
+                  () => _savingsProgress = res.data as Map<String, dynamic>?);
+            }
+          } catch (e) {
+            debugPrint('Savings progress unavailable: $e');
+          }
+        }(),
       ]);
 
       // Fetch user profile from MongoDB and sync SharedPreferences
@@ -141,6 +314,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       }
     } catch (e) {
       debugPrint('Error loading dashboard data: $e');
+      if (mounted && _monthlySummary == null) {
+        setState(() => _loadFailed = true);
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -378,7 +554,42 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                       const SizedBox(height: 12),
 
                       // ── Budget Card ──────────────────────────────────────
-                      _isLoading
+                      // A failed load must not render as a real ฿0 month.
+                      _loadFailed && !_isLoading
+                          ? Container(
+                              height: 180,
+                              padding: const EdgeInsets.all(32),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEAE2D6),
+                                borderRadius: BorderRadius.circular(40),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.cloud_off_rounded,
+                                      color: Color(0xFF9E9E9E), size: 28),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    "Couldn't load this month",
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 16,
+                                      color: AppColors.textDark,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Pull down to try again",
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      color: const Color(0xFF9E9E9E),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : _isLoading
                           ? Container(
                               height: 180,
                               decoration: BoxDecoration(
@@ -573,7 +784,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                                           ),
                                         ),
                                 ),
-                                if (savingsMessage != null && savingsMessage.isNotEmpty)
+                                if (!_hasSavingsGoal &&
+                                    savingsMessage != null &&
+                                    savingsMessage.isNotEmpty)
                                   Padding(
                                     padding: const EdgeInsets.only(top: 12),
                                     child: Container(
@@ -598,6 +811,11 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                           ),
                         ],
                       ),
+
+                      if (_hasSavingsGoal) ...[
+                        const SizedBox(height: 24),
+                        _buildSavingsGoalCard(),
+                      ],
 
                       const SizedBox(height: 48),
 
@@ -783,7 +1001,7 @@ class _IncomeSetupDialogState extends State<_IncomeSetupDialog> with TickerProvi
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('income_set', true);
-    await prefs.setDouble('user_income_amount', amount);
+    await prefs.setInt('user_income_amount', amount.round());
     
     if (mounted) {
       Navigator.of(context).pop(true);

@@ -3,10 +3,12 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/SmartFin-App/smartfin-backend/config"
 	"github.com/SmartFin-App/smartfin-backend/internal/models"
+	"github.com/SmartFin-App/smartfin-backend/internal/summaries"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -14,13 +16,49 @@ import (
 )
 
 type TransactionHandler struct {
-	collection *mongo.Collection
+	collection          *mongo.Collection
+	summariesCollection *mongo.Collection
 }
 
 func NewTransactionHandler() *TransactionHandler {
 	return &TransactionHandler{
-		collection: config.GetCollection("transactions"),
+		collection:          config.GetCollection("transactions"),
+		summariesCollection: config.GetCollection("monthly_summaries"),
 	}
+}
+
+// ownerFromRequest resolves the acting user's Firebase UID from the query string or
+// request body. Firebase tokens are not verified yet, so this is an ownership scope
+// rather than authentication — but it stops a guessed ObjectID from reaching another
+// user's record, and it is the single place to swap for a verified token later.
+func ownerFromRequest(c *fiber.Ctx) string {
+	if uid := strings.TrimSpace(c.Query("user_id")); uid != "" {
+		return uid
+	}
+	var body struct {
+		UserID string `json:"user_id"`
+	}
+	if err := c.BodyParser(&body); err == nil {
+		return strings.TrimSpace(body.UserID)
+	}
+	return ""
+}
+
+// parseTxDate parses the date formats the clients send. It returns ok=false rather
+// than defaulting to today, so a date the server cannot read is reported instead of
+// silently filing the transaction under the wrong month.
+func parseTxDate(raw string) (time.Time, bool) {
+	formats := []string{
+		"2006-01-02",
+		time.RFC3339,
+		"2006-01-02T15:04:05Z07:00",
+	}
+	for _, format := range formats {
+		if parsed, err := time.Parse(format, raw); err == nil {
+			return parsed, true
+		}
+	}
+	return time.Time{}, false
 }
 
 // Helpers for string formatting
@@ -85,25 +123,13 @@ func (h *TransactionHandler) CreateTransaction(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Amount must be greater than 0"})
 	}
 
-	var txDate time.Time
+	txDate := time.Now()
 	if req.Date != "" {
-		formats := []string{
-			"2006-01-02",
-			time.RFC3339,
-			"2006-01-02T15:04:05Z07:00",
+		parsed, ok := parseTxDate(req.Date)
+		if !ok {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid date format, expected YYYY-MM-DD"})
 		}
-		var err error
-		for _, format := range formats {
-			txDate, err = time.Parse(format, req.Date)
-			if err == nil {
-				break
-			}
-		}
-		if err != nil {
-			txDate = time.Now()
-		}
-	} else {
-		txDate = time.Now()
+		txDate = parsed
 	}
 
 	source := req.Source
@@ -113,14 +139,14 @@ func (h *TransactionHandler) CreateTransaction(c *fiber.Ctx) error {
 
 	now := time.Now()
 	tx := models.Transaction{
-		ID:       bson.NewObjectID(),
-		UserID:   req.UserID,
-		Merchant: req.Merchant,
-		Amount:   req.Amount,
-		Type:     req.Type,
-		Category: req.Category,
-		Source:   source,
-		Date:     txDate,
+		ID:        bson.NewObjectID(),
+		UserID:    req.UserID,
+		Merchant:  req.Merchant,
+		Amount:    req.Amount,
+		Type:      req.Type,
+		Category:  req.Category,
+		Source:    source,
+		Date:      txDate,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
@@ -132,6 +158,8 @@ func (h *TransactionHandler) CreateTransaction(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create transaction"})
 	}
+
+	summaries.InvalidateFor(ctx, h.summariesCollection, tx.UserID, tx.Date)
 
 	return c.Status(fiber.StatusCreated).JSON(tx)
 }
@@ -199,7 +227,12 @@ func (h *TransactionHandler) GetTransactionByID(c *fiber.Ctx) error {
 	defer cancel()
 
 	var tx models.Transaction
-	err = h.collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&tx)
+	userID := ownerFromRequest(c)
+	if userID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "user_id is required"})
+	}
+
+	err = h.collection.FindOne(ctx, bson.M{"_id": objID, "user_id": userID}).Decode(&tx)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Transaction not found"})
@@ -223,6 +256,30 @@ func (h *TransactionHandler) UpdateTransaction(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Scope the write to its owner. Without this the handler has no notion of an
+	// owner at all, so a guessed ObjectID rewrites another user's record.
+	userID := ownerFromRequest(c)
+	if userID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "user_id is required"})
+	}
+
+	var existing models.Transaction
+	if err := h.collection.FindOne(ctx, bson.M{"_id": objID, "user_id": userID}).Decode(&existing); err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Transaction not found"})
+	}
+
+	// The same guards CreateTransaction applies — without them an update writes a
+	// negative amount or an out-of-enum type that every summary then miscounts.
+	if req.Amount != nil && *req.Amount <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Amount must be greater than 0"})
+	}
+	if req.Type != nil && *req.Type != "expense" && *req.Type != "income" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Type must be 'expense' or 'income'"})
+	}
+
 	updateData := bson.M{}
 	if req.Merchant != nil {
 		updateData["merchant"] = *req.Merchant
@@ -240,20 +297,11 @@ func (h *TransactionHandler) UpdateTransaction(c *fiber.Ctx) error {
 		updateData["source"] = *req.Source
 	}
 	if req.Date != nil {
-		formats := []string{
-			"2006-01-02",
-			time.RFC3339,
-			"2006-01-02T15:04:05Z07:00",
+		parsed, ok := parseTxDate(*req.Date)
+		if !ok {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid date format, expected YYYY-MM-DD"})
 		}
-		var parsedDate time.Time
-		var err error
-		for _, format := range formats {
-			parsedDate, err = time.Parse(format, *req.Date)
-			if err == nil {
-				updateData["date"] = parsedDate
-				break
-			}
-		}
+		updateData["date"] = parsed
 	}
 
 	if len(updateData) == 0 {
@@ -263,10 +311,7 @@ func (h *TransactionHandler) UpdateTransaction(c *fiber.Ctx) error {
 	updateData["updated_at"] = time.Now()
 	update := bson.M{"$set": updateData}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	res, err := h.collection.UpdateOne(ctx, bson.M{"_id": objID}, update)
+	res, err := h.collection.UpdateOne(ctx, bson.M{"_id": objID, "user_id": userID}, update)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update transaction"})
 	}
@@ -274,6 +319,13 @@ func (h *TransactionHandler) UpdateTransaction(c *fiber.Ctx) error {
 	if res.MatchedCount == 0 {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Transaction not found"})
 	}
+
+	// An edit that moves a transaction across a month boundary makes both stale.
+	newDate := existing.Date
+	if d, ok := updateData["date"].(time.Time); ok {
+		newDate = d
+	}
+	summaries.InvalidateFor(ctx, h.summariesCollection, userID, existing.Date, newDate)
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Transaction updated successfully"})
 }
@@ -289,7 +341,17 @@ func (h *TransactionHandler) DeleteTransaction(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	res, err := h.collection.DeleteOne(ctx, bson.M{"_id": objID})
+	userID := ownerFromRequest(c)
+	if userID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "user_id is required"})
+	}
+
+	var existing models.Transaction
+	if err := h.collection.FindOne(ctx, bson.M{"_id": objID, "user_id": userID}).Decode(&existing); err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Transaction not found"})
+	}
+
+	res, err := h.collection.DeleteOne(ctx, bson.M{"_id": objID, "user_id": userID})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete transaction"})
 	}
@@ -297,6 +359,8 @@ func (h *TransactionHandler) DeleteTransaction(c *fiber.Ctx) error {
 	if res.DeletedCount == 0 {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Transaction not found"})
 	}
+
+	summaries.InvalidateFor(ctx, h.summariesCollection, userID, existing.Date)
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Transaction deleted successfully"})
 }

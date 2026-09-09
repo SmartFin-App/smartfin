@@ -18,7 +18,6 @@ smartfin/
 │   ├── internal/handlers/  # HTTP endpoints (Coach, Scanner, Transactions)
 │   └── go.mod              # Go dependencies
 │
-├── evaluate_rag.py         # AI Agent RAG evaluation script
 └── API postman/            # Postman API collections
 ```
 

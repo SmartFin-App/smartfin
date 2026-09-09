@@ -8,7 +8,11 @@ import 'package:smart_fin/features/scanner/data/scanner_repository_impl.dart';
 class ProcessingScreen extends StatefulWidget {
   final File? imageFile;
 
-  const ProcessingScreen({super.key, this.imageFile});
+  /// Photo-library asset id when this scan came from the gallery watcher, so the
+  /// slip can be marked processed after — not before — its transaction is saved.
+  final String? slipAssetId;
+
+  const ProcessingScreen({super.key, this.imageFile, this.slipAssetId});
 
   @override
   State<ProcessingScreen> createState() => _ProcessingScreenState();
@@ -72,28 +76,40 @@ class _ProcessingScreenState extends State<ProcessingScreen>
 
     setState(() => _statusMessage = 'Reading receipt data...');
 
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    final result = await ScannerRepositoryImpl()
-        .processReceipt(widget.imageFile!, uid);
+    // Any throw here (a missing temp file, an unexpected response) would otherwise
+    // leave this screen spinning forever with no way back.
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final result = await ScannerRepositoryImpl()
+          .processReceipt(widget.imageFile!, uid);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (result.success) {
-      setState(() {
-        _statusMessage = 'Almost done...';
-      });
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (mounted) {
-        context.go('/verify', extra: result.data);
-      }
-    } else {
-      if (mounted) {
+      if (result.success) {
+        setState(() {
+          _statusMessage = 'Almost done...';
+        });
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          context.go('/verify', extra: {
+            ...?result.data,
+            if (widget.slipAssetId != null) 'asset_id': widget.slipAssetId,
+          });
+        }
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result.error ?? 'Failed to process receipt')),
         );
         await Future.delayed(const Duration(milliseconds: 1500));
         if (mounted) context.go('/scanner');
       }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not read that receipt: $e')),
+      );
+      await Future.delayed(const Duration(milliseconds: 1500));
+      if (mounted) context.go('/scanner');
     }
   }
 

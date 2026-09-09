@@ -47,6 +47,20 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
     return file;
   }
 
+  String _slipCheckMessage(SlipCheckStatus status) {
+    switch (status) {
+      case SlipCheckStatus.permissionDenied:
+        return "SmartFin needs photo access to spot your payment slips. Enable it in Settings.";
+      case SlipCheckStatus.disabled:
+        return "Slip auto-detection is turned off. You can re-enable it in your profile.";
+      case SlipCheckStatus.noAlbum:
+        return "No 'SmartFin Receipts' album yet. Save PromptPay slips to that album to auto-detect! 🐾";
+      case SlipCheckStatus.none:
+      case SlipCheckStatus.found:
+        return "No new slips found. You're all caught up! 🐾";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // 80% screen width, 4:5 aspect ratio
@@ -136,14 +150,16 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
                     // Slips Album Watcher Button
                     GestureDetector(
                       onTap: () async {
-                        final slip = await GalleryWatcherService().checkForNewSlips();
-                        if (slip != null && context.mounted) {
-                          SlipDetectionSheet.show(context, slip);
-                        } else if (context.mounted) {
+                        final result = await GalleryWatcherService()
+                            .checkForNewSlipsDetailed();
+                        if (!context.mounted) return;
+                        if (result.slip != null) {
+                          SlipDetectionSheet.show(context, result.slip!);
+                        } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("No new slips in 'SmartFin Receipts'. Save PromptPay slips to that album! 🐾"),
-                              duration: Duration(seconds: 3),
+                            SnackBar(
+                              content: Text(_slipCheckMessage(result.status)),
+                              duration: const Duration(seconds: 3),
                             ),
                           );
                         }

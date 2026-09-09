@@ -133,8 +133,10 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
       await prefs.setString('user_income', selectedIncome!);
       await prefs.setString('user_status', selectedStatus!);
       await prefs.setString('user_health', selectedHealth!);
-      await prefs.setDouble('user_income_amount', monthlyIncome);
-      await prefs.setDouble('user_budget_limit', budgetLimit);
+      // setInt, not setDouble: these are read back with getInt, which throws a
+      // TypeError on a stored double and left Profile showing ฿0.
+      await prefs.setInt('user_income_amount', monthlyIncome.round());
+      await prefs.setInt('user_budget_limit', budgetLimit.round());
       await prefs.setBool('onboarding_complete', true);
 
       if (mounted) {

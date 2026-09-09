@@ -47,7 +47,9 @@ class DioClient {
     final dio = Dio(BaseOptions(
       baseUrl: DioClient.baseUrl,
       connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 45),
+      // Must exceed the backend's own 45s coach budget: both clocks start together,
+      // so an equal value aborts requests the server has just finished.
+      receiveTimeout: const Duration(seconds: 60),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -96,10 +98,11 @@ class DioClient {
     if (e.response != null) {
       switch (e.response?.statusCode) {
         case 400:
-          // Try to extract message from response body if possible, otherwise fallback
+          // The backend reports failures under "error"; "message" is its success key.
           final data = e.response?.data;
-          if (data is Map<String, dynamic> && data['message'] != null) {
-            return data['message'].toString();
+          if (data is Map<String, dynamic> &&
+              (data['error'] ?? data['message']) != null) {
+            return (data['error'] ?? data['message']).toString();
           } else if (data is String) {
             return data;
           }
@@ -108,6 +111,12 @@ class DioClient {
           return "Unauthorized. Please log in again.";
         case 404:
           return "Not found.";
+        case 409:
+          final data = e.response?.data;
+          if (data is Map<String, dynamic> && data['error'] != null) {
+            return data['error'].toString();
+          }
+          return "That already exists.";
         case 500:
           return "Server error. Please try again later.";
         default:

@@ -87,6 +87,20 @@ class ActionHubSheet extends StatelessWidget {
     );
   }
 
+  String _slipCheckMessage(SlipCheckStatus status) {
+    switch (status) {
+      case SlipCheckStatus.permissionDenied:
+        return "SmartFin needs photo access to spot your payment slips. Enable it in Settings.";
+      case SlipCheckStatus.disabled:
+        return "Slip auto-detection is turned off. You can re-enable it in your profile.";
+      case SlipCheckStatus.noAlbum:
+        return "No 'SmartFin Receipts' album yet. Save PromptPay slips to that album to auto-detect! 🐾";
+      case SlipCheckStatus.none:
+      case SlipCheckStatus.found:
+        return "No new slips found. You're all caught up! 🐾";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -168,17 +182,24 @@ class ActionHubSheet extends StatelessWidget {
             title: "SmartFin Slips Album",
             subtitle: "Auto-detect PromptPay slips",
             onTap: () async {
-              Navigator.pop(context);
-              final slip = await GalleryWatcherService().checkForNewSlips();
-              if (slip != null && context.mounted) {
-                SlipDetectionSheet.show(context, slip);
-              } else if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      "No new slips in 'SmartFin Receipts'. Save PromptPay slips to that album to auto-detect! 🐾",
-                    ),
-                    duration: Duration(seconds: 3),
+              // Capture the ancestors before popping: this sheet's own context is
+              // deactivated by the pop, so anything guarded on context.mounted
+              // afterwards silently never runs.
+              final navigator = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
+              final rootContext = navigator.context;
+
+              final result =
+                  await GalleryWatcherService().checkForNewSlipsDetailed();
+              navigator.pop();
+
+              if (result.slip != null) {
+                SlipDetectionSheet.show(rootContext, result.slip!);
+              } else {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(_slipCheckMessage(result.status)),
+                    duration: const Duration(seconds: 3),
                   ),
                 );
               }

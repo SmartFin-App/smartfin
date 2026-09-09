@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:smart_fin/constants/color_style.dart';
 import 'package:smart_fin/features/transactions/data/transaction_repository_impl.dart';
+import 'package:smart_fin/features/scanner/services/gallery_watcher_service.dart';
 
 class VerifyScreen extends StatefulWidget {
   final Map<String, dynamic>? extractedData;
@@ -36,6 +37,21 @@ class _VerifyScreenState extends State<VerifyScreen> {
     {'label': 'Other',         'icon': Icons.add_circle_outline,            'color': const Color(0xFF9E9E9E)},
   ];
 
+  /// Brings a model-extracted date back into a plausible range. Thai slips are often
+  /// printed in the Buddhist era (543 years ahead), which is recoverable; anything
+  /// else out of range falls back to today rather than being saved as-is.
+  DateTime _clampExtractedDate(DateTime parsed) {
+    var date = parsed;
+    if (date.year > 2400) {
+      date = DateTime(date.year - 543, date.month, date.day);
+    }
+    final now = DateTime.now();
+    if (date.isAfter(now) || date.year < 2000) {
+      return now;
+    }
+    return date;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -45,11 +61,13 @@ class _VerifyScreenState extends State<VerifyScreen> {
       _amountController.text = (data['amount'] ?? 0).toString();
       _confidence = ((data['confidence'] ?? 0.0) as num).toDouble();
 
-      // Parse date string
+      // Parse date string. The value is model-extracted, so it can be a Buddhist-era
+      // year (2569) or otherwise out of range — which would both crash the date picker
+      // (initialDate after lastDate) and put the expense outside every month window.
       final dateStr = data['date'] as String?;
       if (dateStr != null) {
         try {
-          _selectedDate = DateTime.parse(dateStr);
+          _selectedDate = _clampExtractedDate(DateTime.parse(dateStr));
         } catch (_) {
           _selectedDate = DateTime.now();
         }
@@ -122,6 +140,12 @@ class _VerifyScreenState extends State<VerifyScreen> {
       if (!mounted) return;
 
       if (result.success) {
+        // Only now is it safe to stop the watcher re-offering this slip.
+        final assetId = widget.extractedData?['asset_id'] as String?;
+        if (assetId != null) {
+          await GalleryWatcherService().markSlipAsProcessed(assetId);
+        }
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Receipt saved! 🐾')),
         );

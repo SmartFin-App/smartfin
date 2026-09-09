@@ -89,6 +89,10 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
   }
 
   Future<void> _saveTransaction() async {
+    // The spinner only swaps the label; the gesture detector underneath stays live,
+    // and the backend has no idempotency key, so a second tap books a second charge.
+    if (_isLoading) return;
+
     final amountText = _amountController.text.trim().replaceAll(',', '');
     final amount = int.tryParse(amountText) ?? (double.tryParse(amountText)?.toInt());
 
@@ -663,7 +667,7 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
                     onTapDown: (_) => setState(() => _isSavePressed = true),
                     onTapUp: (_) {
                       setState(() => _isSavePressed = false);
-                      _saveTransaction();
+                      if (!_isLoading) _saveTransaction();
                     },
                     onTapCancel: () => setState(() => _isSavePressed = false),
                     child: AnimatedScale(
