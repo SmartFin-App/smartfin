@@ -1,17 +1,38 @@
-# smart_fin
+# SmartFin Monorepo 🐾
 
-A new Flutter project.
+Personal financial management copilot for Thailand, featuring frictionless PromptPay bank slip scanning and an autonomous Multi-Agent RAG system.
 
-## Getting Started
+## Repository Structure
 
-This project is a starting point for a Flutter application.
+```
+smartfin/
+├── smartfin-flutter/       # Mobile client (Flutter / Dart)
+│   ├── lib/                # App code (Dashboard, Scanner, AI Coach, BLoC)
+│   ├── android/            # Android native project & permissions
+│   ├── ios/                # iOS native project & permissions
+│   └── pubspec.yaml        # Flutter dependencies
+│
+├── smartfin-backend/       # Backend API (Golang / Gin)
+│   ├── cmd/api/            # Server entrypoint
+│   ├── internal/agents/    # Multi-Agent RAG (Orchestrator, Retrieval, Action, Research)
+│   ├── internal/handlers/  # HTTP endpoints (Coach, Scanner, Transactions)
+│   └── go.mod              # Go dependencies
+│
+├── evaluate_rag.py         # AI Agent RAG evaluation script
+└── API postman/            # Postman API collections
+```
 
-A few resources to get you started if this is your first Flutter project:
+## Quick Start
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+### 1. Backend (Go)
+```bash
+cd smartfin-backend
+go run cmd/api/main.go
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 2. Frontend (Flutter)
+```bash
+cd smartfin-flutter
+flutter pub get
+flutter run
+```
