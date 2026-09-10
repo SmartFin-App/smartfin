@@ -15,8 +15,25 @@ abstract class TransactionRepository {
     required String userID,
     String? type,
     String? category,
+    String? month,
+    String? search,
     int limit = 50,
     int skip = 0,
+  });
+
+  Future<ApiResponse<Map<String, dynamic>>> getTransactionById({
+    required String transactionID,
+    required String userID,
+  });
+
+  Future<ApiResponse<bool>> updateTransaction({
+    required String transactionID,
+    required String userID,
+    String? merchant,
+    int? amount,
+    String? type,
+    String? category,
+    DateTime? date,
   });
 
   Future<ApiResponse<Map<String, dynamic>>> getTransactionSummary({
@@ -24,5 +41,10 @@ abstract class TransactionRepository {
     String? month,
   });
 
-  Future<ApiResponse<bool>> deleteTransaction(String transactionID);
+  /// [userID] is required: the API scopes single-transaction routes to their
+  /// owner, so a delete without it is rejected.
+  Future<ApiResponse<bool>> deleteTransaction({
+    required String transactionID,
+    required String userID,
+  });
 }

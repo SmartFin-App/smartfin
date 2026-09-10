@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -173,6 +174,8 @@ func (h *TransactionHandler) GetTransactions(c *fiber.Ctx) error {
 
 	tType := c.Query("type")
 	category := c.Query("category")
+	month := c.Query("month")
+	search := c.Query("search")
 	limit := c.QueryInt("limit", 50)
 	skip := c.QueryInt("skip", 0)
 
@@ -182,6 +185,20 @@ func (h *TransactionHandler) GetTransactions(c *fiber.Ctx) error {
 	}
 	if category != "" {
 		filter["category"] = category
+	}
+	if month != "" {
+		// Same +07:00 window the summaries use, so a filtered list and the month
+		// summary can never disagree about which transactions belong to a month.
+		start, end, err := summaries.Bounds(month)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		}
+		filter["date"] = bson.M{"$gte": start, "$lt": end}
+	}
+	if search != "" {
+		// Anchored nowhere and case-insensitive: users search for a fragment of a
+		// merchant name, not its exact prefix.
+		filter["merchant"] = bson.M{"$regex": regexp.QuoteMeta(search), "$options": "i"}
 	}
 
 	opts := options.Find().

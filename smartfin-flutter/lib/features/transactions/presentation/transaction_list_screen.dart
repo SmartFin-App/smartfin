@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:smart_fin/constants/color_style.dart';
 import 'package:smart_fin/widgets/bottom_nav_bar.dart';
@@ -16,6 +17,9 @@ class TransactionListScreen extends StatefulWidget {
 
 class _TransactionListScreenState extends State<TransactionListScreen> {
   String _searchQuery = '';
+  String? _filterType;
+  String? _filterCategory;
+  String? _filterMonth;
   List<Map<String, dynamic>> _transactions = [];
   bool _isLoading = true;
   String? _error;
@@ -33,7 +37,14 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
     });
 
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    final result = await TransactionRepositoryImpl().getTransactions(userID: uid);
+    // Filtering happens server-side so the month window matches the one the
+    // summaries use; only the free-text search stays local.
+    final result = await TransactionRepositoryImpl().getTransactions(
+      userID: uid,
+      type: _filterType,
+      category: _filterCategory,
+      month: _filterMonth,
+    );
 
     if (!mounted) return;
 
@@ -48,6 +59,195 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  int get _activeFilterCount =>
+      (_filterType != null ? 1 : 0) +
+      (_filterCategory != null ? 1 : 0) +
+      (_filterMonth != null ? 1 : 0);
+
+  Future<void> _openDetail(Map<String, dynamic> tx) async {
+    final id = tx['id'] as String?;
+    if (id == null || id.isEmpty) return;
+    // Detail returns true when the record was edited or deleted.
+    final changed = await context.push<bool>('/transaction/$id');
+    if (changed == true) await _loadTransactions();
+  }
+
+  Future<void> _showFilterSheet() async {
+    String? type = _filterType;
+    String? category = _filterCategory;
+    String? month = _filterMonth;
+
+    const categories = [
+      'Food', 'Transport', 'Shopping', 'Bills', 'Groceries',
+      'Health', 'Entertainment', 'Salary', 'Gifts', 'Refunds', 'Other',
+    ];
+
+    // Last six months, newest first.
+    final now = DateTime.now();
+    final months = List.generate(6, (i) {
+      final d = DateTime(now.year, now.month - i, 1);
+      return (
+        value: '${d.year}-${d.month.toString().padLeft(2, '0')}',
+        label: DateFormat('MMM yyyy').format(d),
+      );
+    });
+
+    final applied = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAE2D6),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text('Filter',
+                    style: GoogleFonts.bricolageGrotesque(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 20,
+                        color: const Color(0xFF333333))),
+                const SizedBox(height: 20),
+
+                _filterLabel('TYPE'),
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  _filterChip('All', type == null, () => setSheet(() => type = null)),
+                  _filterChip('Expense', type == 'expense',
+                      () => setSheet(() => type = 'expense')),
+                  _filterChip('Income', type == 'income',
+                      () => setSheet(() => type = 'income')),
+                ]),
+                const SizedBox(height: 20),
+
+                _filterLabel('MONTH'),
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  _filterChip('Any', month == null, () => setSheet(() => month = null)),
+                  ...months.map((m) => _filterChip(
+                      m.label, month == m.value, () => setSheet(() => month = m.value))),
+                ]),
+                const SizedBox(height: 20),
+
+                _filterLabel('CATEGORY'),
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  _filterChip('Any', category == null,
+                      () => setSheet(() => category = null)),
+                  ...categories.map((c) => _filterChip(
+                      c, category == c, () => setSheet(() => category = c))),
+                ]),
+                const SizedBox(height: 28),
+
+                Row(children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 52,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFEAE2D6)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(9999)),
+                        ),
+                        onPressed: () => setSheet(() {
+                          type = null;
+                          category = null;
+                          month = null;
+                        }),
+                        child: Text('Clear all',
+                            style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                                color: const Color(0xFF9E9E9E))),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: SizedBox(
+                      height: 52,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF9F29),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(9999)),
+                        ),
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: Text('APPLY',
+                            style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12,
+                                letterSpacing: 2,
+                                color: Colors.white)),
+                      ),
+                    ),
+                  ),
+                ]),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (applied == true && mounted) {
+      setState(() {
+        _filterType = type;
+        _filterCategory = category;
+        _filterMonth = month;
+      });
+      await _loadTransactions();
+    }
+  }
+
+  Widget _filterLabel(String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Text(text,
+            style: GoogleFonts.inter(
+                fontWeight: FontWeight.w700,
+                fontSize: 10,
+                letterSpacing: 2,
+                color: const Color(0xFF9E9E9E))),
+      );
+
+  Widget _filterChip(String label, bool selected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? const Color.fromRGBO(255, 159, 41, 0.08) : Colors.white,
+          border: Border.all(
+            color: selected ? const Color(0xFFFF9F29) : const Color(0xFFEAE2D6),
+            width: selected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(9999),
+        ),
+        child: Text(label,
+            style: GoogleFonts.inter(
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                fontSize: 13,
+                color: selected ? const Color(0xFFFF9F29) : const Color(0xFF333333))),
+      ),
+    );
   }
 
   /// Returns transactions grouped by formatted_date, in order:
@@ -116,8 +316,7 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
             : (icon: Icons.arrow_upward, color: const Color(0xFF9E9E9E)));
 
     return GestureDetector(
-      onTap: () => ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Detail coming soon'))),
+      onTap: () => _openDetail(tx),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(14),
@@ -267,31 +466,60 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
                                     ],
                                   ),
                                   GestureDetector(
-                                    onTap: () => ScaffoldMessenger.of(context)
-                                        .showSnackBar(const SnackBar(
-                                            content:
-                                                Text('Filter coming soon'))),
-                                    child: Container(
-                                      width: 40,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                            color: const Color.fromRGBO(
-                                                234, 226, 214, 0.6)),
-                                        boxShadow: [
-                                          BoxShadow(
-                                              color:
-                                                  Colors.black.withOpacity(0.02),
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 2))
-                                        ],
-                                      ),
-                                      child: const Icon(Icons.tune,
-                                          size: 22,
-                                          color:
-                                              Color.fromRGBO(51, 51, 51, 0.7)),
+                                    onTap: _showFilterSheet,
+                                    child: Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        Container(
+                                          width: 40,
+                                          height: 40,
+                                          decoration: BoxDecoration(
+                                            color: _activeFilterCount > 0
+                                                ? const Color.fromRGBO(
+                                                    255, 159, 41, 0.1)
+                                                : Colors.white,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            border: Border.all(
+                                                color: _activeFilterCount > 0
+                                                    ? const Color(0xFFFF9F29)
+                                                    : const Color.fromRGBO(
+                                                        234, 226, 214, 0.6)),
+                                          ),
+                                          child: Icon(Icons.tune,
+                                              size: 22,
+                                              color: _activeFilterCount > 0
+                                                  ? const Color(0xFFFF9F29)
+                                                  : const Color.fromRGBO(
+                                                      51, 51, 51, 0.7)),
+                                        ),
+                                        // Without this the list can look empty
+                                        // when it is merely filtered.
+                                        if (_activeFilterCount > 0)
+                                          Positioned(
+                                            top: -4,
+                                            right: -4,
+                                            child: Container(
+                                              width: 18,
+                                              height: 18,
+                                              alignment: Alignment.center,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFFF9F29),
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                    color: AppColors.cream,
+                                                    width: 2),
+                                              ),
+                                              child: Text(
+                                                '$_activeFilterCount',
+                                                style: GoogleFonts.inter(
+                                                    fontWeight: FontWeight.w800,
+                                                    fontSize: 9,
+                                                    color: Colors.white),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ),
                                 ],

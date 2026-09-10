@@ -75,6 +75,8 @@ This handler writes **nothing** to Mongo — the Flutter app creates the transac
 - `GET /api/summary/:user_id` (`summary_handler.go`) returns a cached `MonthlySummary` document per `YYYY-MM`, combining **recurring income from the user profile** with one-time income transactions. `is_frozen` is derived from whether the month's window has fully elapsed (never from comparing month strings against the server clock, which let a client an hour ahead freeze a live month at zero). Frozen months are served from cache; the current month is recalculated on read and written back with `ReplaceOne` — a `$set` carrying `_id` is rejected as an immutable-field update and silently left the cache stale.
 - `GET /api/transactions/summary/:user_id` (`transaction_handler.go`) is a separate ad-hoc aggregation over transactions only, with no profile income and no caching.
 
+`GET /api/transactions/:user_id` accepts `type`, `category`, `month` (`YYYY-MM`), `search` (case-insensitive merchant fragment), `limit` and `skip`. The `month` filter goes through `summaries.Bounds`, so a filtered list and that month's summary can never disagree about which transactions belong to the month.
+
 They are not interchangeable — check which one a caller actually needs.
 
 ## Admin endpoints are unprotected and destructive

@@ -43,6 +43,8 @@ class TransactionRepositoryImpl implements TransactionRepository {
     required String userID,
     String? type,
     String? category,
+    String? month,
+    String? search,
     int limit = 50,
     int skip = 0,
   }) async {
@@ -52,6 +54,8 @@ class TransactionRepositoryImpl implements TransactionRepository {
         'skip': skip,
         if (type != null) 'type': type,
         if (category != null) 'category': category,
+        if (month != null) 'month': month,
+        if (search != null && search.isNotEmpty) 'search': search,
       };
       final response = await DioClient.dio.get(
         '/api/transactions/$userID',
@@ -89,9 +93,63 @@ class TransactionRepositoryImpl implements TransactionRepository {
   }
 
   @override
-  Future<ApiResponse<bool>> deleteTransaction(String transactionID) async {
+  Future<ApiResponse<Map<String, dynamic>>> getTransactionById({
+    required String transactionID,
+    required String userID,
+  }) async {
     try {
-      await DioClient.dio.delete('/api/transactions/$transactionID');
+      final response = await DioClient.dio.get(
+        '/api/transactions/detail/$transactionID',
+        queryParameters: {'user_id': userID},
+      );
+      return ApiResponse.success(Map<String, dynamic>.from(response.data));
+    } on DioException catch (e) {
+      return ApiResponse.error(DioClient.handleError(e));
+    }
+  }
+
+  @override
+  Future<ApiResponse<bool>> updateTransaction({
+    required String transactionID,
+    required String userID,
+    String? merchant,
+    int? amount,
+    String? type,
+    String? category,
+    DateTime? date,
+  }) async {
+    try {
+      await DioClient.dio.put(
+        '/api/transactions/$transactionID',
+        // user_id in the body identifies the owner; the API refuses the write
+        // without it rather than trusting the id alone.
+        data: {
+          'user_id': userID,
+          if (merchant != null) 'merchant': merchant,
+          if (amount != null) 'amount': amount,
+          if (type != null) 'type': type,
+          if (category != null) 'category': category,
+          if (date != null)
+            'date':
+                '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+        },
+      );
+      return ApiResponse.success(true);
+    } on DioException catch (e) {
+      return ApiResponse.error(DioClient.handleError(e));
+    }
+  }
+
+  @override
+  Future<ApiResponse<bool>> deleteTransaction({
+    required String transactionID,
+    required String userID,
+  }) async {
+    try {
+      await DioClient.dio.delete(
+        '/api/transactions/$transactionID',
+        queryParameters: {'user_id': userID},
+      );
       return ApiResponse.success(true);
     } on DioException catch (e) {
       return ApiResponse.error(DioClient.handleError(e));

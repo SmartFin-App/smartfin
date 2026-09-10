@@ -18,25 +18,8 @@ import 'package:smart_fin/features/auth/presentation/signup_screen.dart';
 import 'package:smart_fin/features/auth/presentation/initial_setup_screen.dart';
 import 'package:smart_fin/features/splash/presentation/views/splash_view.dart';
 import 'package:smart_fin/features/transactions/presentation/manual_add_screen.dart';
+import 'package:smart_fin/features/transactions/presentation/transaction_detail_screen.dart';
 import 'package:smart_fin/widgets/bottom_nav_bar.dart';
-
-// ---------------------------------------------------------------------------
-// Placeholder screens — replaced one by one as each feature is implemented
-// ---------------------------------------------------------------------------
-
-class _Placeholder extends StatelessWidget {
-  const _Placeholder(this.name);
-  final String name;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Text(name, style: const TextStyle(fontSize: 20)),
-      ),
-    );
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Protected routes — redirect to /onboarding when not authenticated
@@ -158,8 +141,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/transaction/:id',
       name: 'transaction',
-      builder: (context, state) => _Placeholder(
-        'Transaction ${state.pathParameters['id']}',
+      builder: (context, state) => TransactionDetailScreen(
+        transactionID: state.pathParameters['id'] ?? '',
       ),
     ),
   ],
