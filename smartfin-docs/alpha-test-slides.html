@@ -1,0 +1,1207 @@
+<title>SmartFin Alpha Test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+  :root {
+    /* Palette derived from the app's own tokens (cream ground, #FF9F29 accent) */
+    --ground:      #FFFCF5;
+    --surface:     #FFFFFF;
+    --surface-alt: #FBF5E9;
+    --ink:         #1C1917;
+    --ink-soft:    #4A423B;
+    --muted:       #8A8178;
+    --rule:        #E7DCC9;
+    --accent:      #FF9F29;
+    --accent-deep: #B4600A;
+    --accent-wash: #FFF2DE;
+    --done:        #2E7D5B;
+    --done-wash:   #E4F1EA;
+    --wip:         #B45309;
+    --wip-wash:    #FBEBD7;
+    --todo:        #6E7681;
+    --todo-wash:   #ECEDEF;
+    --risk:        #B3261E;
+
+    --slide-w: 1280px;
+    --f-display: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
+    --f-body: "IBM Plex Sans", system-ui, sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #15120E;
+      --surface:     #1E1A15;
+      --surface-alt: #241F18;
+      --ink:         #F6F0E6;
+      --ink-soft:    #D3C9BA;
+      --muted:       #9C9284;
+      --rule:        #3A332A;
+      --accent:      #FFAF4D;
+      --accent-deep: #FFC97D;
+      --accent-wash: #33240E;
+      --done:        #6BC79B;
+      --done-wash:   #17301F;
+      --wip:         #E9A455;
+      --wip-wash:    #33240E;
+      --todo:        #9AA1AC;
+      --todo-wash:   #26282C;
+      --risk:        #F2857C;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #15120E;
+    --surface:     #1E1A15;
+    --surface-alt: #241F18;
+    --ink:         #F6F0E6;
+    --ink-soft:    #D3C9BA;
+    --muted:       #9C9284;
+    --rule:        #3A332A;
+    --accent:      #FFAF4D;
+    --accent-deep: #FFC97D;
+    --accent-wash: #33240E;
+    --done:        #6BC79B;
+    --done-wash:   #17301F;
+    --wip:         #E9A455;
+    --wip-wash:    #33240E;
+    --todo:        #9AA1AC;
+    --todo-wash:   #26282C;
+    --risk:        #F2857C;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .deck {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    padding: 28px 20px 72px;
+    align-items: center;
+  }
+
+  .slide {
+    width: 100%;
+    max-width: var(--slide-w);
+    aspect-ratio: 16 / 9;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: 46px 56px 40px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    container-type: inline-size;
+  }
+
+  /* Everything scales off the slide width so the 16:9 box never overflows. */
+  .slide { font-size: clamp(11px, 1.16cqi, 15px); }
+
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 0.78em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+
+  h1 {
+    font-family: var(--f-display);
+    font-weight: 800;
+    font-size: 4.6em;
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  h2 {
+    font-family: var(--f-display);
+    font-weight: 800;
+    font-size: 2.5em;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    margin: 0.32em 0 0;
+    text-wrap: balance;
+  }
+
+  .lede {
+    font-size: 1.12em;
+    color: var(--ink-soft);
+    max-width: 62ch;
+    margin: 0.5em 0 0;
+  }
+
+  .body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 1.15em; margin-top: 1.5em; }
+
+  .foot {
+    margin-top: auto;
+    padding-top: 1em;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--f-mono);
+    font-size: 0.76em;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ---- shared pieces ---- */
+
+  .cols { display: grid; gap: 1.15em; }
+  .c2 { grid-template-columns: 1fr 1fr; }
+  .c3 { grid-template-columns: repeat(3, 1fr); }
+  .c25 { grid-template-columns: 1.15fr 1fr; }
+
+  .panel {
+    background: var(--surface-alt);
+    border: 1px solid var(--rule);
+    padding: 1.1em 1.2em;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6em;
+  }
+  .panel h3, .block h3 {
+    font-family: var(--f-body);
+    font-weight: 700;
+    font-size: 0.86em;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  ul { margin: 0; padding-left: 1.15em; display: flex; flex-direction: column; gap: 0.42em; }
+  li { color: var(--ink-soft); }
+  li strong { color: var(--ink); font-weight: 600; }
+  .tight li { gap: 0.3em; }
+
+  .kicker { color: var(--ink); font-weight: 600; }
+  .mono { font-family: var(--f-mono); font-size: 0.92em; }
+  .amt { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+  /* status chips encode state in form, not only color */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    font-family: var(--f-mono);
+    font-size: 0.72em;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 0.22em 0.6em;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .s-done { background: var(--done-wash); color: var(--done); }
+  .s-wip  { background: var(--wip-wash);  color: var(--wip); }
+  .s-todo { background: var(--todo-wash); color: var(--todo); }
+  .s-todo::before { border-radius: 0; }
+  .s-wip::before { border-radius: 1px; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.94em; }
+  th {
+    text-align: left;
+    font-family: var(--f-body);
+    font-weight: 700;
+    font-size: 0.8em;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 0.7em 0.5em 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  td { padding: 0.52em 0.7em 0.52em 0; border-bottom: 1px solid var(--rule); color: var(--ink-soft); vertical-align: top; }
+  td:first-child { color: var(--ink); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  td.st { width: 1%; white-space: nowrap; }
+
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid var(--rule); }
+  .metric { padding: 0.9em 1em; border-right: 1px solid var(--rule); }
+  .metric:last-child { border-right: none; }
+  .metric .v {
+    font-family: var(--f-display);
+    font-weight: 800;
+    font-size: 2.1em;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .metric .k {
+    font-family: var(--f-mono);
+    font-size: 0.72em;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 0.45em;
+    display: block;
+  }
+
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-wash);
+    padding: 0.8em 1em;
+    color: var(--ink-soft);
+  }
+  .callout strong { color: var(--ink); }
+
+  figure { margin: 0; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  svg { width: 100%; height: 100%; display: block; }
+  figcaption { font-family: var(--f-mono); font-size: 0.74em; color: var(--muted); margin-top: 0.6em; letter-spacing: 0.03em; }
+
+  .title-slide { justify-content: center; }
+  .title-rule { width: 84px; height: 4px; background: var(--accent); margin: 0 0 1.6em; }
+  .byline { display: flex; gap: 2.2em; margin-top: 2em; font-family: var(--f-mono); font-size: 0.84em; color: var(--muted); }
+  .byline b { display: block; color: var(--ink); font-family: var(--f-body); font-size: 1.12em; font-weight: 600; letter-spacing: 0; margin-bottom: 0.2em; }
+
+  .steps { display: flex; flex-direction: column; gap: 0.55em; counter-reset: step; }
+  .step {
+    display: grid;
+    grid-template-columns: 2.1em 1fr;
+    gap: 0.9em;
+    align-items: start;
+    padding: 0.62em 0.8em;
+    background: var(--surface-alt);
+    border: 1px solid var(--rule);
+  }
+  .step::before {
+    counter-increment: step;
+    content: counter(step);
+    font-family: var(--f-mono);
+    font-weight: 600;
+    font-size: 0.86em;
+    color: var(--surface);
+    background: var(--accent-deep);
+    width: 1.9em; height: 1.9em;
+    display: grid; place-items: center;
+    border-radius: 50%;
+  }
+  .step b { color: var(--ink); }
+  .step span { color: var(--ink-soft); }
+
+  a { color: var(--accent-deep); }
+  :focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  /* One slide per landscape page for the PDF submission. */
+  @page { size: 1280px 720px; margin: 0; }
+  @media print {
+    /* Keep the cream ground, chips and accent rules in the PDF. */
+    *, *::before, *::after { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { background: var(--ground); }
+    /* Block, not flex: Chrome fragments flex containers badly and emits a
+       trailing blank page. */
+    .deck { display: block; gap: 0; padding: 0; }
+    .print-note { display: none; }
+    .slide {
+      max-width: none;
+      width: 1280px;
+      /* 716px, not 720: Chrome's --print-to-pdf keeps a few px of page
+         margin even with @page margin:0, and 718px spills to a second page. */
+      height: 716px;
+      aspect-ratio: auto;
+      border: none;
+      font-size: 15px;
+    }
+    /* break-BEFORE each slide after the first: break-after on every slide left a
+       trailing blank page, since the last slide still requested a break. */
+    .slide + .slide { break-before: page; page-break-before: always; }
+  }
+
+  .print-note {
+    max-width: var(--slide-w);
+    width: 100%;
+    font-family: var(--f-mono);
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+    border: 1px dashed var(--rule);
+    padding: 10px 14px;
+  }
+
+  @media (max-width: 900px) {
+    .slide { aspect-ratio: auto; min-height: 0; padding: 30px 26px; }
+    .c2, .c3, .c25 { grid-template-columns: 1fr; }
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .metric:nth-child(2) { border-right: none; }
+  }
+</style>
+
+<div class="deck">
+
+  <div class="print-note">
+    15 slides · 16:9 · To submit: print this page to PDF (landscape, no margins, background graphics on) — one slide per page.
+  </div>
+
+  <!-- 1 ─────────────────────────────────────────────────────────── -->
+  <section class="slide title-slide">
+    <div class="eyebrow">CSC499 Midterm · Alpha Test · 14 September 2026</div>
+    <div class="body" style="flex:0; margin-top:1.4em;">
+      <h1>SmartFin</h1>
+      <div class="title-rule" style="margin-top:0.7em;"></div>
+      <p class="lede" style="font-size:1.35em; max-width:52ch;">
+        A personal finance copilot for Thailand that reads your PromptPay slips
+        and reasons over your own spending — instead of asking you to type it in.
+      </p>
+      <div class="byline">
+        <div><b>Thaw Zin Moe Myint</b>Student</div>
+        <div><b>Flutter · Go · MongoDB · Gemini</b>Stack</div>
+        <div><b>Alpha Test</b>Milestone</div>
+      </div>
+    </div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">01 / 15</span></div>
+  </section>
+
+  <!-- 2 ─────────────────────────────────────────────────────────── -->
+  <section class="slide">
+    <div class="eyebrow">Problem statement</div>
+    <h2>Thai users already have a record of every payment. It is trapped in their photo gallery.</h2>
+    <div class="body">
+      <div class="cols c3">
+        <div class="panel">
+          <h3>1 · Manual entry fails</h3>
+          <p style="margin:0;color:var(--ink-soft)">Budgeting apps depend on the user typing each expense. People abandon this within weeks, so the data is incomplete exactly when advice would matter.</p>
+        </div>
+        <div class="panel">
+          <h3>2 · No bank aggregation</h3>
+          <p style="margin:0;color:var(--ink-soft)">Thailand has no consumer open-banking API. Services like Plaid do not cover Thai retail banks, so automatic transaction import is not available to a student project.</p>
+        </div>
+        <div class="panel">
+          <h3>3 · Generic advice</h3>
+          <p style="margin:0;color:var(--ink-soft)">Chatbot finance tools answer from general knowledge. They cannot say what <em>this</em> user spent on food this month, because they never see the data.</p>
+        </div>
+      </div>
+      <div class="callout">
+        <strong>The opening.</strong> Every PromptPay, K PLUS, SCB EASY, Krungthai NEXT and Bangkok Bank transfer ends in a
+        confirmation slip the user screenshots. The record already exists — it is simply an image.
+        SmartFin turns that image into structured data, then lets an AI agent reason over it.
+      </div>
+    </div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">02 / 15</span></div>
+  </section>
+
+  <!-- 3 ─────────────────────────────────────────────────────────── -->
+  <section class="slide">
+    <div class="eyebrow">Target user &amp; use cases</div>
+    <h2>Who it is for, and what they can do</h2>
+    <div class="body">
+      <div class="cols c25" style="flex:1; min-height:0;">
+        <figure>
+          <svg viewBox="0 0 560 330" role="img" aria-label="Use case diagram: a Thai working adult performs seven use cases; the AI Coach and Gemini act as supporting systems.">
+            <defs>
+              <marker id="ar" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+                <path d="M0,0 L7,3.5 L0,7 Z" fill="var(--muted)"/>
+              </marker>
+            </defs>
+            <!-- primary actor -->
+            <circle cx="46" cy="150" r="15" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <path d="M46 165 L46 200 M28 178 L64 178 M46 200 L32 226 M46 200 L60 226"
+                  stroke="var(--ink)" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <text x="46" y="248" text-anchor="middle" font-family="IBM Plex Sans" font-size="13" font-weight="600" fill="var(--ink)">Thai working</text>
+            <text x="46" y="264" text-anchor="middle" font-family="IBM Plex Sans" font-size="13" font-weight="600" fill="var(--ink)">adult</text>
+            <text x="46" y="282" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--muted)">primary</text>
+
+            <!-- system boundary -->
+            <rect x="150" y="16" width="270" height="298" fill="none" stroke="var(--rule)" stroke-width="1.5"/>
+            <text x="285" y="36" text-anchor="middle" font-family="IBM Plex Mono" font-size="10"
+                  letter-spacing="1.4" fill="var(--muted)">SMARTFIN</text>
+
+            <g font-family="IBM Plex Sans" font-size="12" fill="var(--ink)" text-anchor="middle">
+              <ellipse cx="285" cy="66"  rx="112" ry="19" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.2"/>
+              <text x="285" y="70">Scan a payment slip</text>
+
+              <ellipse cx="285" cy="110" rx="112" ry="19" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.2"/>
+              <text x="285" y="114">Auto-detect new slips</text>
+
+              <ellipse cx="285" cy="154" rx="112" ry="19" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.2"/>
+              <text x="285" y="158">Review &amp; confirm entry</text>
+
+              <ellipse cx="285" cy="198" rx="112" ry="19" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.2"/>
+              <text x="285" y="202">Track budget &amp; savings</text>
+
+              <ellipse cx="285" cy="242" rx="112" ry="19" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.2"/>
+              <text x="285" y="246">Ask the AI Coach</text>
+
+              <ellipse cx="285" cy="286" rx="112" ry="19" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.2"/>
+              <text x="285" y="290">Manage profile</text>
+            </g>
+
+            <g stroke="var(--muted)" stroke-width="1.1" fill="none">
+              <path d="M64 146 L172 68"  marker-end="url(#ar)"/>
+              <path d="M64 148 L172 112" marker-end="url(#ar)"/>
+              <path d="M64 152 L172 156" marker-end="url(#ar)"/>
+              <path d="M64 156 L172 200" marker-end="url(#ar)"/>
+              <path d="M64 160 L172 244" marker-end="url(#ar)"/>
+              <path d="M64 164 L172 288" marker-end="url(#ar)"/>
+            </g>
+
+            <!-- external system -->
+            <circle cx="514" cy="150" r="13" fill="none" stroke="var(--muted)" stroke-width="2"/>
+            <path d="M514 163 L514 194 M498 175 L530 175 M514 194 L502 218 M514 194 L526 218"
+                  stroke="var(--muted)" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <text x="514" y="240" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="600" fill="var(--ink-soft)">Gemini 2.5</text>
+            <text x="514" y="256" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--muted)">external</text>
+            <g stroke="var(--muted)" stroke-width="1.1" stroke-dasharray="4 3" fill="none">
+              <path d="M398 68  L496 142" marker-end="url(#ar)"/>
+              <path d="M398 242 L496 160" marker-end="url(#ar)"/>
+            </g>
+          </svg>
+          <figcaption>Highlighted ellipses are the differentiating use cases — the demo follows them.</figcaption>
+        </figure>
+        <div style="display:flex; flex-direction:column; gap:1.1em;">
+          <div class="panel">
+            <h3>Primary user</h3>
+            <p style="margin:0;color:var(--ink-soft)">
+              A Thai working adult or student who pays by <span class="kicker">PromptPay several times a day</span>,
+              keeps every confirmation slip in their gallery, and has abandoned at least one budgeting app.
+            </p>
+          </div>
+          <div class="panel">
+            <h3>Design consequences</h3>
+            <ul class="tight">
+              <li>Currency is <strong>integer Thai Baht (฿)</strong> end-to-end — no floats, no decimals.</li>
+              <li>Slips print Buddhist-era years: <span class="amt">2569 → 2026</span> conversion is required, not optional.</li>
+              <li>Merchant names arrive in Thai script and are transliterated on extraction.</li>
+              <li>Month boundaries are pinned to <span class="mono">UTC+07:00</span>, not server time.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">03 / 15</span></div>
+  </section>
+
+  <!-- 4 ─────────────────────────────────────────────────────────── -->
+  <section class="slide">
+    <div class="eyebrow">Scope</div>
+    <h2>What the project commits to — and what it deliberately excludes</h2>
+    <div class="body">
+      <div class="cols c2" style="flex:1; min-height:0;">
+        <div class="panel" style="border-left:3px solid var(--done);">
+          <h3 style="color:var(--done)">In scope</h3>
+          <ul>
+            <li><strong>Slip &amp; receipt capture</strong> — camera capture and automatic gallery detection, extracted by a vision model.</li>
+            <li><strong>Transaction ledger</strong> — create, list, edit, delete; manual entry as a fallback path.</li>
+            <li><strong>Monthly budgeting</strong> — income, budget limit, category breakdown, per-month summaries.</li>
+            <li><strong>Agentic AI Coach</strong> — answers grounded in the user's own records, and able to act on them.</li>
+            <li><strong>Savings goals</strong> — set by the user or by the coach, with progress derived from actual months.</li>
+            <li><strong>Account management</strong> — profile, photo, credentials, account deletion.</li>
+          </ul>
+        </div>
+        <div class="panel" style="border-left:3px solid var(--todo);">
+          <h3 style="color:var(--todo)">Out of scope</h3>
+          <ul>
+            <li><strong>Direct bank integration</strong> — no consumer open-banking API exists in Thailand; the slip <em>is</em> the integration.</li>
+            <li><strong>Moving money</strong> — SmartFin never initiates a payment or transfer. It is read-and-advise only.</li>
+            <li><strong>Investment or tax advice</strong> — the coach redirects to general financial health.</li>
+            <li><strong>Multi-currency</strong> — Thai Baht only, which is what makes integer money safe.</li>
+            <li><strong>Multi-user or shared budgets</strong> — one account, one person.</li>
+            <li><strong>iOS release build</strong> — Android is the delivery target for this milestone.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout">
+        <strong>Why the boundary sits here.</strong> Every excluded item either requires a commercial banking
+        agreement or moves the project from <em>advice</em> to <em>financial transactions</em>, which carries a
+        regulatory burden a one-semester project cannot honestly meet.
+      </div>
+    </div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">04 / 15</span></div>
+  </section>
+
+  <!-- 5 ─────────────────────────────────────────────────────────── -->
+  <section class="slide">
+    <div class="eyebrow">System design · 1 · Architecture</div>
+    <h2>Three tiers, one agent loop</h2>
+    <div class="body">
+      <figure>
+        <svg viewBox="0 0 1040 330" role="img" aria-label="Architecture: Flutter client calls a Go Fiber API, which reads MongoDB Atlas and calls Gemini; the orchestrator dispatches to three sub-agents.">
+          <defs>
+            <marker id="a2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+              <path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/>
+            </marker>
+          </defs>
+
+          <!-- client -->
+          <rect x="8" y="40" width="212" height="250" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
+          <text x="114" y="28" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" letter-spacing="1.3" fill="var(--muted)">CLIENT</text>
+          <text x="114" y="70" text-anchor="middle" font-family="Bricolage Grotesque" font-size="19" font-weight="800" fill="var(--ink)">Flutter</text>
+          <text x="114" y="90" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--muted)">Dart · 16 screens</text>
+          <g font-family="IBM Plex Sans" font-size="12" fill="var(--ink-soft)" text-anchor="middle">
+            <text x="114" y="126">Dashboard · Scanner</text>
+            <text x="114" y="148">Coach · Transactions</text>
+            <text x="114" y="170">Profile · Security</text>
+          </g>
+          <rect x="30" y="196" width="168" height="30" fill="var(--surface)" stroke="var(--rule)"/>
+          <text x="114" y="215" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--ink-soft)">Firebase Auth</text>
+          <rect x="30" y="236" width="168" height="30" fill="var(--surface)" stroke="var(--rule)"/>
+          <text x="114" y="255" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--ink-soft)">Gallery watcher</text>
+
+          <!-- api -->
+          <rect x="288" y="40" width="232" height="250" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
+          <text x="404" y="28" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" letter-spacing="1.3" fill="var(--muted)">API</text>
+          <text x="404" y="70" text-anchor="middle" font-family="Bricolage Grotesque" font-size="19" font-weight="800" fill="var(--ink)">Go · Fiber v2</text>
+          <text x="404" y="90" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--muted)">19 REST endpoints</text>
+          <g font-family="IBM Plex Sans" font-size="12" fill="var(--ink-soft)" text-anchor="middle">
+            <text x="404" y="126">handlers · users, transactions,</text>
+            <text x="404" y="146">summary, scanner, coach, photo</text>
+          </g>
+          <rect x="310" y="166" width="188" height="34" fill="var(--accent-wash)" stroke="var(--accent)"/>
+          <text x="404" y="187" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--accent-deep)">internal/summaries</text>
+          <text x="404" y="220" text-anchor="middle" font-family="IBM Plex Sans" font-size="11.5" fill="var(--muted)">month windows · cache invalidation</text>
+          <rect x="310" y="238" width="188" height="32" fill="var(--surface)" stroke="var(--rule)"/>
+          <text x="404" y="258" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--ink-soft)">GridFS · avatars</text>
+
+          <!-- agent -->
+          <rect x="588" y="40" width="230" height="250" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="703" y="28" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" letter-spacing="1.3" fill="var(--accent-deep)">AGENT LOOP</text>
+          <text x="703" y="70" text-anchor="middle" font-family="Bricolage Grotesque" font-size="19" font-weight="800" fill="var(--ink)">Orchestrator</text>
+          <text x="703" y="90" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--accent-deep)">7 tools · max 5 turns</text>
+          <g font-family="IBM Plex Sans" font-size="12">
+            <rect x="608" y="106" width="190" height="30" fill="var(--surface)" stroke="var(--rule)"/>
+            <text x="703" y="126" text-anchor="middle" fill="var(--ink-soft)">Retrieval agent · 3 tools</text>
+            <rect x="608" y="144" width="190" height="30" fill="var(--surface)" stroke="var(--rule)"/>
+            <text x="703" y="164" text-anchor="middle" fill="var(--ink-soft)">Action agent · 3 tools</text>
+            <rect x="608" y="182" width="190" height="30" fill="var(--surface)" stroke="var(--rule)"/>
+            <text x="703" y="202" text-anchor="middle" fill="var(--ink-soft)">Research agent · 1 tool</text>
+          </g>
+          <text x="703" y="238" text-anchor="middle" font-family="IBM Plex Sans" font-size="11.5" fill="var(--ink-soft)">observe → call tool → ground → answer</text>
+          <text x="703" y="262" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--accent-deep)">45s budget</text>
+
+          <!-- data -->
+          <rect x="886" y="40" width="146" height="118" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
+          <text x="959" y="28" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" letter-spacing="1.3" fill="var(--muted)">DATA</text>
+          <text x="959" y="72" text-anchor="middle" font-family="Bricolage Grotesque" font-size="16" font-weight="800" fill="var(--ink)">MongoDB</text>
+          <text x="959" y="90" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--muted)">Atlas</text>
+          <g font-family="IBM Plex Sans" font-size="11" fill="var(--ink-soft)" text-anchor="middle">
+            <text x="959" y="112">users · transactions</text>
+            <text x="959" y="130">summaries · messages</text>
+          </g>
+
+          <rect x="886" y="180" width="146" height="110" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
+          <text x="959" y="212" text-anchor="middle" font-family="Bricolage Grotesque" font-size="16" font-weight="800" fill="var(--ink)">Gemini 2.5</text>
+          <text x="959" y="230" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--muted)">Flash</text>
+          <g font-family="IBM Plex Sans" font-size="11" fill="var(--ink-soft)" text-anchor="middle">
+            <text x="959" y="252">vision · slips</text>
+            <text x="959" y="270">function calling</text>
+          </g>
+
+          <g stroke="var(--muted)" stroke-width="1.4" fill="none">
+            <path d="M222 150 L284 150" marker-end="url(#a2)"/>
+            <path d="M522 150 L584 150" marker-end="url(#a2)"/>
+            <path d="M520 108 C 700 -6 860 40 884 82" marker-end="url(#a2)"/>
+            <path d="M820 130 L884 108" marker-end="url(#a2)"/>
+            <path d="M820 200 L884 220" marker-end="url(#a2)"/>
+          </g>
+          <text x="253" y="142" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--muted)">HTTPS</text>
+          <text x="553" y="142" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--muted)">ask</text>
+        </svg>
+        <figcaption>The coach never queries Mongo directly — every read and write goes through a declared tool, which is what makes its actions auditable.</figcaption>
+      </figure>
+    </div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">05 / 15</span></div>
+  </section>
+
+  <!-- SEQ ─────────────────────────────────────────────────────── -->
+  <section class="slide">
+    <div class="eyebrow">System design · 2 · AI Coach sequence</div>
+    <h2>How one question becomes a grounded answer</h2>
+    <div class="body">
+      <figure>
+        <svg viewBox="0 0 1040 372" role="img" aria-label="Sequence diagram: the app posts a question, the orchestrator loads the profile, then loops between Gemini and its tools for up to five iterations before answering.">
+          <defs>
+            <marker id="sm" markerWidth="8" markerHeight="8" refX="7.5" refY="4" orient="auto">
+              <path d="M0,0 L8,4 L0,8 Z" fill="var(--ink-soft)"/>
+            </marker>
+            <marker id="smr" markerWidth="8" markerHeight="8" refX="7.5" refY="4" orient="auto">
+              <path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/>
+            </marker>
+          </defs>
+
+          <!-- participants -->
+          <g font-family="IBM Plex Sans" font-size="12" font-weight="600" text-anchor="middle">
+            <rect x="10"  y="10" width="140" height="34" fill="var(--surface-alt)" stroke="var(--rule)"/>
+            <text x="80"  y="32" fill="var(--ink)">Flutter app</text>
+            <rect x="176" y="10" width="140" height="34" fill="var(--surface-alt)" stroke="var(--rule)"/>
+            <text x="246" y="32" fill="var(--ink)">Fiber API</text>
+            <rect x="360" y="10" width="180" height="34" fill="var(--accent-wash)" stroke="var(--accent)"/>
+            <text x="450" y="32" fill="var(--ink)">Orchestrator</text>
+            <rect x="600" y="10" width="160" height="34" fill="var(--surface-alt)" stroke="var(--rule)"/>
+            <text x="680" y="32" fill="var(--ink)">Gemini 2.5</text>
+            <rect x="850" y="10" width="150" height="34" fill="var(--surface-alt)" stroke="var(--rule)"/>
+            <text x="925" y="32" fill="var(--ink)">MongoDB</text>
+          </g>
+
+          <!-- lifelines -->
+          <g stroke="var(--rule)" stroke-width="1.2" stroke-dasharray="4 4">
+            <line x1="80"  y1="44" x2="80"  y2="356"/>
+            <line x1="246" y1="44" x2="246" y2="356"/>
+            <line x1="450" y1="44" x2="450" y2="356"/>
+            <line x1="680" y1="44" x2="680" y2="356"/>
+            <line x1="925" y1="44" x2="925" y2="356"/>
+          </g>
+
+          <!-- loop frame -->
+          <rect x="330" y="140" width="700" height="140" fill="none" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="5 4"/>
+          <rect x="330" y="140" width="176" height="19" fill="var(--accent)"/>
+          <text x="338" y="154" font-family="IBM Plex Mono" font-size="10.5" fill="#1C1917">loop [max 5 iterations]</text>
+
+          <g font-family="IBM Plex Sans" font-size="11.5" fill="var(--ink-soft)">
+            <!-- 1 -->
+            <line x1="80" y1="70" x2="240" y2="70" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#sm)"/>
+            <text x="86" y="64">“Can I afford ฿5,000 more this month?”</text>
+            <!-- 2 -->
+            <line x1="246" y1="100" x2="444" y2="100" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#sm)"/>
+            <text x="252" y="94">ProcessQuery · 45 s budget</text>
+            <!-- 3 -->
+            <line x1="450" y1="126" x2="919" y2="126" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#sm)"/>
+            <text x="456" y="120">load profile → build system prompt</text>
+            <!-- 4 -->
+            <line x1="450" y1="178" x2="674" y2="178" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#sm)"/>
+            <text x="456" y="172">message + 7 tool declarations</text>
+            <!-- 5 -->
+            <line x1="680" y1="204" x2="456" y2="204" stroke="var(--muted)" stroke-width="1.3" stroke-dasharray="5 3" marker-end="url(#smr)"/>
+            <text x="466" y="198" fill="var(--accent-deep)">functionCall: get_budget_summary</text>
+            <!-- 6 self -->
+            <path d="M450 224 H 520 V 244 H 456" fill="none" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#sm)"/>
+            <text x="528" y="238">dispatchTool → retrieval · action · research agent</text>
+            <!-- 7 -->
+            <line x1="450" y1="262" x2="919" y2="262" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#sm)"/>
+            <text x="456" y="256">query the user’s own records</text>
+            <!-- 8 -->
+            <line x1="450" y1="276" x2="674" y2="276" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#sm)"/>
+            <text x="700" y="272">functionResponse</text>
+            <!-- 9 -->
+            <line x1="680" y1="304" x2="456" y2="304" stroke="var(--muted)" stroke-width="1.3" stroke-dasharray="5 3" marker-end="url(#smr)"/>
+            <text x="466" y="298" fill="var(--done)">text answer · no tool call → exit loop</text>
+            <!-- 10 -->
+            <line x1="450" y1="328" x2="919" y2="328" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#sm)"/>
+            <text x="456" y="322">persist turn to chat_messages</text>
+            <!-- 11 -->
+            <line x1="246" y1="352" x2="86" y2="352" stroke="var(--muted)" stroke-width="1.3" stroke-dasharray="5 3" marker-end="url(#smr)"/>
+            <text x="252" y="346">response · tools_used · actions_taken</text>
+          </g>
+        </svg>
+        <figcaption>The model is never given database access — it can only request one of seven declared tools, which is what makes every action it takes reviewable.</figcaption>
+      </figure>
+    </div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">06 / 15</span></div>
+  </section>
+
+  <!-- ER ──────────────────────────────────────────────────────── -->
+  <section class="slide">
+    <div class="eyebrow">System design · 3 · Data model</div>
+    <h2>Four collections, keyed by one identity</h2>
+    <div class="body">
+      <figure>
+        <svg viewBox="0 0 1040 336" role="img" aria-label="Entity relationship diagram: users relates one-to-many to transactions, monthly summaries and chat messages, and one-to-one with a stored avatar.">
+          <g font-family="IBM Plex Mono" font-size="10.5">
+            <!-- users -->
+            <rect x="10" y="46" width="250" height="244" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.5"/>
+            <rect x="10" y="46" width="250" height="26" fill="var(--accent)"/>
+            <text x="135" y="64" text-anchor="middle" font-family="IBM Plex Sans" font-size="12.5" font-weight="700" fill="#1C1917">users</text>
+            <g fill="var(--ink-soft)">
+              <text x="24" y="92" font-weight="600" fill="var(--ink)">firebase_uid  PK</text>
+              <text x="24" y="112">name · email · photo_url</text>
+              <text x="24" y="132">monthly_income      int64</text>
+              <text x="24" y="152">budget_limit        int64</text>
+              <text x="24" y="172">income_bracket</text>
+              <text x="24" y="192">current_status</text>
+              <text x="24" y="212">financial_health</text>
+              <text x="24" y="232">savings_goal        int64</text>
+              <text x="24" y="252">savings_goal_name</text>
+              <text x="24" y="272">created_at · updated_at</text>
+            </g>
+
+            <!-- transactions -->
+            <rect x="430" y="16" width="270" height="132" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
+            <rect x="430" y="16" width="270" height="24" fill="var(--rule)"/>
+            <text x="565" y="33" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="700" fill="var(--ink)">transactions</text>
+            <g fill="var(--ink-soft)">
+              <text x="444" y="58" font-weight="600" fill="var(--ink)">_id  PK   ·   user_id  FK</text>
+              <text x="444" y="78">merchant · category · source</text>
+              <text x="444" y="98">amount              int64 ฿</text>
+              <text x="444" y="118">type   expense | income</text>
+              <text x="444" y="138">date · created_at</text>
+            </g>
+
+            <!-- monthly summaries -->
+            <rect x="430" y="182" width="270" height="140" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5" stroke-dasharray="6 3"/>
+            <rect x="430" y="182" width="270" height="24" fill="var(--rule)"/>
+            <text x="565" y="199" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="700" fill="var(--ink)">monthly_summaries</text>
+            <g fill="var(--ink-soft)">
+              <text x="444" y="222" font-weight="600" fill="var(--ink)">user_id + month  unique</text>
+              <text x="444" y="240">total_income · total_expenses</text>
+              <text x="444" y="258">available · savings   int64</text>
+              <text x="444" y="276">expense_by_category[]</text>
+              <text x="444" y="294">is_frozen           bool</text>
+            </g>
+
+            <!-- chat messages -->
+            <rect x="800" y="16" width="230" height="132" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
+            <rect x="800" y="16" width="230" height="24" fill="var(--rule)"/>
+            <text x="915" y="33" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="700" fill="var(--ink)">chat_messages</text>
+            <g fill="var(--ink-soft)">
+              <text x="814" y="58" font-weight="600" fill="var(--ink)">_id  PK  ·  user_id  FK</text>
+              <text x="814" y="78">role   user | model</text>
+              <text x="814" y="98">content</text>
+              <text x="814" y="118">tool_calls[]</text>
+              <text x="814" y="138">created_at</text>
+            </g>
+
+            <!-- gridfs -->
+            <rect x="800" y="200" width="230" height="98" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
+            <rect x="800" y="200" width="230" height="24" fill="var(--rule)"/>
+            <text x="915" y="217" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="700" fill="var(--ink)">avatars  (GridFS)</text>
+            <g fill="var(--ink-soft)">
+              <text x="814" y="242" font-weight="600" fill="var(--ink)">filename = firebase_uid</text>
+              <text x="814" y="262">content_type</text>
+              <text x="814" y="282">chunks</text>
+            </g>
+          </g>
+
+          <!-- relationships -->
+          <g stroke="var(--muted)" stroke-width="1.3" fill="none">
+            <path d="M260 110 L 428 82"/>
+            <path d="M260 190 L 428 250"/>
+            <path d="M260 96  C 360 20 700 6 798 62"/>
+            <path d="M260 158 C 430 170 650 180 798 236"/>
+          </g>
+          <g font-family="IBM Plex Mono" font-size="10.5" fill="var(--muted)">
+            <text x="336" y="86">1 — N</text>
+            <text x="336" y="236">1 — N</text>
+            <text x="540" y="12">1 — N</text>
+            <text x="600" y="164">1 — 0..1</text>
+          </g>
+        </svg>
+        <figcaption>Every collection is keyed by the Firebase UID <em>string</em>, not a Mongo ObjectID. <strong>monthly_summaries</strong> is drawn dashed because it is derived — a cache recomputed from transactions and invalidated on every write, never a source of truth.</figcaption>
+      </figure>
+    </div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">07 / 15</span></div>
+  </section>
+
+  <!-- ACTIVITY ────────────────────────────────────────────────── -->
+  <section class="slide">
+    <div class="eyebrow">System design · 4 · Slip capture activity</div>
+    <h2>Two ways in, one path to a saved transaction</h2>
+    <div class="body">
+      <figure>
+        <svg viewBox="0 0 1040 320" role="img" aria-label="Activity diagram: manual capture and automatic gallery detection merge into extraction, user confirmation, and saving the transaction.">
+          <defs>
+            <marker id="am" markerWidth="8" markerHeight="8" refX="7.5" refY="4" orient="auto">
+              <path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/>
+            </marker>
+          </defs>
+
+          <g font-family="IBM Plex Sans" font-size="11.5" text-anchor="middle">
+            <!-- manual lane -->
+            <circle cx="34" cy="70" r="9" fill="var(--ink)"/>
+            <rect x="66" y="52" width="118" height="36" rx="4" fill="var(--surface-alt)" stroke="var(--rule)"/>
+            <text x="125" y="74" fill="var(--ink-soft)">Tap Scan</text>
+            <rect x="208" y="52" width="130" height="36" rx="4" fill="var(--surface-alt)" stroke="var(--rule)"/>
+            <text x="273" y="74" fill="var(--ink-soft)">Capture photo</text>
+
+            <!-- auto lane -->
+            <circle cx="34" cy="196" r="9" fill="none" stroke="var(--ink)" stroke-width="2.5"/>
+            <rect x="66" y="178" width="118" height="36" rx="4" fill="var(--accent-wash)" stroke="var(--accent)"/>
+            <text x="125" y="200" fill="var(--ink-soft)">App resumed</text>
+            <rect x="208" y="178" width="130" height="36" rx="4" fill="var(--accent-wash)" stroke="var(--accent)"/>
+            <text x="273" y="194" fill="var(--ink-soft)">Watcher scans</text>
+            <text x="273" y="208" fill="var(--ink-soft)">slip album</text>
+
+            <!-- decision: new slip -->
+            <path d="M400 196 L 434 172 L 468 196 L 434 220 Z" fill="var(--surface-alt)" stroke="var(--rule)"/>
+            <text x="434" y="200" font-size="10.5" fill="var(--ink-soft)">new?</text>
+            <text x="434" y="248" font-family="IBM Plex Mono" font-size="10" fill="var(--muted)">no → wait</text>
+
+            <!-- merge -->
+            <rect x="516" y="112" width="150" height="40" rx="4" fill="var(--surface-alt)" stroke="var(--rule)"/>
+            <text x="591" y="128" fill="var(--ink-soft)">Upload to</text>
+            <text x="591" y="142" font-family="IBM Plex Mono" font-size="10" fill="var(--muted)">/api/scanner/process</text>
+
+            <rect x="700" y="112" width="140" height="40" rx="4" fill="var(--accent-wash)" stroke="var(--accent)"/>
+            <text x="770" y="128" fill="var(--ink-soft)">Gemini Vision</text>
+            <text x="770" y="142" font-size="10.5" fill="var(--muted)">merchant · ฿ · date</text>
+
+            <!-- verify -->
+            <rect x="700" y="196" width="140" height="40" rx="4" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="2"/>
+            <text x="770" y="212" fill="var(--ink)">Verify screen</text>
+            <text x="770" y="226" font-size="10.5" fill="var(--muted)">user confirms</text>
+
+            <!-- save -->
+            <rect x="880" y="196" width="140" height="40" rx="4" fill="var(--done-wash)" stroke="var(--done)"/>
+            <text x="950" y="212" fill="var(--ink)">Save transaction</text>
+            <text x="950" y="226" font-size="10.5" fill="var(--muted)">+ invalidate month</text>
+
+            <circle cx="950" cy="284" r="11" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <circle cx="950" cy="284" r="6" fill="var(--ink)"/>
+          </g>
+
+          <g stroke="var(--muted)" stroke-width="1.3" fill="none" marker-end="url(#am)">
+            <path d="M45 70 L 60 70"/>
+            <path d="M184 70 L 202 70"/>
+            <path d="M338 70 L 500 70 L 500 118 L 510 118"/>
+            <path d="M45 196 L 60 196"/>
+            <path d="M184 196 L 202 196"/>
+            <path d="M338 196 L 396 196"/>
+            <path d="M468 196 L 500 196 L 500 146 L 510 146"/>
+            <path d="M666 132 L 694 132"/>
+            <path d="M770 152 L 770 190"/>
+            <path d="M840 216 L 874 216"/>
+            <path d="M950 236 L 950 268"/>
+          </g>
+          <g stroke="var(--muted)" stroke-width="1.2" fill="none" stroke-dasharray="4 3" marker-end="url(#am)">
+            <path d="M434 220 L 434 258"/>
+          </g>
+
+          <text x="356" y="62" font-family="IBM Plex Mono" font-size="10" fill="var(--muted)">manual</text>
+          <text x="356" y="188" font-family="IBM Plex Mono" font-size="10" fill="var(--accent-deep)">automatic</text>
+
+          <!-- annotation -->
+          <path d="M950 176 L 950 192" stroke="var(--done)" stroke-width="1.2" stroke-dasharray="3 2" fill="none"/>
+          <rect x="826" y="148" width="206" height="28" fill="var(--done-wash)" stroke="var(--done)" stroke-width="1"/>
+          <text x="929" y="166" text-anchor="middle" font-family="IBM Plex Sans" font-size="10.5" fill="var(--ink-soft)">slip marked processed only here</text>
+        </svg>
+        <figcaption>Extraction persists nothing on its own — the user's confirmation is what writes the transaction, and only then is the gallery slip retired.</figcaption>
+      </figure>
+    </div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">08 / 15</span></div>
+  </section>
+
+  <!-- 6 ─────────────────────────────────────────────────────────── -->
+  <section class="slide">
+    <div class="eyebrow">Working progress · Functional requirements</div>
+    <h2>Functional requirements</h2>
+    <div class="body">
+      <div class="metrics">
+        <div class="metric"><span class="v">11 / 14</span><span class="k">Requirements complete</span></div>
+        <div class="metric"><span class="v">19</span><span class="k">REST endpoints</span></div>
+        <div class="metric"><span class="v">16</span><span class="k">App screens</span></div>
+        <div class="metric"><span class="v">~15.1k</span><span class="k">Lines of code</span></div>
+      </div>
+      <div style="flex:1; min-height:0; overflow:auto;">
+        <table>
+          <thead><tr><th>Requirement</th><th>Evidence in the build</th><th class="st">Status</th></tr></thead>
+          <tbody>
+            <tr><td>FR-1 · Register &amp; authenticate</td><td>Firebase email/password and Google sign-in</td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-2 · Capture a slip by camera</td><td>Scanner → processing → verify flow</td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-3 · Extract merchant, amount, date</td><td>Gemini Vision, temperature 0, Thai + Buddhist-era handling</td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-4 · Auto-detect slips in gallery</td><td>Album cascade watcher, dedup, user-toggleable</td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-5 · Confirm before saving</td><td>Verify screen; extraction persists nothing on its own</td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-6 · Manage transactions</td><td>Create, list, edit, delete; manual entry path</td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-7 · Monthly budget summary</td><td>Income, expenses, available, category breakdown</td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-8 · Ask a grounded question</td><td>Agent loop over the user's own records</td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-9 · Coach performs actions</td><td>Sets goals, updates budget, adds transactions</td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-10 · Savings goal + progress</td><td>Shared by the profile UI and the agent; dashboard tracker</td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-11 · Manage account</td><td>Profile, photo upload, password change, account deletion</td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-12 · Transaction detail view</td><td>API endpoint exists; screen still a placeholder</td><td class="st"><span class="chip s-wip">In progress</span></td></tr>
+            <tr><td>FR-13 · Filter &amp; search history</td><td>Not started — history lists unfiltered</td><td class="st"><span class="chip s-todo">To do</span></td></tr>
+            <tr><td>FR-14 · Notification-based capture</td><td>Prototyped in Aug, reverted; revisit after Alpha</td><td class="st"><span class="chip s-todo">To do</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">09 / 15</span></div>
+  </section>
+
+  <!-- 7 ─────────────────────────────────────────────────────────── -->
+  <section class="slide">
+    <div class="eyebrow">Working progress · Non-functional requirements</div>
+    <h2>Non-functional requirements</h2>
+    <div class="body">
+      <div style="flex:1; min-height:0; overflow:auto;">
+        <table>
+          <thead><tr><th style="width:15%">Quality</th><th>Target and how it is met</th><th class="st">Status</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Performance</td>
+              <td>Coach replies within a <span class="mono">45 s</span> server budget; client waits <span class="mono">60 s</span> so it never aborts a request the server finished. Images downscaled to 800 px before upload. Past months served from a frozen cache.</td>
+              <td class="st"><span class="chip s-done">Met</span></td>
+            </tr>
+            <tr>
+              <td>Correctness</td>
+              <td>Money is <span class="mono">int64</span> Baht end-to-end. Month windows anchored to <span class="mono">UTC+07:00</span> so a 06:00 Bangkok expense is not filed in the previous month. Every write invalidates the affected summary cache.</td>
+              <td class="st"><span class="chip s-done">Met</span></td>
+            </tr>
+            <tr>
+              <td>Usability</td>
+              <td>Capture is two taps from a detected slip. Amounts are pre-formatted server-side. Failures state a cause and a next step rather than a generic error.</td>
+              <td class="st"><span class="chip s-done">Met</span></td>
+            </tr>
+            <tr>
+              <td>Reliability</td>
+              <td>A failed scan never silently loses a receipt — the slip is marked processed only after its transaction saves. A failed dashboard load renders an explicit error state, never a fabricated ฿0.</td>
+              <td class="st"><span class="chip s-done">Met</span></td>
+            </tr>
+            <tr>
+              <td>Security</td>
+              <td>Firebase identity; re-authentication required before password change or account deletion; single-transaction routes scoped to their owner. <strong>Gap:</strong> the API does not yet verify Firebase ID tokens server-side.</td>
+              <td class="st"><span class="chip s-wip">Partial</span></td>
+            </tr>
+            <tr>
+              <td>Privacy</td>
+              <td>Account deletion erases the profile, transactions, summaries and coach conversations in one operation. Slip images are processed and not retained by the scanner.</td>
+              <td class="st"><span class="chip s-done">Met</span></td>
+            </tr>
+            <tr>
+              <td>Maintainability</td>
+              <td>Month rules and cache invalidation live in one shared package used by both handlers and agents. Profile updates bind to a typed struct rather than a free-form map.</td>
+              <td class="st"><span class="chip s-done">Met</span></td>
+            </tr>
+            <tr>
+              <td>Testability</td>
+              <td>13 unit tests cover month-boundary maths, partial-update binding and the agent tool contract. Widget and integration tests are not yet written.</td>
+              <td class="st"><span class="chip s-wip">Partial</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout">
+        <strong>Reported honestly.</strong> Two qualities are partial. Both are named on the remaining-work slide with a
+        date, rather than being presented as complete.
+      </div>
+    </div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">10 / 15</span></div>
+  </section>
+
+  <!-- 8 ─────────────────────────────────────────────────────────── -->
+  <section class="slide">
+    <div class="eyebrow">Timeline</div>
+    <h2>Past progress, current status, and the road to D-Day</h2>
+    <div class="body">
+      <figure>
+        <svg viewBox="0 0 1040 250" role="img" aria-label="Timeline from March 2026 to the final demonstration, marking completed phases, the alpha test, and remaining work.">
+          <line x1="40" y1="120" x2="1000" y2="120" stroke="var(--rule)" stroke-width="2"/>
+          <line x1="40" y1="120" x2="700" y2="120" stroke="var(--accent)" stroke-width="3"/>
+
+          <g font-family="IBM Plex Mono" font-size="10.5" fill="var(--muted)" text-anchor="middle">
+            <text x="70" y="150">MAR</text>
+            <text x="250" y="150">MAY</text>
+            <text x="470" y="150">AUG</text>
+            <text x="640" y="150">4–9 SEP</text>
+            <text x="700" y="176" fill="var(--accent-deep)" font-weight="600">TODAY</text>
+            <text x="820" y="150">14 SEP</text>
+            <text x="965" y="150">D-DAY</text>
+          </g>
+
+          <g>
+            <circle cx="70"  cy="120" r="7" fill="var(--accent)"/>
+            <circle cx="250" cy="120" r="7" fill="var(--accent)"/>
+            <circle cx="470" cy="120" r="7" fill="var(--accent)"/>
+            <circle cx="640" cy="120" r="7" fill="var(--accent)"/>
+            <circle cx="700" cy="120" r="6" fill="var(--surface)" stroke="var(--accent-deep)" stroke-width="3"/>
+            <rect x="812" y="112" width="16" height="16" fill="var(--surface)" stroke="var(--accent-deep)" stroke-width="2.5"/>
+            <circle cx="965" cy="120" r="7" fill="none" stroke="var(--todo)" stroke-width="2.5" stroke-dasharray="3 2"/>
+          </g>
+
+          <g font-family="IBM Plex Sans" font-size="12" fill="var(--ink-soft)" text-anchor="middle">
+            <text x="70"  y="88" font-weight="700" fill="var(--ink)">Foundation</text>
+            <text x="70"  y="70">project structure</text>
+
+            <text x="250" y="88" font-weight="700" fill="var(--ink)">Scanner + API</text>
+            <text x="250" y="70">Gemini Vision, RAG</text>
+            <text x="250" y="52">evaluation runs</text>
+
+            <text x="470" y="88" font-weight="700" fill="var(--ink)">Multi-agent</text>
+            <text x="470" y="70">retrieval + action</text>
+            <text x="470" y="52">agents, orchestrator</text>
+
+            <text x="640" y="88" font-weight="700" fill="var(--ink)">Hardening</text>
+            <text x="640" y="70">gallery watcher,</text>
+            <text x="640" y="52">monorepo, profile</text>
+
+            <text x="820" y="206" font-weight="700" fill="var(--accent-deep)">Alpha Test</text>
+            <text x="820" y="224">this presentation</text>
+
+            <text x="965" y="206" font-weight="700" fill="var(--todo)">Final demo</text>
+            <text x="965" y="224">hardened + deployed</text>
+          </g>
+
+          <g stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3">
+            <line x1="820" y1="132" x2="820" y2="192"/>
+            <line x1="965" y1="132" x2="965" y2="192"/>
+          </g>
+        </svg>
+      </figure>
+      <div class="cols c3">
+        <div class="panel" style="border-left:3px solid var(--done);">
+          <h3 style="color:var(--done)">Completed</h3>
+          <p style="margin:0;color:var(--ink-soft)">Capture pipeline, ledger, budgeting, the full agent loop, and account management — 11 of 14 functional requirements.</p>
+        </div>
+        <div class="panel" style="border-left:3px solid var(--accent);">
+          <h3 style="color:var(--accent-deep)">Current status</h3>
+          <p style="margin:0;color:var(--ink-soft)">Feature-complete for the alpha demo. Both halves build clean; the app runs against a local API on an Android emulator.</p>
+        </div>
+        <div class="panel" style="border-left:3px solid var(--todo);">
+          <h3 style="color:var(--todo)">Remaining</h3>
+          <p style="margin:0;color:var(--ink-soft)">Server-side token verification, deployment, wider test coverage, and the last two screens.</p>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">11 / 15</span></div>
+  </section>
+
+  <!-- 9 ─────────────────────────────────────────────────────────── -->
+  <section class="slide">
+    <div class="eyebrow">Demonstration</div>
+    <h2>Demo flow — one continuous story, following the use cases</h2>
+    <div class="body">
+      <div class="cols c25" style="flex:1; min-height:0;">
+        <div class="steps">
+          <div class="step"><div><b>Sign in and set up the profile.</b> <span>Income bracket, status and financial health — the same values the coach is later grounded in. <span class="mono">UC: Manage profile</span></span></div></div>
+          <div class="step"><div><b>Pay by PromptPay, return to the app.</b> <span>The gallery watcher offers the new slip unprompted. <span class="mono">UC: Auto-detect new slips</span></span></div></div>
+          <div class="step"><div><b>Confirm the extracted entry.</b> <span>Merchant, ฿ amount and date come back from the vision model; the user corrects the category and saves. <span class="mono">UC: Review &amp; confirm</span></span></div></div>
+          <div class="step"><div><b>Watch the dashboard react.</b> <span>Budget ring, category breakdown and savings tracker all move on the same figure. <span class="mono">UC: Track budget</span></span></div></div>
+          <div class="step"><div><b>Ask the coach a real question.</b> <span>“Can I afford ฿5,000 more this month?” — it calls its own tools and answers from the ledger. <span class="mono">UC: Ask the AI Coach</span></span></div></div>
+          <div class="step"><div><b>Let the coach act.</b> <span>“Set aside ฿50,000 for a Japan trip.” The goal is written, and the dashboard tracker updates. <span class="mono">UC: Ask the AI Coach</span></span></div></div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:1.1em;">
+          <div class="panel">
+            <h3>What the flow is designed to prove</h3>
+            <ul class="tight">
+              <li>The user <strong>never types an amount</strong> from step 2 onward.</li>
+              <li>The coach reads <strong>this user's records</strong>, not general knowledge.</li>
+              <li>The coach <strong>writes</strong> as well as reads — step 6 changes stored state.</li>
+              <li>One figure moves consistently through capture, budget and goal.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3>Fallback if the network fails</h3>
+            <p style="margin:0;color:var(--ink-soft)">
+              A seeded demo account with six months of Thai transactions is loaded in advance, and a
+              sample slip image ships with the app — so steps 3 to 6 can be shown without a live payment.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">12 / 15</span></div>
+  </section>
+
+  <!-- 10 ────────────────────────────────────────────────────────── -->
+  <section class="slide">
+    <div class="eyebrow">Engineering quality</div>
+    <h2>What we found when we audited the build</h2>
+    <div class="body">
+      <p class="lede">Before this milestone the codebase was reviewed end to end — backend logic, client behaviour, and the contract between them. The defects worth reporting were not in the AI features; they were in the arithmetic underneath them.</p>
+      <div class="cols c2" style="flex:1; min-height:0;">
+        <div class="panel">
+          <h3>Representative defects, now fixed</h3>
+          <ul class="tight">
+            <li><strong>Stale monthly cache.</strong> The refreshed summary was never written back, so the dashboard and the coach could report different totals for the same month.</li>
+            <li><strong>Timezone freeze.</strong> A month could be frozen at ฿0 when the phone and a UTC server disagreed about the date at midnight.</li>
+            <li><strong>Backdated entries invisible.</strong> Adding a forgotten expense to a closed month never invalidated that month's totals.</li>
+            <li><strong>Receipts lost on failure.</strong> A slip was marked processed <em>before</em> the scan ran, so a failed scan hid it permanently.</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>How they were prevented from recurring</h3>
+          <ul class="tight">
+            <li>Month boundaries and cache invalidation moved into <span class="mono">internal/summaries</span> — one implementation, used by handlers and agents alike.</li>
+            <li>13 unit tests now pin the month arithmetic, the partial-update contract and the agent's tool list.</li>
+            <li>Profile updates bind to a typed request struct, so an unknown field can no longer be written into the user document.</li>
+            <li>Single-transaction routes are scoped by owner, closing an ID-guessing path.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout">
+        <strong>Why this belongs in the presentation.</strong> The AI layer is the visible part of the project, but its
+        answers are only as trustworthy as the ledger beneath it. A coach that confidently quotes a stale number is
+        worse than no coach at all.
+      </div>
+    </div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">13 / 15</span></div>
+  </section>
+
+  <!-- 11 ────────────────────────────────────────────────────────── -->
+  <section class="slide">
+    <div class="eyebrow">Remaining work</div>
+    <h2>From alpha to final demonstration</h2>
+    <div class="body">
+      <div style="flex:1; min-height:0; overflow:auto;">
+        <table>
+          <thead><tr><th style="width:26%">Task</th><th>Why it matters</th><th class="st">Priority</th></tr></thead>
+          <tbody>
+            <tr><td>Verify Firebase ID tokens server-side</td><td>The API currently trusts the UID in the request. This is the single most important correctness-of-access gap, and every endpoint depends on the same middleware.</td><td class="st"><span class="chip s-wip">Critical</span></td></tr>
+            <tr><td>Deploy the API</td><td>The client still points at a hardcoded LAN address. A hosted API removes the demo's dependence on a laptop on the same network.</td><td class="st"><span class="chip s-wip">High</span></td></tr>
+            <tr><td>Rotate exposed credentials</td><td>An example configuration file and an old evaluation script contain real-looking keys recoverable from history.</td><td class="st"><span class="chip s-wip">High</span></td></tr>
+            <tr><td>Transaction detail &amp; filtering</td><td>Completes FR-12 and FR-13; the detail endpoint already exists and is unused.</td><td class="st"><span class="chip s-todo">Medium</span></td></tr>
+            <tr><td>Widget &amp; integration tests</td><td>Client behaviour is currently verified by hand. The scan pipeline in particular deserves an automated path.</td><td class="st"><span class="chip s-todo">Medium</span></td></tr>
+            <tr><td>Restore coach-quality evaluation</td><td>A RAGAS-style harness existed and was removed; re-adding it makes prompt changes measurable rather than anecdotal.</td><td class="st"><span class="chip s-todo">Medium</span></td></tr>
+            <tr><td>Confirm agent writes with the user</td><td>The coach can change a budget from a single sentence. A confirmation step would make that safer.</td><td class="st"><span class="chip s-todo">Low</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="cols c3">
+        <div class="panel"><h3>Next 2 weeks</h3><p style="margin:0;color:var(--ink-soft)">Auth middleware, deployment, credential rotation.</p></div>
+        <div class="panel"><h3>Following sprint</h3><p style="margin:0;color:var(--ink-soft)">FR-12 and FR-13, then the test suite.</p></div>
+        <div class="panel"><h3>Before D-Day</h3><p style="margin:0;color:var(--ink-soft)">Evaluation harness re-run, full demo rehearsal on the hosted API.</p></div>
+      </div>
+    </div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">14 / 15</span></div>
+  </section>
+
+  <!-- 12 ────────────────────────────────────────────────────────── -->
+  <section class="slide">
+    <div class="eyebrow">Summary</div>
+    <h2>Where SmartFin stands today</h2>
+    <div class="body">
+      <div class="metrics">
+        <div class="metric"><span class="v">11 / 14</span><span class="k">Functional requirements</span></div>
+        <div class="metric"><span class="v">6 / 8</span><span class="k">Non-functional met</span></div>
+        <div class="metric"><span class="v">7</span><span class="k">Agent tools live</span></div>
+        <div class="metric"><span class="v">2</span><span class="k">Capture paths</span></div>
+      </div>
+      <div class="cols c2" style="flex:1; min-height:0;">
+        <div class="panel">
+          <h3>The claim being demonstrated</h3>
+          <p style="margin:0;color:var(--ink-soft); font-size:1.06em;">
+            A Thai user can go from paying by PromptPay to seeing that payment reflected in their budget,
+            their category breakdown and their savings goal — <strong>without typing a single number</strong> —
+            and can then ask an agent that reads and writes their real records what to do about it.
+          </p>
+        </div>
+        <div class="panel">
+          <h3>Known limitations, stated plainly</h3>
+          <ul class="tight">
+            <li>The API does not yet verify identity tokens.</li>
+            <li>The backend runs locally; it is not deployed.</li>
+            <li>Client test coverage is manual.</li>
+            <li>Two secondary screens remain unbuilt.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout" style="text-align:center; border-left:none; border-top:3px solid var(--accent);">
+        <strong style="font-family:var(--f-display); font-size:1.5em;">Questions</strong>
+      </div>
+    </div>
+    <div class="foot"><span>SmartFin — CSC499 Alpha Test · 14 September 2026</span><span class="num">15 / 15</span></div>
+  </section>
+
+</div>
