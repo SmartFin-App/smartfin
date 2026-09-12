@@ -53,6 +53,7 @@ func SetupRoutes(app *fiber.App) {
 	// Coach routes under /api/coach
 	coach := api.Group("/coach")
 	coach.Post("/ask", coachHandler.AskCoach)
+	coach.Get("/history/:user_id", coachHandler.GetHistory)
 
 	// Summary routes under /api/summary
 	summary := api.Group("/summary")

@@ -11,6 +11,7 @@ import (
 
 	"github.com/SmartFin-App/smartfin-backend/config"
 	"github.com/SmartFin-App/smartfin-backend/internal/models"
+	"github.com/SmartFin-App/smartfin-backend/internal/summaries"
 	"github.com/google/generative-ai-go/genai"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -82,8 +83,14 @@ func (o *Orchestrator) ProcessQuery(ctx context.Context, input AskCoachInput) (*
 		}
 	}
 
+	// The model has no clock of its own. Without this it cannot resolve "this
+	// month", "yesterday" or "last week", and it cannot place the timestamps that
+	// come back from get_recent_conversations — it was left inferring the date
+	// from its training data.
+	now := time.Now().In(summaries.Zone)
 	userContext := fmt.Sprintf(
-		"Current User Profile:\n- Name: %s\n- Monthly Income: ฿%d\n- Income Bracket: %s\n- Budget Limit: ฿%d\n- Financial Goal: %s\n- Savings Goal: ฿%d (%s, target: %s)",
+		"Current date and time: %s (Thailand, UTC+07:00)\nCurrent month: %s\n\nCurrent User Profile:\n- Name: %s\n- Monthly Income: ฿%d\n- Income Bracket: %s\n- Budget Limit: ฿%d\n- Financial Goal: %s\n- Savings Goal: ฿%d (%s, target: %s)",
+		now.Format("Monday, 2 January 2006, 15:04"), summaries.StringOf(now),
 		user.Name, user.MonthlyIncome, user.IncomeBracket, user.BudgetLimit, user.FinancialHealth,
 		user.SavingsGoal, user.SavingsGoalName, user.SavingsTargetDate,
 	)
@@ -102,6 +109,7 @@ Follow this Reasoning Process:
 2. OBSERVE: Review the returned observations. If you still lack necessary details, invoke additional tools.
 3. GROUND & ANSWER: Once you have sufficient information, synthesize a clear, helpful, personalized answer.
    - Format amounts in Thai Baht (฿) with no decimals.
+   - All dates and timestamps you receive are already Thai local time (UTC+07:00). Use the current date above when resolving "today", "this month" or "last week" — never guess it.
    - Keep answers concise (3-4 sentences) unless user asks for detailed analysis.
    - If an action was completed, confirm it clearly to the user.
    - Gently redirect non-financial topics back to financial health.`, userContext)
@@ -203,15 +211,18 @@ Follow this Reasoning Process:
 		toolsUsed = append(toolsUsed, t)
 	}
 
-	// Persist conversation into MongoDB Atlas chat_messages collection
-	now := time.Now()
+	// Persist conversation into MongoDB Atlas chat_messages collection.
+	// Timed here rather than reusing the prompt's clock: the agent loop can run
+	// for tens of seconds, and the transcript should record when the exchange
+	// finished, not when it started.
+	persistedAt := time.Now()
 	_, _ = o.chatMessagesCol.InsertMany(ctx, []any{
 		models.ChatMessage{
 			ID:        bson.NewObjectID(),
 			UserID:    input.UserID,
 			Role:      "user",
 			Content:   input.Message,
-			CreatedAt: now,
+			CreatedAt: persistedAt,
 		},
 		models.ChatMessage{
 			ID:        bson.NewObjectID(),
@@ -219,7 +230,8 @@ Follow this Reasoning Process:
 			Role:      "model",
 			Content:   finalResponse,
 			ToolCalls: toolsUsed,
-			CreatedAt: now.Add(time.Millisecond * 10),
+			// 10ms apart so the created_at sort always yields user-then-model.
+			CreatedAt: persistedAt.Add(time.Millisecond * 10),
 		},
 	})
 
@@ -251,7 +263,9 @@ func (o *Orchestrator) dispatchTool(ctx context.Context, userID, toolName string
 		return map[string]any{"transactions": res}, nil, err
 
 	case "get_recent_conversations":
-		limit := 5
+		// 20 messages ≈ 10 exchanges. At 5 the coach could not recall anything
+		// beyond the last couple of turns.
+		limit := 20
 		if l, ok := args["limit"].(float64); ok && l > 0 {
 			limit = int(l)
 		}
@@ -440,7 +454,7 @@ func (o *Orchestrator) getFunctionDeclarations() []*genai.FunctionDeclaration {
 				Properties: map[string]*genai.Schema{
 					"limit": {
 						Type:        genai.TypeInteger,
-						Description: "Number of past messages to fetch (default 5).",
+						Description: "Number of past messages to fetch (default 20, max 20).",
 					},
 				},
 			},
@@ -463,4 +477,3 @@ func sanitizeForGemini(data map[string]any) map[string]any {
 	}
 	return out
 }
-

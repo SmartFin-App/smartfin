@@ -9,6 +9,7 @@ import (
 
 	"github.com/SmartFin-App/smartfin-backend/config"
 	"github.com/SmartFin-App/smartfin-backend/internal/models"
+	"github.com/SmartFin-App/smartfin-backend/internal/summaries"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -59,18 +60,19 @@ func (a *RetrievalAgent) GetBudgetSummary(ctx context.Context, userID, month str
 		}, nil
 	}
 
-	// Fallback calculation directly from transactions if summary record not yet generated
-	now := time.Now()
-	var parsedYear, parsedMonth int
-	if _, err := fmt.Sscanf(month, "%d-%d", &parsedYear, &parsedMonth); err != nil {
-		parsedYear = now.Year()
-		parsedMonth = int(now.Month())
-		month = fmt.Sprintf("%d-%02d", parsedYear, parsedMonth)
+	// Fallback calculation directly from transactions if summary record not yet
+	// generated. The window comes from summaries.Bounds (+07:00), not a locally
+	// computed UTC one: a UTC window put a 06:00 Bangkok expense in the previous
+	// month, so the coach could quote a different total than the dashboard for
+	// the very same month.
+	startOfMonth, endOfMonth, err := summaries.Bounds(month)
+	if err != nil {
+		month = summaries.StringOf(time.Now())
+		startOfMonth, endOfMonth, err = summaries.Bounds(month)
+		if err != nil {
+			return nil, fmt.Errorf("could not resolve month %q: %w", month, err)
+		}
 	}
-
-	loc := time.UTC
-	startOfMonth := time.Date(parsedYear, time.Month(parsedMonth), 1, 0, 0, 0, 0, loc)
-	endOfMonth := startOfMonth.AddDate(0, 1, 0)
 
 	cursor, err := a.transactionsCol.Find(ctx, bson.M{
 		"user_id": userID,
@@ -170,14 +172,17 @@ func (a *RetrievalAgent) GetTransactions(ctx context.Context, userID string, lim
 	var results []map[string]any
 	for _, t := range txs {
 		results = append(results, map[string]any{
-			"id":         t.ID.Hex(),
-			"merchant":   t.Merchant,
-			"amount":     t.Amount,
-			"type":       t.Type,
-			"category":   t.Category,
-			"source":     t.Source,
-			"date":       t.Date.Format("2006-01-02"),
-			"date_human": t.Date.Format("Jan 02, 2006"),
+			"id":       t.ID.Hex(),
+			"merchant": t.Merchant,
+			"amount":   t.Amount,
+			"type":     t.Type,
+			"category": t.Category,
+			"source":   t.Source,
+			// Rendered in Thai local time: a transaction stored at 17:30Z is the
+			// next day for the user, and the model has no way to know that from
+			// a UTC string.
+			"date":       t.Date.In(summaries.Zone).Format("2006-01-02"),
+			"date_human": t.Date.In(summaries.Zone).Format("Jan 02, 2006"),
 		})
 	}
 	return results, nil
@@ -207,9 +212,11 @@ func (a *RetrievalAgent) GetRecentConversations(ctx context.Context, userID stri
 	for i := len(messages) - 1; i >= 0; i-- {
 		m := messages[i]
 		results = append(results, map[string]any{
-			"role":       m.Role,
-			"content":    m.Content,
-			"timestamp":  m.CreatedAt.Format(time.RFC3339),
+			"role":    m.Role,
+			"content": m.Content,
+			// Same reason, and RFC3339 carries the +07:00 offset explicitly so the
+			// model is never left guessing which zone it is reading.
+			"timestamp":  m.CreatedAt.In(summaries.Zone).Format(time.RFC3339),
 			"tool_calls": m.ToolCalls,
 		})
 	}

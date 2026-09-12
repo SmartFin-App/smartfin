@@ -191,7 +191,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             _buildFailureState()
           else
             SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
+              physics: const ClampingScrollPhysics(),
               padding: const EdgeInsets.only(top: 130, bottom: 140),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),

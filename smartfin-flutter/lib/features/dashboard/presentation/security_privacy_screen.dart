@@ -389,7 +389,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
       body: Stack(
         children: [
           SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
+            physics: const ClampingScrollPhysics(),
             padding: const EdgeInsets.only(top: 130, bottom: 60),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),

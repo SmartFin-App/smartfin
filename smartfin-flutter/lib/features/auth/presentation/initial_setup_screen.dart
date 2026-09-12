@@ -355,7 +355,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
                         _buildSectionLabel('MONTHLY INCOME'),
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
+                          physics: const ClampingScrollPhysics(),
                           child: Row(
                             children: [
                               _buildPill('Under 20k', selectedIncome, (val) => setState(() => selectedIncome = val)),

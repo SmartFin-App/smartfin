@@ -672,7 +672,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: Stack(
         children: [
           SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
+            physics: const ClampingScrollPhysics(),
             padding: const EdgeInsets.only(top: 130, bottom: 120),
             child: Column(
               children: [

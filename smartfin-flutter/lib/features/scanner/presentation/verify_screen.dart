@@ -218,7 +218,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
           // ── Scrollable content ─────────────────────────────────────────
           SingleChildScrollView(
             padding: const EdgeInsets.only(top: 104, bottom: 120),
-            physics: const BouncingScrollPhysics(),
+            physics: const ClampingScrollPhysics(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

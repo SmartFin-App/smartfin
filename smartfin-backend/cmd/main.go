@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -25,6 +27,12 @@ func main() {
 
 	// Connect to MongoDB
 	config.ConnectDB()
+
+	// Build the indexes the coach's retrieval paths depend on. Non-fatal: a
+	// missing index costs speed, not correctness.
+	indexCtx, cancelIndexes := context.WithTimeout(context.Background(), 60*time.Second)
+	config.EnsureIndexes(indexCtx)
+	cancelIndexes()
 
 	// Create a new Fiber app instance
 	app := fiber.New(fiber.Config{

@@ -17,26 +17,32 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
   bool _isLoading = false;
   bool _isGoogleLoading = false;
   String? _emailError;
   String? _passwordError;
+  String? _confirmPasswordError;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   void _validateAndSubmit() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
 
     setState(() {
       _emailError = null;
       _passwordError = null;
+      _confirmPasswordError = null;
     });
 
     bool isValid = true;
@@ -49,6 +55,16 @@ class _SignupScreenState extends State<SignupScreen> {
 
     if (password.isEmpty || password.length < 6) {
       setState(() => _passwordError = "Password must be at least 6 characters.");
+      isValid = false;
+    }
+
+    // Checked even when the password itself is invalid, so both problems surface
+    // in one pass rather than one after the other.
+    if (confirmPassword.isEmpty) {
+      setState(() => _confirmPasswordError = "Please confirm your password.");
+      isValid = false;
+    } else if (confirmPassword != password) {
+      setState(() => _confirmPasswordError = "Passwords do not match.");
       isValid = false;
     }
 
@@ -147,6 +163,8 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget _buildTextField({
     required TextEditingController controller,
     bool isPassword = false,
+    bool obscure = true,
+    VoidCallback? onToggleObscure,
     String? errorText,
   }) {
     return Column(
@@ -168,7 +186,7 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
           child: TextField(
             controller: controller,
-            obscureText: isPassword ? _obscurePassword : false,
+            obscureText: isPassword && obscure,
             style: GoogleFonts.inter(
               fontWeight: FontWeight.w400,
               fontSize: 14,
@@ -179,9 +197,9 @@ class _SignupScreenState extends State<SignupScreen> {
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               suffixIcon: isPassword
                   ? GestureDetector(
-                      onTap: () => setState(() => _obscurePassword = !_obscurePassword),
+                      onTap: onToggleObscure,
                       child: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        obscure ? Icons.visibility_off : Icons.visibility,
                         color: const Color(0xFF9E9E9E),
                       ),
                     )
@@ -258,9 +276,26 @@ class _SignupScreenState extends State<SignupScreen> {
                 _buildTextField(
                   controller: _passwordController,
                   isPassword: true,
+                  obscure: _obscurePassword,
+                  onToggleObscure: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
                   errorText: _passwordError,
                 ),
-                
+
+                const SizedBox(height: 24),
+
+                // Confirm Password Field
+                _buildFieldLabel('CONFIRM PASSWORD'),
+                const SizedBox(height: 8),
+                _buildTextField(
+                  controller: _confirmPasswordController,
+                  isPassword: true,
+                  obscure: _obscureConfirmPassword,
+                  onToggleObscure: () => setState(
+                      () => _obscureConfirmPassword = !_obscureConfirmPassword),
+                  errorText: _confirmPasswordError,
+                ),
+
                 const SizedBox(height: 24),
                 
                 // Sign Up Button

@@ -399,7 +399,7 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
             color: const Color(0xFFFF9F29),
             onRefresh: _loadTransactions,
             child: CustomScrollView(
-              physics: const BouncingScrollPhysics(
+              physics: const ClampingScrollPhysics(
                   parent: AlwaysScrollableScrollPhysics()),
               slivers: [
                 // ── Sticky Header + Search ──
@@ -772,7 +772,9 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
           ),
 
           // Bottom Nav Bar
-          const SmartFinBottomNav(currentIndex: 1, showFab: false),
+          // FAB kept here: History is where a missing entry is noticed, and
+          // there is nothing at the bottom of this screen for it to collide with.
+          const SmartFinBottomNav(currentIndex: 1),
         ],
       ),
     );

@@ -478,7 +478,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         child: Stack(
           children: [
             CustomScrollView(
-              physics: const BouncingScrollPhysics(
+              physics: const ClampingScrollPhysics(
                   parent: AlwaysScrollableScrollPhysics()),
               slivers: [
                 // ── Sticky Header ──────────────────────────────────────────

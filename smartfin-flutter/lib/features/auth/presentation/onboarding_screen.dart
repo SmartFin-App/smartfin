@@ -265,7 +265,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 320),
         child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
+          physics: const ClampingScrollPhysics(),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

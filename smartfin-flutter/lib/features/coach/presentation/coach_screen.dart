@@ -52,13 +52,38 @@ class _CoachScreenState extends State<CoachScreen>
         FirebaseAuth.instance.currentUser?.displayName?.split(' ').first ??
         'there';
     if (!mounted) return;
+    setState(() => _userName = name);
+
+    // Restore the stored transcript first: switching tabs disposes this screen,
+    // so without this the conversation — and the coach's own context, which is
+    // built from these messages — resets every time the user leaves.
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isNotEmpty) {
+      final res = await CoachRepositoryImpl().getHistory(userID: uid);
+      if (!mounted) return;
+      if (res.success && (res.data?.isNotEmpty ?? false)) {
+        setState(() {
+          _messages = res.data!.map((m) {
+            final created = DateTime.tryParse(m['created_at'] as String? ?? '');
+            return <String, dynamic>{
+              'isUser': m['role'] == 'user',
+              'time': _formatTime(created?.toLocal() ?? DateTime.now()),
+              'text': m['content'] as String? ?? '',
+            };
+          }).toList();
+        });
+        _scrollToBottom();
+        return;
+      }
+    }
+
+    // No stored conversation yet — greet instead.
     setState(() {
-      _userName = name;
       _messages.add({
         'isUser': false,
         'time': _formatTime(DateTime.now()),
         'text':
-            'Hi $_userName! 🐾 I\'m your SmartFin Coach. Ask me anything about your finances!',
+            'Hi $_userName! 🐾 I\'m your SmartFin Coach. Ask me anything about your spending!',
         'chips': [
           'How much did I spend this month?',
           'Am I on budget?',
@@ -516,56 +541,9 @@ class _CoachScreenState extends State<CoachScreen>
                               color: const Color(0xFF333333),
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Container(
-                                width: 4,
-                                height: 4,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF4CAF50),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'ANALYZING',
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 9,
-                                  letterSpacing: 2,
-                                  color: const Color(0xFF4CAF50),
-                                ),
-                              ),
-                            ],
-                          ),
                         ],
                       ),
-                      GestureDetector(
-                        onTap: () => ScaffoldMessenger.of(context)
-                            .showSnackBar(const SnackBar(
-                                content: Text('Coming soon'))),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                                color: const Color.fromRGBO(
-                                    234, 226, 214, 0.6)),
-                            boxShadow: [
-                              BoxShadow(
-                                  color: Colors.black.withOpacity(0.02),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2))
-                            ],
-                          ),
-                          child: const Icon(Icons.settings_outlined,
-                              size: 22,
-                              color: Color.fromRGBO(51, 51, 51, 0.7)),
-                        ),
-                      ),
+                      const SizedBox(width: 40),
                     ],
                   ),
                 ),

@@ -129,14 +129,29 @@ func (h *SummaryHandler) calculateMonthlySummary(ctx context.Context, userID, mo
 		budgetPct = float64(totalExpenses) / float64(user.BudgetLimit) * 100
 	}
 
-	totalIncome := user.MonthlyIncome + oneTimeIncome
+	// Recurring income is an assumption taken from the profile, not a recorded
+	// transaction. Carrying it into a month that has already ended and holds no
+	// activity at all invents a salary out of nothing — and with no expenses to
+	// offset it, a brand-new user was congratulated for "saving" a full month's
+	// income in a month before they had even signed up.
+	//
+	// The test is "elapsed and empty", not "before signup": a past month that
+	// does contain transactions is evidence the user was active, so the standing
+	// income still applies. The current month always keeps it, since that figure
+	// is what the dashboard budgets against from day one.
+	recurringIncome := user.MonthlyIncome
+	if isFrozen && len(transactions) == 0 {
+		recurringIncome = 0
+	}
+
+	totalIncome := recurringIncome + oneTimeIncome
 	available := totalIncome - totalExpenses
 
 	summary := &models.MonthlySummary{
 		ID:                bson.NewObjectID(),
 		UserID:            userID,
 		Month:             month,
-		RecurringIncome:   user.MonthlyIncome,
+		RecurringIncome:   recurringIncome,
 		OneTimeIncome:     oneTimeIncome,
 		TotalIncome:       totalIncome,
 		TotalExpenses:     totalExpenses,

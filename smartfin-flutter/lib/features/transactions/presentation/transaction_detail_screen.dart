@@ -458,7 +458,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     final source = tx['source'] as String? ?? 'manual';
 
     return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
+      physics: const ClampingScrollPhysics(),
       padding: const EdgeInsets.only(top: 130, bottom: 60),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),

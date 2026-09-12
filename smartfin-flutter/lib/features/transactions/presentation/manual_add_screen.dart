@@ -183,7 +183,7 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
           // Main Scrollable Area
           SingleChildScrollView(
             padding: const EdgeInsets.only(top: 104, bottom: 120),
-            physics: const BouncingScrollPhysics(),
+            physics: const ClampingScrollPhysics(),
             child: Column(
               children: [
                 // Toggle Expense / Income
