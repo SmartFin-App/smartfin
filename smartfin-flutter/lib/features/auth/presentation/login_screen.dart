@@ -40,7 +40,9 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     bool isValid = true;
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    // TLD left open-ended: the old {2,4} cap rejected real addresses on
+    // .online, .company and similar before Firebase ever saw them.
+    final emailRegex = RegExp(r'^[\w.+-]+@([\w-]+\.)+[A-Za-z]{2,}$');
 
     if (email.isEmpty || !emailRegex.hasMatch(email)) {
       setState(() => _emailError = "Please enter a valid email address.");
@@ -82,6 +84,113 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  /// Sends a Firebase password-reset email.
+  ///
+  /// Prefills the dialog with whatever is already typed in the email field, and
+  /// reports success the same way whether or not the address has an account —
+  /// telling a stranger which emails are registered is a disclosure we do not
+  /// need to make.
+  Future<void> _sendPasswordReset() async {
+    final controller = TextEditingController(text: _emailController.text.trim());
+
+    final email = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Reset your password',
+          style: GoogleFonts.bricolageGrotesque(
+            fontWeight: FontWeight.w800,
+            fontSize: 19,
+            color: const Color(0xFF333333),
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'We will email you a link to choose a new password.',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w500,
+                fontSize: 13,
+                color: const Color(0xFF9E9E9E),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.emailAddress,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: 'you@example.com',
+                filled: true,
+                fillColor: const Color.fromRGBO(240, 235, 225, 0.35),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel',
+                style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w700, color: const Color(0xFF9E9E9E))),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: Text('Send link',
+                style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w700, color: const Color(0xFFFF9F29))),
+          ),
+        ],
+      ),
+    );
+
+    if (email == null || !mounted) return;
+
+    final emailRegex = RegExp(r'^[\w.+-]+@([\w-]+\.)+[A-Za-z]{2,}$');
+    if (!emailRegex.hasMatch(email)) {
+      _showSnack('Please enter a valid email address.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (mounted) {
+        _showSnack('If that email has an account, a reset link is on its way. 🐾');
+      }
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      // user-not-found is deliberately reported as success above; anything else
+      // is a real failure worth naming.
+      if (e.code == 'user-not-found') {
+        _showSnack('If that email has an account, a reset link is on its way. 🐾');
+      } else if (e.code == 'invalid-email') {
+        _showSnack('Please enter a valid email address.');
+      } else if (e.code == 'too-many-requests') {
+        _showSnack('Too many attempts. Please try again in a few minutes.');
+      } else {
+        _showSnack(e.message ?? 'Could not send the reset email.');
+      }
+    } catch (e) {
+      if (mounted) _showSnack('Could not send the reset email: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _handleGoogleSignIn() async {
@@ -263,11 +372,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: GestureDetector(
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Coming soon')),
-                      );
-                    },
+                    onTap: _isLoading ? null : _sendPasswordReset,
                     child: Text(
                       'Forgot Password?',
                       style: GoogleFonts.inter(

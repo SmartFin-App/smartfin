@@ -52,7 +52,7 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
       case SlipCheckStatus.permissionDenied:
         return "SmartFin needs photo access to spot your payment slips. Enable it in Settings.";
       case SlipCheckStatus.disabled:
-        return "Slip auto-detection is turned off. You can re-enable it in your profile.";
+        return "Auto-Detect is turned off. You can switch it back on in your profile.";
       case SlipCheckStatus.noAlbum:
         return "No 'SmartFin Receipts' album yet. Save PromptPay slips to that album to auto-detect! 🐾";
       case SlipCheckStatus.none:
@@ -147,7 +147,7 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
                         child: const Icon(Icons.chevron_left, color: Colors.white, size: 22),
                       ),
                     ),
-                    // Slips Album Watcher Button
+                    // Auto-Detect button
                     GestureDetector(
                       onTap: () async {
                         final result = await GalleryWatcherService()

@@ -46,7 +46,9 @@ class _SignupScreenState extends State<SignupScreen> {
     });
 
     bool isValid = true;
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    // TLD left open-ended: the old {2,4} cap rejected real addresses on
+    // .online, .company and similar before Firebase ever saw them.
+    final emailRegex = RegExp(r'^[\w.+-]+@([\w-]+\.)+[A-Za-z]{2,}$');
 
     if (email.isEmpty || !emailRegex.hasMatch(email)) {
       setState(() => _emailError = "Please enter a valid email address.");

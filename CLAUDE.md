@@ -39,6 +39,8 @@ The backend must be running on port 3000 for the app to get past its auth screen
 - **Slip scanning is stateless server-side.** `POST /api/scanner/process` extracts fields with Gemini Vision and persists nothing — the app's verify screen is what creates the transaction after the user confirms.
 - **The coach is a multi-turn agentic loop**, budgeted at 45s server-side, which is why the client's Dio receive timeout must stay above that (it is 60s). Some of its tools *write* to the database (savings goal, budget limit, add transaction) and report back as `actions_taken`.
 - **Base URLs are hardcoded per platform** in the client, including a LAN IP for physical Android devices that goes stale when the host Mac's address changes.
+- **Time is Thai local (+07:00) on every surface the user or the model sees.** Month windows come from `summaries.Bounds`, and the agent is given the current date plus timestamps already converted to +07:00 — MongoDB returns UTC, and passing that through unconverted put the coach's memory on the wrong day.
+- **The coach's transcript lives server-side** in `chat_messages` and is read back through `GET /api/coach/history/:user_id`. The Flutter coach screen is disposed on every tab switch, so it cannot hold the conversation itself.
 
 ## Exercising the API
 

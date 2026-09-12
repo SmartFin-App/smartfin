@@ -37,16 +37,39 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
       ),
     );
 
-    Future.delayed(const Duration(milliseconds: 2500), () async {
-      if (mounted) {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user != null) {
-          context.go('/home');
-        } else {
-          context.go('/onboarding');
-        }
+    _routeWhenAuthResolved();
+  }
+
+  /// Decides where to go once Firebase has actually restored the persisted
+  /// session, rather than after a fixed delay.
+  ///
+  /// `currentUser` is null until that restore completes, so a timer that expires
+  /// first sent a signed-in user to onboarding as though they had never logged
+  /// in — rare on a warm start, likely on a cold one.
+  Future<void> _routeWhenAuthResolved() async {
+    // Keep the splash on screen long enough to read, but run the auth wait
+    // alongside it rather than after it.
+    final minimumDisplay = Future<void>.delayed(const Duration(milliseconds: 1800));
+
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      try {
+        // authStateChanges emits the restored user, or null once Firebase has
+        // settled on "nobody is signed in".
+        user = await FirebaseAuth.instance
+            .authStateChanges()
+            .first
+            .timeout(const Duration(seconds: 5));
+      } catch (_) {
+        // Timed out or errored: fall through to the signed-out route rather
+        // than leaving the user stuck on the splash screen.
+        user = null;
       }
-    });
+    }
+
+    await minimumDisplay;
+    if (!mounted) return;
+    context.go(user != null ? '/home' : '/onboarding');
   }
 
   @override

@@ -33,6 +33,8 @@ Two tests exist, both in `internal/agents/agent_test.go`. `TestResearchAgentWebS
 
 `config/database.go` exposes package globals `config.DB` and `config.GetCollection(name)`; handlers reach for collections directly, so there is no repository or service layer to thread changes through. Collections: `users`, `transactions`, `monthly_summaries`, `chat_messages`.
 
+**Every index the app relies on is declared in `config/indexes.go`** and created at startup by `EnsureIndexes` (idempotent, and non-fatal — a missing index costs speed, not correctness). Keys are ordered equality-then-sort (`{user_id, date: -1}`, `{user_id, created_at: -1}`), which is what lets one index serve both the filter and the sort. **If you add a user-scoped query, add its index there**, or it becomes a collection scan.
+
 `internal/summaries` is the one shared piece of domain logic: it owns the month-window rules and cache invalidation used by both the handlers and the agents. **Never compute a month boundary inline** — call `summaries.Bounds` / `summaries.StringOf`. Windows are anchored to a fixed +07:00 (`summaries.Zone`), not UTC, so a 06:00 Bangkok expense on the 1st is filed under the right month. Any write that touches a transaction must call `summaries.Invalidate`/`InvalidateFor`, including for frozen months — a backdated entry is exactly the case that otherwise stays invisible to every total.
 
 **Users are keyed by Firebase UID** (`firebase_uid` string), not by Mongo `_id` — every user-scoped query filters on that string. The backend does **not** verify Firebase tokens; the UID arrives as a plain path param or body field, so the API is effectively unauthenticated today.
@@ -58,6 +60,8 @@ When working on this loop:
 - Gemini arguments arrive as `float64` regardless of declared schema type, hence the `args["amount"].(float64)` conversions in `dispatchTool`.
 - If the loop exhausts its iterations without producing text, the orchestrator returns a canned "I've checked your data and updated your records" reply rather than an error.
 - Every exchange is persisted to `chat_messages` with the tool names used — that is what `get_recent_conversations` later reads back.
+- **Everything the model sees is Thai local time.** `get_recent_conversations` and `get_transactions` format through `summaries.Zone` (+07:00) — MongoDB hands back UTC, and passing that through unconverted put chat memory on the wrong *day*. The system prompt also carries the current date and month, because the model has no clock of its own and was otherwise inferring "today" from training data.
+- `get_recent_conversations` defaults to 20 messages. Note the guard in `retrieval_agent.go`: anything **above** 20 silently collapses to 6, so raising the default past the cap returns *fewer* messages, not more.
 - A `detect_spending_anomalies` tool and an external ML-service integration were both deliberately removed (commits `12827ac`, `53f79be`). Don't reintroduce either without asking.
 
 Nothing automatically checks the coach's answer quality — the `evaluate_rag.py` harness that used to do this was removed — so prompt and tool changes need manual verification against a seeded local backend.
@@ -70,6 +74,15 @@ The extraction prompt is explicit about **Thai script transliteration and Buddhi
 
 This handler writes **nothing** to Mongo — the Flutter app creates the transaction separately after the user confirms on the verify screen.
 
+## Endpoints beyond the obvious CRUD
+
+- `GET /api/coach/history/:user_id` — the stored transcript, newest-first internally then reversed so the client renders top-down. The orchestrator has always persisted both sides of every exchange; this is what reads it back. The Flutter coach screen is disposed on every tab switch, so the transcript **must** come from here rather than widget state.
+- `GET /api/summary/:user_id/savings-goal` — progress toward the savings goal. "Saved" is *derived*: the sum of each month's savings since the account was created, capped at 24 months. There is deliberately no stored balance to drift from the transactions.
+- `DELETE /api/users/:firebase_uid` — erases the profile, transactions, summaries and chat messages. Owned records go first, so a partial failure leaves a recoverable account rather than orphaned data. Irreversible, and unauthenticated like everything else — the first handler to cover when token verification lands.
+- `POST|GET|DELETE /api/users/:firebase_uid/photo` — avatars in a GridFS bucket, filename = the UID. **`photo_url` is stored as a relative path** (`/api/users/<uid>/photo`), never an absolute URL: the API host changes between emulator, LAN device and deployment, and a baked-in URL rots the moment it does.
+
+`UpdateUser` binds to `models.UpdateUserRequest`, a typed partial with **pointer fields** — that is what keeps "absent" distinguishable from "set to zero", so clearing a savings goal is a real write rather than a no-op. It also keeps money as `int64` instead of a JSON `float64` that lands in Mongo as a double, and means an unknown key can no longer be `$set` into the document.
+
 ## Two different "summary" endpoints
 
 - `GET /api/summary/:user_id` (`summary_handler.go`) returns a cached `MonthlySummary` document per `YYYY-MM`, combining **recurring income from the user profile** with one-time income transactions. `is_frozen` is derived from whether the month's window has fully elapsed (never from comparing month strings against the server clock, which let a client an hour ahead freeze a live month at zero). Frozen months are served from cache; the current month is recalculated on read and written back with `ReplaceOne` — a `$set` carrying `_id` is rejected as an immutable-field update and silently left the cache stale.
@@ -78,6 +91,8 @@ This handler writes **nothing** to Mongo — the Flutter app creates the transac
 `GET /api/transactions/:user_id` accepts `type`, `category`, `month` (`YYYY-MM`), `search` (case-insensitive merchant fragment), `limit` and `skip`. The `month` filter goes through `summaries.Bounds`, so a filtered list and that month's summary can never disagree about which transactions belong to the month.
 
 They are not interchangeable — check which one a caller actually needs.
+
+**Recurring income is an assumption, not a record.** `calculateMonthlySummary` withholds it from any month that has already elapsed *and* holds no transactions ("elapsed and empty") — otherwise a brand-new user was credited a full salary for months before they signed up, and with no expenses to offset it the dashboard congratulated them for saving it. The test is deliberately not "before signup": a past month containing transactions is evidence of activity, and the seeded demo history depends on still getting the standing income.
 
 ## Admin endpoints are unprotected and destructive
 

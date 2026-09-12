@@ -87,7 +87,7 @@ class SlipDetectionSheet extends StatelessWidget {
 
             // Title
             Text(
-              "New Payment Slip Detected!",
+              "New payment slip found",
               style: GoogleFonts.bricolageGrotesque(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,

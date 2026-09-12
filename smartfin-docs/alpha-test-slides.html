@@ -437,7 +437,7 @@
               <text x="285" y="70">Scan a payment slip</text>
 
               <ellipse cx="285" cy="110" rx="112" ry="19" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.2"/>
-              <text x="285" y="114">Auto-detect new slips</text>
+              <text x="285" y="114">Auto-detect a new slip</text>
 
               <ellipse cx="285" cy="154" rx="112" ry="19" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.2"/>
               <text x="285" y="158">Review &amp; confirm entry</text>
@@ -506,7 +506,7 @@
         <div class="panel" style="border-left:3px solid var(--done);">
           <h3 style="color:var(--done)">In scope</h3>
           <ul>
-            <li><strong>Slip &amp; receipt capture</strong> — camera capture and automatic gallery detection, extracted by a vision model.</li>
+            <li><strong>Slip &amp; receipt capture</strong> — manual scan and Auto-Detect, both extracted by a vision model.</li>
             <li><strong>Transaction ledger</strong> — create, list, edit, delete; manual entry as a fallback path.</li>
             <li><strong>Monthly budgeting</strong> — income, budget limit, category breakdown, per-month summaries.</li>
             <li><strong>Agentic AI Coach</strong> — answers grounded in the user's own records, and able to act on them.</li>
@@ -561,7 +561,7 @@
           <rect x="30" y="196" width="168" height="30" fill="var(--surface)" stroke="var(--rule)"/>
           <text x="114" y="215" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--ink-soft)">Firebase Auth</text>
           <rect x="30" y="236" width="168" height="30" fill="var(--surface)" stroke="var(--rule)"/>
-          <text x="114" y="255" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--ink-soft)">Gallery watcher</text>
+          <text x="114" y="255" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--ink-soft)">Auto-Detect</text>
 
           <!-- api -->
           <rect x="288" y="40" width="232" height="250" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
@@ -812,7 +812,7 @@
     <h2>Two ways in, one path to a saved transaction</h2>
     <div class="body">
       <figure>
-        <svg viewBox="0 0 1040 320" role="img" aria-label="Activity diagram: manual capture and automatic gallery detection merge into extraction, user confirmation, and saving the transaction.">
+        <svg viewBox="0 0 1040 320" role="img" aria-label="Activity diagram: manual scan and Auto-Detect merge into extraction, user confirmation, and saving the transaction.">
           <defs>
             <marker id="am" markerWidth="8" markerHeight="8" refX="7.5" refY="4" orient="auto">
               <path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/>
@@ -912,7 +912,7 @@
             <tr><td>FR-1 · Register &amp; authenticate</td><td>Firebase email/password and Google sign-in</td><td class="st"><span class="chip s-done">Done</span></td></tr>
             <tr><td>FR-2 · Capture a slip by camera</td><td>Scanner → processing → verify flow</td><td class="st"><span class="chip s-done">Done</span></td></tr>
             <tr><td>FR-3 · Extract merchant, amount, date</td><td>Gemini Vision, temperature 0, Thai + Buddhist-era handling</td><td class="st"><span class="chip s-done">Done</span></td></tr>
-            <tr><td>FR-4 · Auto-detect slips in gallery</td><td>Album cascade watcher, dedup, user-toggleable</td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-4 · Auto-Detect slips</td><td>Album cascade, dedup, user-toggleable</td><td class="st"><span class="chip s-done">Done</span></td></tr>
             <tr><td>FR-5 · Confirm before saving</td><td>Verify screen; extraction persists nothing on its own</td><td class="st"><span class="chip s-done">Done</span></td></tr>
             <tr><td>FR-6 · Manage transactions</td><td>Create, list, edit, delete; manual entry path</td><td class="st"><span class="chip s-done">Done</span></td></tr>
             <tr><td>FR-7 · Monthly budget summary</td><td>Income, expenses, available, category breakdown</td><td class="st"><span class="chip s-done">Done</span></td></tr>
@@ -1033,7 +1033,7 @@
             <text x="470" y="52">agents, orchestrator</text>
 
             <text x="640" y="88" font-weight="700" fill="var(--ink)">Hardening</text>
-            <text x="640" y="70">gallery watcher,</text>
+            <text x="640" y="70">Auto-Detect,</text>
             <text x="640" y="52">monorepo, profile</text>
 
             <text x="820" y="206" font-weight="700" fill="var(--accent-deep)">Alpha Test</text>
@@ -1075,7 +1075,7 @@
       <div class="cols c25" style="flex:1; min-height:0;">
         <div class="steps">
           <div class="step"><div><b>Sign in and set up the profile.</b> <span>Income bracket, status and financial health — the same values the coach is later grounded in. <span class="mono">UC: Manage profile</span></span></div></div>
-          <div class="step"><div><b>Pay by PromptPay, return to the app.</b> <span>The gallery watcher offers the new slip unprompted. <span class="mono">UC: Auto-detect new slips</span></span></div></div>
+          <div class="step"><div><b>Pay by PromptPay, return to the app.</b> <span>Auto-Detect offers the new slip unprompted. <span class="mono">UC: Auto-detect new slips</span></span></div></div>
           <div class="step"><div><b>Confirm the extracted entry.</b> <span>Merchant, ฿ amount and date come back from the vision model; the user corrects the category and saves. <span class="mono">UC: Review &amp; confirm</span></span></div></div>
           <div class="step"><div><b>Watch the dashboard react.</b> <span>Budget ring, category breakdown and savings tracker all move on the same figure. <span class="mono">UC: Track budget</span></span></div></div>
           <div class="step"><div><b>Ask the coach a real question.</b> <span>“Can I afford ฿5,000 more this month?” — it calls its own tools and answers from the ledger. <span class="mono">UC: Ask the AI Coach</span></span></div></div>

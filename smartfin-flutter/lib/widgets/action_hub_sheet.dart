@@ -92,7 +92,7 @@ class ActionHubSheet extends StatelessWidget {
       case SlipCheckStatus.permissionDenied:
         return "SmartFin needs photo access to spot your payment slips. Enable it in Settings.";
       case SlipCheckStatus.disabled:
-        return "Slip auto-detection is turned off. You can re-enable it in your profile.";
+        return "Auto-Detect is turned off. You can switch it back on in your profile.";
       case SlipCheckStatus.noAlbum:
         return "No 'SmartFin Receipts' album yet. Save PromptPay slips to that album to auto-detect! 🐾";
       case SlipCheckStatus.none:
@@ -164,7 +164,7 @@ class ActionHubSheet extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // Row 1.5 - SmartFin Slips Album (Gallery Watcher)
+          // Row 1.5 - Auto-Detect (backed by GalleryWatcherService)
           _buildActionRow(
             context: context,
             bgColor: const Color.fromRGBO(74, 144, 226, 0.05),
@@ -179,8 +179,8 @@ class ActionHubSheet extends StatelessWidget {
                 offset: const Offset(0, 4),
               )
             ],
-            title: "SmartFin Slips Album",
-            subtitle: "Auto-detect PromptPay slips",
+            title: "Auto-Detect",
+            subtitle: "Find new PromptPay slips",
             onTap: () async {
               // Capture the ancestors before popping: this sheet's own context is
               // deactivated by the pop, so anything guarded on context.mounted

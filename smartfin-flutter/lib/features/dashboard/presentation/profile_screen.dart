@@ -921,7 +921,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               Divider(height: 1, thickness: 1, color: const Color.fromRGBO(234, 226, 214, 0.3)),
                               _buildPreferencesRow(
                                 icon: Icons.receipt_long_outlined,
-                                label: 'Slip Auto-Detection',
+                                label: 'Auto-Detect Slips',
                                 trailing: Switch(
                                   value: _slipWatcherEnabled,
                                   activeColor: const Color(0xFFFF9F29),
