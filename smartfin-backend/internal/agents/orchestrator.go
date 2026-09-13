@@ -46,6 +46,10 @@ type AskCoachInput struct {
 		Role    string `json:"role"`
 		Content string `json:"content"`
 	}
+	// Debug records every tool call, with its arguments and result, in
+	// AskCoachOutput.ToolTrace. It exists for the evaluation harness (cmd/eval),
+	// which needs to tell a retrieval failure from a generation failure.
+	Debug bool
 }
 
 // AskCoachOutput contains the grounded response and orchestration metadata
@@ -54,6 +58,18 @@ type AskCoachOutput struct {
 	UserID       string           `json:"user_id"`
 	ToolsUsed    []string         `json:"tools_used,omitempty"`
 	ActionsTaken []map[string]any `json:"actions_taken,omitempty"`
+	ToolTrace    []ToolTrace      `json:"tool_trace,omitempty"`
+}
+
+// ToolTrace is one tool call as the model made it and as it was answered.
+// Result is exactly what was sent back to Gemini.
+type ToolTrace struct {
+	Turn   int            `json:"turn"`
+	Name   string         `json:"name"`
+	Args   map[string]any `json:"args"`
+	Result map[string]any `json:"result,omitempty"`
+	Error  string         `json:"error,omitempty"`
+	Ms     int64          `json:"ms"`
 }
 
 // ProcessQuery runs the agentic RAG orchestration loop
@@ -142,6 +158,7 @@ Follow this Reasoning Process:
 
 	toolsUsedSet := make(map[string]bool)
 	var actionsTaken []map[string]any
+	var trace []ToolTrace
 	var finalResponse string
 
 	// Send initial user query
@@ -181,18 +198,33 @@ Follow this Reasoning Process:
 			toolsUsedSet[call.Name] = true
 			log.Printf("Orchestrator: Executing tool %s with args: %+v", call.Name, call.Args)
 
+			started := time.Now()
 			result, actionRec, err := o.dispatchTool(ctx, input.UserID, call.Name, call.Args)
+			errText := ""
 			if err != nil {
 				log.Printf("Tool %s returned error: %v", call.Name, err)
-				result = map[string]any{"error": err.Error()}
+				errText = err.Error()
+				result = map[string]any{"error": errText}
 			}
 			if actionRec != nil {
 				actionsTaken = append(actionsTaken, actionRec)
 			}
 
+			observation := sanitizeForGemini(result)
+			if input.Debug {
+				trace = append(trace, ToolTrace{
+					Turn:   turn,
+					Name:   call.Name,
+					Args:   call.Args,
+					Result: observation,
+					Error:  errText,
+					Ms:     time.Since(started).Milliseconds(),
+				})
+			}
+
 			functionResponses = append(functionResponses, genai.FunctionResponse{
 				Name:     call.Name,
-				Response: sanitizeForGemini(result),
+				Response: observation,
 			})
 		}
 
@@ -241,6 +273,7 @@ Follow this Reasoning Process:
 		UserID:       input.UserID,
 		ToolsUsed:    toolsUsed,
 		ActionsTaken: actionsTaken,
+		ToolTrace:    trace,
 	}, nil
 }
 

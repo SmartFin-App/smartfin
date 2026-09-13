@@ -14,6 +14,7 @@ go build ./...
 go vet ./...
 go test ./...
 go test ./internal/agents -run TestFunctionDeclarations -v   # single test
+go test ./cmd/eval                        # evaluation scoring rules (offline)
 ```
 
 `.env` is loaded by godotenv at startup; a missing `MONGODB_URI` or `DB_NAME` is a `log.Fatal`. Variables: `MONGODB_URI`, `DB_NAME`, `PORT`, `GEMINI_API_KEY`, optional `SERPAPI_API_KEY`.
@@ -65,7 +66,21 @@ When working on this loop:
 - `get_recent_conversations` defaults to 20 messages. Note the guard in `retrieval_agent.go`: anything **above** 20 silently collapses to 6, so raising the default past the cap returns *fewer* messages, not more.
 - A `detect_spending_anomalies` tool and an external ML-service integration were both deliberately removed (commits `12827ac`, `53f79be`). Don't reintroduce either without asking.
 
-Nothing automatically checks the coach's answer quality — the `evaluate_rag.py` harness that used to do this was removed — so prompt and tool changes need manual verification against a seeded local backend.
+### Evaluating the coach (`cmd/eval`)
+
+`cmd/eval` scores the coach against answers that can be checked. It creates throwaway `eval-<run>-*` users through the API (profile, the 47 seeded transactions, three bills dated relative to the run day), asks 30 scripted questions (`cmd/eval/cases.go`), and scores every answer **by rule against figures recomputed from MongoDB** — no LLM judge. The same questions go to two baselines on the same model and temperature: no retrieval, and one-shot RAG with the user's complete records pasted into the prompt.
+
+```bash
+PORT=3001 COACH_EVAL_TRACE=1 go run cmd/main.go     # terminal 1: trace-enabled server
+go run ./cmd/eval -repeats 3                         # terminal 2: ~270 answers, ~15 min
+go run ./cmd/eval -rescore eval-results/<run>        # re-score saved answers after a rule change
+go run ./cmd/eval -cleanup                           # remove eval users left by an interrupted run
+```
+
+- **Tool trace.** `POST /api/coach/ask` returns `tool_trace` (each call's args, result and timing) only when the request sends `"debug": true` **and** the server runs with `COACH_EVAL_TRACE=1`. The harness uses it for month coverage and to attribute a missing figure to retrieval (never fetched) or generation (fetched, then lost).
+- **Scoring rules** live in `cmd/eval/score.go` with unit tests. When an audit finds a rule wrong, fix the rule and `-rescore` every system — never edit individual verdicts.
+- **Isolation.** Each agentic trial gets its own user, because the coach writes `chat_messages` and some cases write the profile. Deletion goes through `DELETE /api/users/:uid` and refuses any uid without the `eval-` prefix; the admin reset routes are never used.
+- Raw output (`eval-results/`, answers and traces) is gitignored; copy `summary.md` to `smartfin-docs/eval/` to keep a run.
 
 ## Scanning is stateless; the client persists
 

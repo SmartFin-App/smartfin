@@ -45,7 +45,7 @@ The backend must be running on port 3000 for the app to get past its auth screen
 
 ## Exercising the API
 
-`API postman/` holds Postman collections. There is no automated evaluation of the coach's answer quality — a RAGAS-style `evaluate_rag.py` harness was removed, so changes to agent prompts or tools have to be checked by hand against a seeded local backend.
+`API postman/` holds Postman collections. Coach answer quality is measured by `smartfin-backend/cmd/eval`: 30 scripted questions scored by rule against figures recomputed from MongoDB, compared with no-retrieval and one-shot RAG baselines. It replaced a RAGAS-style `evaluate_rag.py` whose Gemini judge had no ground truth. Re-run it after changing agent prompts or tools; see the backend CLAUDE.md.
 
 ## Destructive endpoints
 

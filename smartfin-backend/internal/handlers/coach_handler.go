@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"log"
+	"os"
 	"time"
 
 	"github.com/SmartFin-App/smartfin-backend/config"
@@ -36,6 +37,10 @@ type AskCoachRequest struct {
 		Role    string `json:"role"` // "user" or "model"
 		Content string `json:"content"`
 	} `json:"history"`
+	// Debug asks for the tool trace. It is honoured only when the server runs with
+	// COACH_EVAL_TRACE=1, so a client cannot make a normal deployment return raw
+	// tool results.
+	Debug bool `json:"debug"`
 }
 
 // AskCoach handles POST /api/coach/ask
@@ -53,10 +58,13 @@ func (h *CoachHandler) AskCoach(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 
+	debug := req.Debug && os.Getenv("COACH_EVAL_TRACE") == "1"
+
 	output, err := h.orchestrator.ProcessQuery(ctx, agents.AskCoachInput{
 		UserID:  req.UserID,
 		Message: req.Message,
 		History: req.History,
+		Debug:   debug,
 	})
 	if err != nil {
 		log.Printf("Coach orchestrator error for user %s: %v", req.UserID, err)
@@ -66,12 +74,16 @@ func (h *CoachHandler) AskCoach(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(fiber.Map{
+	body := fiber.Map{
 		"response":      output.Response,
 		"user_id":       output.UserID,
 		"tools_used":    output.ToolsUsed,
 		"actions_taken": output.ActionsTaken,
-	})
+	}
+	if debug {
+		body["tool_trace"] = output.ToolTrace
+	}
+	return c.JSON(body)
 }
 
 // GetHistory handles GET /api/coach/history/:user_id

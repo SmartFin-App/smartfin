@@ -55,5 +55,7 @@ node_modules
 # Go backend ignores
 **/smartfin-backend/.env
 smartfin-backend/.env
+# Raw coach evaluation output (answers, tool traces); summaries are copied to smartfin-docs/eval
+smartfin-backend/eval-results/
 smartfin-credentials.json
 **/smartfin-credentials.json

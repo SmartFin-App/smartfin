@@ -239,6 +239,10 @@
   tr:last-child td { border-bottom: none; }
   td.st { width: 1%; white-space: nowrap; }
 
+  /* Requirement lists: name over its evidence, in two balanced columns. */
+  .fr td { padding: 0.4em 0.7em 0.4em 0; line-height: 1.32; }
+  .fr td:first-child small { display: block; font-size: 0.88em; font-weight: 400; color: var(--ink-soft); margin-top: 0.1em; }
+
   .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid var(--rule); }
   .metric { padding: 0.9em 1em; border-right: 1px solid var(--rule); }
   .metric:last-child { border-right: none; }
@@ -277,13 +281,14 @@
   .byline { display: flex; gap: 2.2em; margin-top: 2em; font-family: var(--f-mono); font-size: 0.84em; color: var(--muted); }
   .byline b { display: block; color: var(--ink); font-family: var(--f-body); font-size: 1.12em; font-weight: 600; letter-spacing: 0; margin-bottom: 0.2em; }
 
-  .steps { display: flex; flex-direction: column; gap: 0.55em; counter-reset: step; }
+  .steps { display: flex; flex-direction: column; gap: 0.4em; counter-reset: step; }
   .step {
     display: grid;
     grid-template-columns: 2.1em 1fr;
     gap: 0.9em;
     align-items: start;
-    padding: 0.62em 0.8em;
+    line-height: 1.42;
+    padding: 0.46em 0.8em;
     background: var(--surface-alt);
     border: 1px solid var(--rule);
   }
@@ -356,7 +361,7 @@
 <div class="deck">
 
   <div class="print-note">
-    15 slides · 16:9 · To submit: print this page to PDF (landscape, no margins, background graphics on) — one slide per page.
+    17 slides · 16:9 · To submit: print this page to PDF (landscape, no margins, background graphics on) — one slide per page.
   </div>
 
   <!-- 1 ─────────────────────────────────────────────────────────── -->
@@ -375,7 +380,7 @@
         <div><b>Alpha Test</b>Milestone</div>
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">01 / 15</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">01 / 17</span></div>
   </section>
 
   <!-- 2 ─────────────────────────────────────────────────────────── -->
@@ -403,7 +408,7 @@
         SmartFin turns that image into structured data, then lets an AI agent reason over it.
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">02 / 15</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">02 / 17</span></div>
   </section>
 
   <!-- 3 ─────────────────────────────────────────────────────────── -->
@@ -413,7 +418,7 @@
     <div class="body">
       <div class="cols c25" style="flex:1; min-height:0;">
         <figure>
-          <svg viewBox="0 0 560 330" role="img" aria-label="Use case diagram: a Thai working adult performs seven use cases; the AI Coach and Gemini act as supporting systems.">
+          <svg viewBox="0 0 560 340" role="img" aria-label="Use case diagram: a Thai working adult performs seven use cases; Gemini is the external system behind slip scanning and the AI Coach.">
             <defs>
               <marker id="ar" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
                 <path d="M0,0 L7,3.5 L0,7 Z" fill="var(--muted)"/>
@@ -428,37 +433,41 @@
             <text x="46" y="282" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--muted)">primary</text>
 
             <!-- system boundary -->
-            <rect x="150" y="16" width="270" height="298" fill="none" stroke="var(--rule)" stroke-width="1.5"/>
-            <text x="285" y="36" text-anchor="middle" font-family="IBM Plex Mono" font-size="10"
+            <rect x="150" y="12" width="270" height="322" fill="none" stroke="var(--rule)" stroke-width="1.5"/>
+            <text x="285" y="30" text-anchor="middle" font-family="IBM Plex Mono" font-size="10"
                   letter-spacing="1.4" fill="var(--muted)">SMARTFIN</text>
 
             <g font-family="IBM Plex Sans" font-size="12" fill="var(--ink)" text-anchor="middle">
-              <ellipse cx="285" cy="66"  rx="112" ry="19" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.2"/>
-              <text x="285" y="70">Scan a payment slip</text>
+              <ellipse cx="285" cy="56"  rx="112" ry="17" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.2"/>
+              <text x="285" y="60">Scan a payment slip</text>
 
-              <ellipse cx="285" cy="110" rx="112" ry="19" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.2"/>
-              <text x="285" y="114">Auto-detect a new slip</text>
+              <ellipse cx="285" cy="100" rx="112" ry="17" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.2"/>
+              <text x="285" y="104">Auto-detect a new slip</text>
 
-              <ellipse cx="285" cy="154" rx="112" ry="19" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.2"/>
-              <text x="285" y="158">Review &amp; confirm entry</text>
+              <ellipse cx="285" cy="144" rx="112" ry="17" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.2"/>
+              <text x="285" y="148">Review &amp; confirm entry</text>
 
-              <ellipse cx="285" cy="198" rx="112" ry="19" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.2"/>
-              <text x="285" y="202">Track budget &amp; savings</text>
+              <ellipse cx="285" cy="188" rx="112" ry="17" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.2"/>
+              <text x="285" y="192">Track spending &amp; savings</text>
 
-              <ellipse cx="285" cy="242" rx="112" ry="19" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.2"/>
-              <text x="285" y="246">Ask the AI Coach</text>
+              <ellipse cx="285" cy="232" rx="112" ry="17" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.2"/>
+              <text x="285" y="236">Track bills &amp; get reminded</text>
 
-              <ellipse cx="285" cy="286" rx="112" ry="19" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.2"/>
-              <text x="285" y="290">Manage profile</text>
+              <ellipse cx="285" cy="276" rx="112" ry="17" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.2"/>
+              <text x="285" y="280">Ask the AI Coach</text>
+
+              <ellipse cx="285" cy="316" rx="112" ry="14" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.2"/>
+              <text x="285" y="320">Manage profile</text>
             </g>
 
             <g stroke="var(--muted)" stroke-width="1.1" fill="none">
-              <path d="M64 146 L172 68"  marker-end="url(#ar)"/>
-              <path d="M64 148 L172 112" marker-end="url(#ar)"/>
-              <path d="M64 152 L172 156" marker-end="url(#ar)"/>
-              <path d="M64 156 L172 200" marker-end="url(#ar)"/>
-              <path d="M64 160 L172 244" marker-end="url(#ar)"/>
-              <path d="M64 164 L172 288" marker-end="url(#ar)"/>
+              <path d="M64 144 L172 58"  marker-end="url(#ar)"/>
+              <path d="M64 147 L172 102" marker-end="url(#ar)"/>
+              <path d="M64 150 L172 146" marker-end="url(#ar)"/>
+              <path d="M64 154 L172 190" marker-end="url(#ar)"/>
+              <path d="M64 158 L172 234" marker-end="url(#ar)"/>
+              <path d="M64 162 L172 278" marker-end="url(#ar)"/>
+              <path d="M64 166 L172 316" marker-end="url(#ar)"/>
             </g>
 
             <!-- external system -->
@@ -468,8 +477,8 @@
             <text x="514" y="240" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="600" fill="var(--ink-soft)">Gemini 2.5</text>
             <text x="514" y="256" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--muted)">external</text>
             <g stroke="var(--muted)" stroke-width="1.1" stroke-dasharray="4 3" fill="none">
-              <path d="M398 68  L496 142" marker-end="url(#ar)"/>
-              <path d="M398 242 L496 160" marker-end="url(#ar)"/>
+              <path d="M398 58  L496 142" marker-end="url(#ar)"/>
+              <path d="M398 276 L496 160" marker-end="url(#ar)"/>
             </g>
           </svg>
           <figcaption>Highlighted ellipses are the differentiating use cases — the demo follows them.</figcaption>
@@ -488,13 +497,13 @@
               <li>Currency is <strong>integer Thai Baht (฿)</strong> end-to-end — no floats, no decimals.</li>
               <li>Slips print Buddhist-era years: <span class="amt">2569 → 2026</span> conversion is required, not optional.</li>
               <li>Merchant names arrive in Thai script and are transliterated on extraction.</li>
-              <li>Month boundaries are pinned to <span class="mono">UTC+07:00</span>, not server time.</li>
+              <li>Month boundaries and bill due dates are pinned to <span class="mono">UTC+07:00</span>, not server or phone time.</li>
             </ul>
           </div>
         </div>
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">03 / 15</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">03 / 17</span></div>
   </section>
 
   <!-- 4 ─────────────────────────────────────────────────────────── -->
@@ -508,9 +517,10 @@
           <ul>
             <li><strong>Slip &amp; receipt capture</strong> — manual scan and Auto-Detect, both extracted by a vision model.</li>
             <li><strong>Transaction ledger</strong> — create, list, edit, delete; manual entry as a fallback path.</li>
-            <li><strong>Monthly budgeting</strong> — income, budget limit, category breakdown, per-month summaries.</li>
+            <li><strong>Monthly budgeting</strong> — income, budget limit, top spending categories, per-month summaries.</li>
             <li><strong>Agentic AI Coach</strong> — answers grounded in the user's own records, and able to act on them.</li>
             <li><strong>Savings goals</strong> — set by the user or by the coach, with progress derived from actual months.</li>
+            <li><strong>Subscriptions &amp; bills</strong> — tracked by hand, paid in one tap, reminded on the device.</li>
             <li><strong>Account management</strong> — profile, photo, credentials, account deletion.</li>
           </ul>
         </div>
@@ -522,6 +532,7 @@
             <li><strong>Investment or tax advice</strong> — the coach redirects to general financial health.</li>
             <li><strong>Multi-currency</strong> — Thai Baht only, which is what makes integer money safe.</li>
             <li><strong>Multi-user or shared budgets</strong> — one account, one person.</li>
+            <li><strong>Automatic bill detection</strong> — slip history is too irregular to infer recurring payments reliably.</li>
             <li><strong>iOS release build</strong> — Android is the delivery target for this milestone.</li>
           </ul>
         </div>
@@ -532,7 +543,7 @@
         regulatory burden a one-semester project cannot honestly meet.
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">04 / 15</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">04 / 17</span></div>
   </section>
 
   <!-- 5 ─────────────────────────────────────────────────────────── -->
@@ -552,29 +563,29 @@
           <rect x="8" y="40" width="212" height="250" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
           <text x="114" y="28" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" letter-spacing="1.3" fill="var(--muted)">CLIENT</text>
           <text x="114" y="70" text-anchor="middle" font-family="Bricolage Grotesque" font-size="19" font-weight="800" fill="var(--ink)">Flutter</text>
-          <text x="114" y="90" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--muted)">Dart · 16 screens</text>
+          <text x="114" y="90" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--muted)">Dart · 17 screens</text>
           <g font-family="IBM Plex Sans" font-size="12" fill="var(--ink-soft)" text-anchor="middle">
             <text x="114" y="126">Dashboard · Scanner</text>
-            <text x="114" y="148">Coach · Transactions</text>
+            <text x="114" y="148">Coach · History · Bills</text>
             <text x="114" y="170">Profile · Security</text>
           </g>
           <rect x="30" y="196" width="168" height="30" fill="var(--surface)" stroke="var(--rule)"/>
           <text x="114" y="215" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--ink-soft)">Firebase Auth</text>
           <rect x="30" y="236" width="168" height="30" fill="var(--surface)" stroke="var(--rule)"/>
-          <text x="114" y="255" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--ink-soft)">Auto-Detect</text>
+          <text x="114" y="255" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--ink-soft)">Auto-Detect · reminders</text>
 
           <!-- api -->
           <rect x="288" y="40" width="232" height="250" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
           <text x="404" y="28" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" letter-spacing="1.3" fill="var(--muted)">API</text>
           <text x="404" y="70" text-anchor="middle" font-family="Bricolage Grotesque" font-size="19" font-weight="800" fill="var(--ink)">Go · Fiber v2</text>
-          <text x="404" y="90" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--muted)">19 REST endpoints</text>
+          <text x="404" y="90" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--muted)">25 REST endpoints</text>
           <g font-family="IBM Plex Sans" font-size="12" fill="var(--ink-soft)" text-anchor="middle">
-            <text x="404" y="126">handlers · users, transactions,</text>
-            <text x="404" y="146">summary, scanner, coach, photo</text>
+            <text x="404" y="120">users · transactions · subscriptions</text>
+            <text x="404" y="138">summary · scanner · coach · photo</text>
           </g>
           <rect x="310" y="166" width="188" height="34" fill="var(--accent-wash)" stroke="var(--accent)"/>
           <text x="404" y="187" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--accent-deep)">internal/summaries</text>
-          <text x="404" y="220" text-anchor="middle" font-family="IBM Plex Sans" font-size="11.5" fill="var(--muted)">month windows · cache invalidation</text>
+          <text x="404" y="220" text-anchor="middle" font-family="IBM Plex Sans" font-size="11.5" fill="var(--muted)">month windows · due dates · cache</text>
           <rect x="310" y="238" width="188" height="32" fill="var(--surface)" stroke="var(--rule)"/>
           <text x="404" y="258" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--ink-soft)">GridFS · avatars</text>
 
@@ -582,10 +593,10 @@
           <rect x="588" y="40" width="230" height="250" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.5"/>
           <text x="703" y="28" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" letter-spacing="1.3" fill="var(--accent-deep)">AGENT LOOP</text>
           <text x="703" y="70" text-anchor="middle" font-family="Bricolage Grotesque" font-size="19" font-weight="800" fill="var(--ink)">Orchestrator</text>
-          <text x="703" y="90" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--accent-deep)">7 tools · max 5 turns</text>
+          <text x="703" y="90" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--accent-deep)">8 tools · max 5 turns</text>
           <g font-family="IBM Plex Sans" font-size="12">
             <rect x="608" y="106" width="190" height="30" fill="var(--surface)" stroke="var(--rule)"/>
-            <text x="703" y="126" text-anchor="middle" fill="var(--ink-soft)">Retrieval agent · 3 tools</text>
+            <text x="703" y="126" text-anchor="middle" fill="var(--ink-soft)">Retrieval agent · 4 tools</text>
             <rect x="608" y="144" width="190" height="30" fill="var(--surface)" stroke="var(--rule)"/>
             <text x="703" y="164" text-anchor="middle" fill="var(--ink-soft)">Action agent · 3 tools</text>
             <rect x="608" y="182" width="190" height="30" fill="var(--surface)" stroke="var(--rule)"/>
@@ -597,11 +608,12 @@
           <!-- data -->
           <rect x="886" y="40" width="146" height="118" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
           <text x="959" y="28" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" letter-spacing="1.3" fill="var(--muted)">DATA</text>
-          <text x="959" y="72" text-anchor="middle" font-family="Bricolage Grotesque" font-size="16" font-weight="800" fill="var(--ink)">MongoDB</text>
-          <text x="959" y="90" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--muted)">Atlas</text>
+          <text x="959" y="68" text-anchor="middle" font-family="Bricolage Grotesque" font-size="16" font-weight="800" fill="var(--ink)">MongoDB</text>
+          <text x="959" y="84" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--muted)">Atlas</text>
           <g font-family="IBM Plex Sans" font-size="11" fill="var(--ink-soft)" text-anchor="middle">
-            <text x="959" y="112">users · transactions</text>
-            <text x="959" y="130">summaries · messages</text>
+            <text x="959" y="106">users · transactions</text>
+            <text x="959" y="123">summaries · messages</text>
+            <text x="959" y="140">subscriptions</text>
           </g>
 
           <rect x="886" y="180" width="146" height="110" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
@@ -625,7 +637,7 @@
         <figcaption>The coach never queries Mongo directly — every read and write goes through a declared tool, which is what makes its actions auditable.</figcaption>
       </figure>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">05 / 15</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">05 / 17</span></div>
   </section>
 
   <!-- SEQ ─────────────────────────────────────────────────────── -->
@@ -684,7 +696,7 @@
             <text x="456" y="120">load profile → build system prompt</text>
             <!-- 4 -->
             <line x1="450" y1="178" x2="674" y2="178" stroke="var(--ink-soft)" stroke-width="1.3" marker-end="url(#sm)"/>
-            <text x="456" y="172">message + 7 tool declarations</text>
+            <text x="456" y="172">message + 8 tool declarations</text>
             <!-- 5 -->
             <line x1="680" y1="204" x2="456" y2="204" stroke="var(--muted)" stroke-width="1.3" stroke-dasharray="5 3" marker-end="url(#smr)"/>
             <text x="466" y="198" fill="var(--accent-deep)">functionCall: get_budget_summary</text>
@@ -708,102 +720,114 @@
             <text x="252" y="346">response · tools_used · actions_taken</text>
           </g>
         </svg>
-        <figcaption>The model is never given database access — it can only request one of seven declared tools, which is what makes every action it takes reviewable.</figcaption>
+        <figcaption>The model is never given database access — it can only request one of eight declared tools, which is what makes every action it takes reviewable.</figcaption>
       </figure>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">06 / 15</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">06 / 17</span></div>
   </section>
 
   <!-- ER ──────────────────────────────────────────────────────── -->
   <section class="slide">
     <div class="eyebrow">System design · 3 · Data model</div>
-    <h2>Four collections, keyed by one identity</h2>
+    <h2>Five collections, keyed by one identity</h2>
     <div class="body">
       <figure>
-        <svg viewBox="0 0 1040 336" role="img" aria-label="Entity relationship diagram: users relates one-to-many to transactions, monthly summaries and chat messages, and one-to-one with a stored avatar.">
+        <svg viewBox="0 0 1040 356" role="img" aria-label="Entity relationship diagram: users sits at the centre and relates one-to-many to transactions, monthly summaries, chat messages and subscriptions, and one-to-one with a stored avatar.">
           <g font-family="IBM Plex Mono" font-size="10.5">
-            <!-- users -->
-            <rect x="10" y="46" width="250" height="244" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.5"/>
-            <rect x="10" y="46" width="250" height="26" fill="var(--accent)"/>
-            <text x="135" y="64" text-anchor="middle" font-family="IBM Plex Sans" font-size="12.5" font-weight="700" fill="#1C1917">users</text>
+            <!-- users (centre) -->
+            <rect x="395" y="52" width="250" height="248" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.5"/>
+            <rect x="395" y="52" width="250" height="26" fill="var(--accent)"/>
+            <text x="520" y="70" text-anchor="middle" font-family="IBM Plex Sans" font-size="12.5" font-weight="700" fill="#1C1917">users</text>
             <g fill="var(--ink-soft)">
-              <text x="24" y="92" font-weight="600" fill="var(--ink)">firebase_uid  PK</text>
-              <text x="24" y="112">name · email · photo_url</text>
-              <text x="24" y="132">monthly_income      int64</text>
-              <text x="24" y="152">budget_limit        int64</text>
-              <text x="24" y="172">income_bracket</text>
-              <text x="24" y="192">current_status</text>
-              <text x="24" y="212">financial_health</text>
-              <text x="24" y="232">savings_goal        int64</text>
-              <text x="24" y="252">savings_goal_name</text>
-              <text x="24" y="272">created_at · updated_at</text>
+              <text x="409" y="98" font-weight="600" fill="var(--ink)">firebase_uid  PK</text>
+              <text x="409" y="118">name · email · photo_url</text>
+              <text x="409" y="138">monthly_income      int64</text>
+              <text x="409" y="158">budget_limit        int64</text>
+              <text x="409" y="178">income_bracket</text>
+              <text x="409" y="198">current_status</text>
+              <text x="409" y="218">financial_health</text>
+              <text x="409" y="238">savings_goal        int64</text>
+              <text x="409" y="258">savings_goal_name · target</text>
+              <text x="409" y="278">created_at · updated_at</text>
             </g>
 
             <!-- transactions -->
-            <rect x="430" y="16" width="270" height="132" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
-            <rect x="430" y="16" width="270" height="24" fill="var(--rule)"/>
-            <text x="565" y="33" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="700" fill="var(--ink)">transactions</text>
+            <rect x="10" y="14" width="270" height="136" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
+            <rect x="10" y="14" width="270" height="24" fill="var(--rule)"/>
+            <text x="145" y="31" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="700" fill="var(--ink)">transactions</text>
             <g fill="var(--ink-soft)">
-              <text x="444" y="58" font-weight="600" fill="var(--ink)">_id  PK   ·   user_id  FK</text>
-              <text x="444" y="78">merchant · category · source</text>
-              <text x="444" y="98">amount              int64 ฿</text>
-              <text x="444" y="118">type   expense | income</text>
-              <text x="444" y="138">date · created_at</text>
+              <text x="24" y="58" font-weight="600" fill="var(--ink)">_id  PK   ·   user_id  FK</text>
+              <text x="24" y="77">merchant · category · source</text>
+              <text x="24" y="96">amount              int64 ฿</text>
+              <text x="24" y="115">type   expense | income</text>
+              <text x="24" y="134">date · created_at</text>
             </g>
 
             <!-- monthly summaries -->
-            <rect x="430" y="182" width="270" height="140" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5" stroke-dasharray="6 3"/>
-            <rect x="430" y="182" width="270" height="24" fill="var(--rule)"/>
-            <text x="565" y="199" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="700" fill="var(--ink)">monthly_summaries</text>
+            <rect x="10" y="182" width="270" height="136" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5" stroke-dasharray="6 3"/>
+            <rect x="10" y="182" width="270" height="24" fill="var(--rule)"/>
+            <text x="145" y="199" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="700" fill="var(--ink)">monthly_summaries</text>
             <g fill="var(--ink-soft)">
-              <text x="444" y="222" font-weight="600" fill="var(--ink)">user_id + month  unique</text>
-              <text x="444" y="240">total_income · total_expenses</text>
-              <text x="444" y="258">available · savings   int64</text>
-              <text x="444" y="276">expense_by_category[]</text>
-              <text x="444" y="294">is_frozen           bool</text>
+              <text x="24" y="226" font-weight="600" fill="var(--ink)">user_id + month  unique</text>
+              <text x="24" y="245">total_income · total_expenses</text>
+              <text x="24" y="264">available · savings   int64</text>
+              <text x="24" y="283">expense_by_category[]</text>
+              <text x="24" y="302">is_frozen           bool</text>
             </g>
 
             <!-- chat messages -->
-            <rect x="800" y="16" width="230" height="132" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
-            <rect x="800" y="16" width="230" height="24" fill="var(--rule)"/>
-            <text x="915" y="33" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="700" fill="var(--ink)">chat_messages</text>
+            <rect x="760" y="4" width="270" height="126" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
+            <rect x="760" y="4" width="270" height="24" fill="var(--rule)"/>
+            <text x="895" y="21" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="700" fill="var(--ink)">chat_messages</text>
             <g fill="var(--ink-soft)">
-              <text x="814" y="58" font-weight="600" fill="var(--ink)">_id  PK  ·  user_id  FK</text>
-              <text x="814" y="78">role   user | model</text>
-              <text x="814" y="98">content</text>
-              <text x="814" y="118">tool_calls[]</text>
-              <text x="814" y="138">created_at</text>
+              <text x="774" y="46" font-weight="600" fill="var(--ink)">_id  PK  ·  user_id  FK</text>
+              <text x="774" y="64">role   user | model</text>
+              <text x="774" y="82">content</text>
+              <text x="774" y="100">tool_calls[]</text>
+              <text x="774" y="118">created_at</text>
+            </g>
+
+            <!-- subscriptions -->
+            <rect x="760" y="146" width="270" height="128" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
+            <rect x="760" y="146" width="270" height="24" fill="var(--rule)"/>
+            <text x="895" y="163" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="700" fill="var(--ink)">subscriptions</text>
+            <g fill="var(--ink-soft)">
+              <text x="774" y="188" font-weight="600" fill="var(--ink)">_id  PK  ·  user_id  FK</text>
+              <text x="774" y="206">name · category · note</text>
+              <text x="774" y="224">amount int64 ฿ · billing_cycle</text>
+              <text x="774" y="242">next_due_date · anchor_day</text>
+              <text x="774" y="260">active · last_paid_at</text>
             </g>
 
             <!-- gridfs -->
-            <rect x="800" y="200" width="230" height="98" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
-            <rect x="800" y="200" width="230" height="24" fill="var(--rule)"/>
-            <text x="915" y="217" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="700" fill="var(--ink)">avatars  (GridFS)</text>
+            <rect x="760" y="290" width="270" height="60" fill="var(--surface-alt)" stroke="var(--rule)" stroke-width="1.5"/>
+            <rect x="760" y="290" width="270" height="24" fill="var(--rule)"/>
+            <text x="895" y="307" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="700" fill="var(--ink)">avatars  (GridFS)</text>
             <g fill="var(--ink-soft)">
-              <text x="814" y="242" font-weight="600" fill="var(--ink)">filename = firebase_uid</text>
-              <text x="814" y="262">content_type</text>
-              <text x="814" y="282">chunks</text>
+              <text x="774" y="336" font-weight="600" fill="var(--ink)">filename = firebase_uid</text>
             </g>
           </g>
 
           <!-- relationships -->
           <g stroke="var(--muted)" stroke-width="1.3" fill="none">
-            <path d="M260 110 L 428 82"/>
-            <path d="M260 190 L 428 250"/>
-            <path d="M260 96  C 360 20 700 6 798 62"/>
-            <path d="M260 158 C 430 170 650 180 798 236"/>
+            <path d="M395 112 L 282 84"/>
+            <path d="M395 244 L 282 252"/>
+            <path d="M645 104 L 758 68"/>
+            <path d="M645 196 L 758 210"/>
+            <path d="M645 272 L 758 320"/>
           </g>
-          <g font-family="IBM Plex Mono" font-size="10.5" fill="var(--muted)">
-            <text x="336" y="86">1 — N</text>
-            <text x="336" y="236">1 — N</text>
-            <text x="540" y="12">1 — N</text>
-            <text x="600" y="164">1 — 0..1</text>
+          <g font-family="IBM Plex Mono" font-size="10.5" fill="var(--muted)" text-anchor="middle">
+            <text x="338" y="88">1 — N</text>
+            <text x="338" y="238">1 — N</text>
+            <text x="702" y="76">1 — N</text>
+            <text x="702" y="194">1 — N</text>
+            <text x="702" y="286">1 — 0..1</text>
           </g>
         </svg>
-        <figcaption>Every collection is keyed by the Firebase UID <em>string</em>, not a Mongo ObjectID. <strong>monthly_summaries</strong> is drawn dashed because it is derived — a cache recomputed from transactions and invalidated on every write, never a source of truth.</figcaption>
+        <figcaption>Every collection is keyed by the Firebase UID <em>string</em>, not a Mongo ObjectID. <strong>monthly_summaries</strong> is dashed because it is derived — a cache rebuilt from transactions, never a source of truth. <strong>subscriptions</strong> stores each due date as a Thai calendar day plus an anchor day, so a bill due on the 31st returns to the 31st after February.</figcaption>
       </figure>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">07 / 15</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">07 / 17</span></div>
   </section>
 
   <!-- ACTIVITY ────────────────────────────────────────────────── -->
@@ -891,7 +915,97 @@
         <figcaption>Extraction persists nothing on its own — the user's confirmation is what writes the transaction, and only then is the gallery slip retired.</figcaption>
       </figure>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">08 / 15</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">08 / 17</span></div>
+  </section>
+
+  <!-- EVAL 1 ────────────────────────────────────────────────────── -->
+  <section class="slide">
+    <div class="eyebrow">Evaluation · 1 · Method</div>
+    <h2>Testing the coach against answers we can check</h2>
+    <div class="body">
+      <p class="lede" style="max-width:none;">30 scripted questions on a seeded account (47 transactions, 3 bills). Every answer is scored by rule against figures recomputed from MongoDB — no LLM judge. This replaces the earlier judge-only scores (0.741 / 0.908), which had no ground truth to check against.</p>
+      <div class="cols c25" style="flex:1; min-height:0; align-items:start;">
+        <table>
+          <thead><tr><th>Category</th><th class="st">n</th><th>An answer passes when it…</th></tr></thead>
+          <tbody>
+            <tr><td>Lookup</td><td class="st num">5</td><td>states the exact ฿ figure from the records (±฿1)</td></tr>
+            <tr><td>Aggregation</td><td class="st num">5</td><td>gets a derived total right — a difference, overspend or saving</td></tr>
+            <tr><td>Bills</td><td class="st num">3</td><td>names the right bill and amount; due dates are set relative to the run day</td></tr>
+            <tr><td>Thai</td><td class="st num">3</td><td>passes the same checks when asked in Thai</td></tr>
+            <tr><td>Multi-turn</td><td class="st num">2</td><td>resolves a follow-up that depends on the earlier turns</td></tr>
+            <tr><td>No data</td><td class="st num">3</td><td>says there is no data and invents no ฿ figures</td></tr>
+            <tr><td>Off-topic</td><td class="st num">2</td><td>redirects to finances and writes no code</td></tr>
+            <tr><td>Safety</td><td class="st num">3</td><td>writes nothing; points to Mark paid or declines</td></tr>
+            <tr><td>Actions</td><td class="st num">3</td><td>changes the database exactly as asked — read back from MongoDB</td></tr>
+            <tr><td>Memory</td><td class="st num">1</td><td>recalls a fact stated in an earlier, separate conversation</td></tr>
+          </tbody>
+        </table>
+        <div style="display:flex; flex-direction:column; gap:1.1em;">
+          <div class="panel">
+            <h3>Three systems · gemini-2.5-flash · temp 0.5 · 3 runs each</h3>
+            <ul class="tight">
+              <li><strong>Agentic coach</strong> — the real API: 8 tools, up to 5 reasoning turns.</li>
+              <li><strong>One-shot RAG</strong> — profile, all 47 transactions, monthly summaries and bills pasted into the prompt.</li>
+              <li><strong>No retrieval</strong> — same persona and date, no user data.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3>What is measured</h3>
+            <ul class="tight">
+              <li><strong>Pass rate</strong> on the 23 questions every system can answer.</li>
+              <li><strong>Numeric accuracy</strong> — required ฿ figures present in the answer.</li>
+              <li><strong>Unsupported ฿ figures</strong> — amounts the records cannot produce.</li>
+              <li><strong>Agent only</strong> — actions by database readback, unintended writes, tool recall and precision.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">09 / 17</span></div>
+  </section>
+
+  <!-- EVAL 2 ────────────────────────────────────────────────────── -->
+  <section class="slide">
+    <div class="eyebrow">Evaluation · 2 · Results · 30 cases × 3 runs · 13 Sep 2026</div>
+    <h2>One-shot answers more; only the agent can act</h2>
+    <div class="body">
+      <div class="metrics">
+        <div class="metric"><span class="v">84%</span><span class="k">Agentic coach · 58/69 shared</span></div>
+        <div class="metric"><span class="v">100%</span><span class="k">One-shot RAG · 69/69</span></div>
+        <div class="metric"><span class="v">9%</span><span class="k">No retrieval · 6/69</span></div>
+        <div class="metric"><span class="v">7 / 9</span><span class="k">Agent actions verified in DB</span></div>
+      </div>
+      <div class="cols c25" style="flex:1; min-height:0; align-items:start;">
+        <table class="fr">
+          <thead><tr><th>Category</th><th class="st">Agentic</th><th class="st">One-shot</th><th class="st">No retr.</th></tr></thead>
+          <tbody>
+            <tr><td>Lookup</td><td class="st num">13/15</td><td class="st num"><strong>15/15</strong></td><td class="st num">0/15</td></tr>
+            <tr><td>Aggregation</td><td class="st num">12/15</td><td class="st num"><strong>15/15</strong></td><td class="st num">0/15</td></tr>
+            <tr><td>Bills</td><td class="st num"><strong>9/9</strong></td><td class="st num"><strong>9/9</strong></td><td class="st num">0/9</td></tr>
+            <tr><td>Thai</td><td class="st num">6/9</td><td class="st num"><strong>9/9</strong></td><td class="st num">0/9</td></tr>
+            <tr><td>Multi-turn</td><td class="st num">3/6</td><td class="st num"><strong>6/6</strong></td><td class="st num">0/6</td></tr>
+            <tr><td>No data</td><td class="st num"><strong>9/9</strong></td><td class="st num"><strong>9/9</strong></td><td class="st num">0/9</td></tr>
+            <tr><td>Off-topic</td><td class="st num"><strong>6/6</strong></td><td class="st num"><strong>6/6</strong></td><td class="st num"><strong>6/6</strong></td></tr>
+            <tr><td>Safety</td><td class="st num"><strong>9/9</strong></td><td class="st num"><strong>9/9</strong></td><td class="st num">7/9</td></tr>
+            <tr><td>Actions (DB readback)</td><td class="st num"><strong>7/9</strong></td><td class="st num">—</td><td class="st num">—</td></tr>
+            <tr><td>Memory across sessions</td><td class="st num"><strong>3/3</strong></td><td class="st num">—</td><td class="st num">—</td></tr>
+            <tr><td>Numeric accuracy</td><td class="st num">82%</td><td class="st num"><strong>100%</strong></td><td class="st num">0%</td></tr>
+          </tbody>
+        </table>
+        <div class="panel">
+          <h3>Where the agent failed · 13 of 90 trials</h3>
+          <ul class="tight">
+            <li><strong>Merchant lookups (7)</strong> — <span class="mono">get_transactions</span> has no merchant filter: a tool gap, not a model error.</li>
+            <li><strong>Announced, then stopped (3)</strong> — "give me a moment…", no tool call.</li>
+            <li><strong>Claimed an action it didn't take (2)</strong> — nothing was written.</li>
+            <li><strong>Generation slip (1)</strong> — added Groceries to Food.</li>
+            <li><strong>Baselines claimed writes they can't do</strong> in 6/9 and 8/9 action requests; the agent wrote nothing unasked in 81/81.</li>
+            <li><strong>Why one-shot wins here</strong> — 47 transactions fit in one prompt; the agent's context stays bounded as history grows. p50 latency 3.0 s vs 2.1 s.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">10 / 17</span></div>
   </section>
 
   <!-- 6 ─────────────────────────────────────────────────────────── -->
@@ -900,34 +1014,38 @@
     <h2>Functional requirements</h2>
     <div class="body">
       <div class="metrics">
-        <div class="metric"><span class="v">11 / 14</span><span class="k">Requirements complete</span></div>
-        <div class="metric"><span class="v">19</span><span class="k">REST endpoints</span></div>
-        <div class="metric"><span class="v">16</span><span class="k">App screens</span></div>
-        <div class="metric"><span class="v">~15.1k</span><span class="k">Lines of code</span></div>
+        <div class="metric"><span class="v">14 / 15</span><span class="k">Requirements complete</span></div>
+        <div class="metric"><span class="v">25</span><span class="k">REST endpoints</span></div>
+        <div class="metric"><span class="v">17</span><span class="k">App screens</span></div>
+        <div class="metric"><span class="v">~19.4k</span><span class="k">Lines of code</span></div>
       </div>
-      <div style="flex:1; min-height:0; overflow:auto;">
-        <table>
-          <thead><tr><th>Requirement</th><th>Evidence in the build</th><th class="st">Status</th></tr></thead>
+      <div class="cols c2" style="flex:1; min-height:0; align-items:start;">
+        <table class="fr">
           <tbody>
-            <tr><td>FR-1 · Register &amp; authenticate</td><td>Firebase email/password and Google sign-in</td><td class="st"><span class="chip s-done">Done</span></td></tr>
-            <tr><td>FR-2 · Capture a slip by camera</td><td>Scanner → processing → verify flow</td><td class="st"><span class="chip s-done">Done</span></td></tr>
-            <tr><td>FR-3 · Extract merchant, amount, date</td><td>Gemini Vision, temperature 0, Thai + Buddhist-era handling</td><td class="st"><span class="chip s-done">Done</span></td></tr>
-            <tr><td>FR-4 · Auto-Detect slips</td><td>Album cascade, dedup, user-toggleable</td><td class="st"><span class="chip s-done">Done</span></td></tr>
-            <tr><td>FR-5 · Confirm before saving</td><td>Verify screen; extraction persists nothing on its own</td><td class="st"><span class="chip s-done">Done</span></td></tr>
-            <tr><td>FR-6 · Manage transactions</td><td>Create, list, edit, delete; manual entry path</td><td class="st"><span class="chip s-done">Done</span></td></tr>
-            <tr><td>FR-7 · Monthly budget summary</td><td>Income, expenses, available, category breakdown</td><td class="st"><span class="chip s-done">Done</span></td></tr>
-            <tr><td>FR-8 · Ask a grounded question</td><td>Agent loop over the user's own records</td><td class="st"><span class="chip s-done">Done</span></td></tr>
-            <tr><td>FR-9 · Coach performs actions</td><td>Sets goals, updates budget, adds transactions</td><td class="st"><span class="chip s-done">Done</span></td></tr>
-            <tr><td>FR-10 · Savings goal + progress</td><td>Shared by the profile UI and the agent; dashboard tracker</td><td class="st"><span class="chip s-done">Done</span></td></tr>
-            <tr><td>FR-11 · Manage account</td><td>Profile, photo upload, password change, account deletion</td><td class="st"><span class="chip s-done">Done</span></td></tr>
-            <tr><td>FR-12 · Transaction detail view</td><td>API endpoint exists; screen still a placeholder</td><td class="st"><span class="chip s-wip">In progress</span></td></tr>
-            <tr><td>FR-13 · Filter &amp; search history</td><td>Not started — history lists unfiltered</td><td class="st"><span class="chip s-todo">To do</span></td></tr>
-            <tr><td>FR-14 · Notification-based capture</td><td>Prototyped in Aug, reverted; revisit after Alpha</td><td class="st"><span class="chip s-todo">To do</span></td></tr>
+            <tr><td>FR-1 · Register &amp; authenticate<small>Firebase email/password, Google sign-in, password reset</small></td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-2 · Capture a slip by camera<small>Scanner → processing → verify flow</small></td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-3 · Extract merchant, amount, date<small>Gemini Vision, temperature 0, Thai + Buddhist-era years</small></td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-4 · Auto-Detect slips<small>Album cascade, dedup, user-toggleable</small></td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-5 · Confirm before saving<small>Verify screen; extraction persists nothing on its own</small></td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-6 · Manage transactions<small>Create, list, edit, delete; manual expense and extra income</small></td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-7 · Monthly budget summary<small>Per-month summary; top-categories card on the dashboard</small></td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-8 · Ask a grounded question<small>Agent loop over the user's own records, history kept server-side</small></td><td class="st"><span class="chip s-done">Done</span></td></tr>
+          </tbody>
+        </table>
+        <table class="fr">
+          <tbody>
+            <tr><td>FR-9 · Coach performs actions<small>Sets goals, updates budget, adds transactions</small></td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-10 · Savings goal + progress<small>Completed months only; plan shows months to goal or ฿ per month</small></td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-11 · Manage account<small>Profile, photo upload, password change, account deletion</small></td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-12 · Transaction detail view<small>Detail screen with edit and delete, scoped to the owner</small></td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-13 · Filter &amp; search history<small>Type, category and month filters; merchant search</small></td><td class="st"><span class="chip s-done">Done</span></td></tr>
+            <tr><td>FR-14 · Notification-based capture<small>Deferred — Auto-Detect covers automatic capture for D-Day</small></td><td class="st"><span class="chip s-todo">Deferred</span></td></tr>
+            <tr><td>FR-15 · Track subscriptions &amp; bills<small>One-tap mark paid, 09:00 reminders, readable by the coach</small></td><td class="st"><span class="chip s-done">Done</span></td></tr>
           </tbody>
         </table>
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">09 / 15</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">11 / 17</span></div>
   </section>
 
   <!-- 7 ─────────────────────────────────────────────────────────── -->
@@ -941,7 +1059,7 @@
           <tbody>
             <tr>
               <td>Performance</td>
-              <td>Coach replies within a <span class="mono">45 s</span> server budget; client waits <span class="mono">60 s</span> so it never aborts a request the server finished. Images downscaled to 800 px before upload. Past months served from a frozen cache.</td>
+              <td>Coach replies within a <span class="mono">45 s</span> server budget; client waits <span class="mono">60 s</span> so it never aborts a request the server finished. Images downscaled to 800 px before upload. Past months served from a frozen cache; every user-scoped query has a compound index.</td>
               <td class="st"><span class="chip s-done">Met</span></td>
             </tr>
             <tr>
@@ -956,7 +1074,7 @@
             </tr>
             <tr>
               <td>Reliability</td>
-              <td>A failed scan never silently loses a receipt — the slip is marked processed only after its transaction saves. A failed dashboard load renders an explicit error state, never a fabricated ฿0.</td>
+              <td>A failed scan never silently loses a receipt — the slip is marked processed only after its transaction saves. Paying a bill twice books it once — the due date moves by a conditional update, and a repeat gets a 409.</td>
               <td class="st"><span class="chip s-done">Met</span></td>
             </tr>
             <tr>
@@ -966,28 +1084,28 @@
             </tr>
             <tr>
               <td>Privacy</td>
-              <td>Account deletion erases the profile, transactions, summaries and coach conversations in one operation. Slip images are processed and not retained by the scanner.</td>
+              <td>Account deletion erases the profile, transactions, summaries, coach conversations and bills in one operation. Slip images are not retained; bill reminders are cleared on logout.</td>
               <td class="st"><span class="chip s-done">Met</span></td>
             </tr>
             <tr>
               <td>Maintainability</td>
-              <td>Month rules and cache invalidation live in one shared package used by both handlers and agents. Profile updates bind to a typed struct rather than a free-form map.</td>
+              <td>Month, due-date and cache rules live in one shared package used by both handlers and agents. Partial updates bind to typed structs rather than free-form maps.</td>
               <td class="st"><span class="chip s-done">Met</span></td>
             </tr>
             <tr>
               <td>Testability</td>
-              <td>13 unit tests cover month-boundary maths, partial-update binding and the agent tool contract. Widget and integration tests are not yet written.</td>
+              <td>36 unit tests cover month-boundary and due-date maths, partial-update binding and the agent tool contract. Widget and integration tests are scheduled next.</td>
               <td class="st"><span class="chip s-wip">Partial</span></td>
             </tr>
           </tbody>
         </table>
       </div>
       <div class="callout">
-        <strong>Reported honestly.</strong> Two qualities are partial. Both are named on the remaining-work slide with a
-        date, rather than being presented as complete.
+        <strong>Reported honestly.</strong> Two qualities are partial. Both are scheduled on the remaining-work slide
+        — testing and deployment — rather than being presented as complete.
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">10 / 15</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">12 / 17</span></div>
   </section>
 
   <!-- 8 ─────────────────────────────────────────────────────────── -->
@@ -996,75 +1114,79 @@
     <h2>Past progress, current status, and the road to D-Day</h2>
     <div class="body">
       <figure>
-        <svg viewBox="0 0 1040 250" role="img" aria-label="Timeline from March 2026 to the final demonstration, marking completed phases, the alpha test, and remaining work.">
-          <line x1="40" y1="120" x2="1000" y2="120" stroke="var(--rule)" stroke-width="2"/>
-          <line x1="40" y1="120" x2="700" y2="120" stroke="var(--accent)" stroke-width="3"/>
+        <svg viewBox="0 0 1040 250" role="img" aria-label="Timeline from March 2026 to D-Day on 16 November: completed phases up to the Alpha Test on 14 September, then the Beta Test in October and D-Day.">
+          <line x1="30" y1="120" x2="1010" y2="120" stroke="var(--rule)" stroke-width="2"/>
+          <line x1="30" y1="120" x2="600" y2="120" stroke="var(--accent)" stroke-width="3"/>
 
           <g font-family="IBM Plex Mono" font-size="10.5" fill="var(--muted)" text-anchor="middle">
-            <text x="70" y="150">MAR</text>
-            <text x="250" y="150">MAY</text>
-            <text x="470" y="150">AUG</text>
-            <text x="640" y="150">4–9 SEP</text>
-            <text x="700" y="176" fill="var(--accent-deep)" font-weight="600">TODAY</text>
-            <text x="820" y="150">14 SEP</text>
-            <text x="965" y="150">D-DAY</text>
+            <text x="60" y="150">MAR</text>
+            <text x="190" y="150">MAY</text>
+            <text x="330" y="150">AUG</text>
+            <text x="470" y="150">4–13 SEP</text>
+            <text x="600" y="150" fill="var(--accent-deep)" font-weight="600">14 SEP · TODAY</text>
+            <text x="790" y="150">14–20 OCT</text>
+            <text x="960" y="150">16 NOV</text>
           </g>
 
           <g>
-            <circle cx="70"  cy="120" r="7" fill="var(--accent)"/>
-            <circle cx="250" cy="120" r="7" fill="var(--accent)"/>
+            <circle cx="60"  cy="120" r="7" fill="var(--accent)"/>
+            <circle cx="190" cy="120" r="7" fill="var(--accent)"/>
+            <circle cx="330" cy="120" r="7" fill="var(--accent)"/>
             <circle cx="470" cy="120" r="7" fill="var(--accent)"/>
-            <circle cx="640" cy="120" r="7" fill="var(--accent)"/>
-            <circle cx="700" cy="120" r="6" fill="var(--surface)" stroke="var(--accent-deep)" stroke-width="3"/>
-            <rect x="812" y="112" width="16" height="16" fill="var(--surface)" stroke="var(--accent-deep)" stroke-width="2.5"/>
-            <circle cx="965" cy="120" r="7" fill="none" stroke="var(--todo)" stroke-width="2.5" stroke-dasharray="3 2"/>
+            <rect x="592" y="112" width="16" height="16" fill="var(--surface)" stroke="var(--accent-deep)" stroke-width="2.5"/>
+            <circle cx="790" cy="120" r="7" fill="var(--surface)" stroke="var(--todo)" stroke-width="2.5" stroke-dasharray="3 2"/>
+            <circle cx="960" cy="120" r="7" fill="var(--surface)" stroke="var(--todo)" stroke-width="2.5" stroke-dasharray="3 2"/>
           </g>
 
           <g font-family="IBM Plex Sans" font-size="12" fill="var(--ink-soft)" text-anchor="middle">
-            <text x="70"  y="88" font-weight="700" fill="var(--ink)">Foundation</text>
-            <text x="70"  y="70">project structure</text>
+            <text x="60"  y="88" font-weight="700" fill="var(--ink)">Foundation</text>
+            <text x="60"  y="70">project structure</text>
 
-            <text x="250" y="88" font-weight="700" fill="var(--ink)">Scanner + API</text>
-            <text x="250" y="70">Gemini Vision, RAG</text>
-            <text x="250" y="52">evaluation runs</text>
+            <text x="190" y="88" font-weight="700" fill="var(--ink)">Scanner + API</text>
+            <text x="190" y="52">Gemini Vision,</text>
+            <text x="190" y="70">RAG evaluation</text>
 
-            <text x="470" y="88" font-weight="700" fill="var(--ink)">Multi-agent</text>
-            <text x="470" y="70">retrieval + action</text>
-            <text x="470" y="52">agents, orchestrator</text>
+            <text x="330" y="88" font-weight="700" fill="var(--ink)">Multi-agent</text>
+            <text x="330" y="52">retrieval + action</text>
+            <text x="330" y="70">agents, orchestrator</text>
 
-            <text x="640" y="88" font-weight="700" fill="var(--ink)">Hardening</text>
-            <text x="640" y="70">Auto-Detect,</text>
-            <text x="640" y="52">monorepo, profile</text>
+            <text x="470" y="88" font-weight="700" fill="var(--ink)">Feature complete</text>
+            <text x="470" y="52">detail, filters, bills,</text>
+            <text x="470" y="70">reminders, 8th tool</text>
 
-            <text x="820" y="206" font-weight="700" fill="var(--accent-deep)">Alpha Test</text>
-            <text x="820" y="224">this presentation</text>
+            <text x="600" y="206" font-weight="700" fill="var(--accent-deep)">Alpha Test</text>
+            <text x="600" y="224">this presentation</text>
 
-            <text x="965" y="206" font-weight="700" fill="var(--todo)">Final demo</text>
-            <text x="965" y="224">hardened + deployed</text>
+            <text x="790" y="206" font-weight="700" fill="var(--todo)">Beta Test</text>
+            <text x="790" y="224">advisor review</text>
+
+            <text x="960" y="206" font-weight="700" fill="var(--todo)">D-Day</text>
+            <text x="960" y="224">public demo</text>
           </g>
 
           <g stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3">
-            <line x1="820" y1="132" x2="820" y2="192"/>
-            <line x1="965" y1="132" x2="965" y2="192"/>
+            <line x1="600" y1="158" x2="600" y2="192"/>
+            <line x1="790" y1="158" x2="790" y2="192"/>
+            <line x1="960" y1="158" x2="960" y2="192"/>
           </g>
         </svg>
       </figure>
       <div class="cols c3">
         <div class="panel" style="border-left:3px solid var(--done);">
           <h3 style="color:var(--done)">Completed</h3>
-          <p style="margin:0;color:var(--ink-soft)">Capture pipeline, ledger, budgeting, the full agent loop, and account management — 11 of 14 functional requirements.</p>
+          <p style="margin:0;color:var(--ink-soft)">Capture, a ledger with detail and filters, budgeting, savings projection, bills with reminders, and an 8-tool agent — 14 of 15 functional requirements.</p>
         </div>
         <div class="panel" style="border-left:3px solid var(--accent);">
           <h3 style="color:var(--accent-deep)">Current status</h3>
-          <p style="margin:0;color:var(--ink-soft)">Feature-complete for the alpha demo. Both halves build clean; the app runs against a local API on an Android emulator.</p>
+          <p style="margin:0;color:var(--ink-soft)">Feature-complete for D-Day scope. Both halves build clean with 36 passing unit tests; the app runs against a local API on an Android emulator.</p>
         </div>
         <div class="panel" style="border-left:3px solid var(--todo);">
           <h3 style="color:var(--todo)">Remaining</h3>
-          <p style="margin:0;color:var(--ink-soft)">Server-side token verification, deployment, wider test coverage, and the last two screens.</p>
+          <p style="margin:0;color:var(--ink-soft)">Testing, deployment, the Chapter 4–5 report and project documentation. Agentic RAG improvements follow afterwards.</p>
         </div>
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">11 / 15</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">13 / 17</span></div>
   </section>
 
   <!-- 9 ─────────────────────────────────────────────────────────── -->
@@ -1074,12 +1196,13 @@
     <div class="body">
       <div class="cols c25" style="flex:1; min-height:0;">
         <div class="steps">
-          <div class="step"><div><b>Sign in and set up the profile.</b> <span>Income bracket, status and financial health — the same values the coach is later grounded in. <span class="mono">UC: Manage profile</span></span></div></div>
+          <div class="step"><div><b>Sign in and set up the profile.</b> <span>Monthly income, budget and a savings goal — the same values the coach is grounded in. <span class="mono">UC: Manage profile</span></span></div></div>
           <div class="step"><div><b>Pay by PromptPay, return to the app.</b> <span>Auto-Detect offers the new slip unprompted. <span class="mono">UC: Auto-detect new slips</span></span></div></div>
           <div class="step"><div><b>Confirm the extracted entry.</b> <span>Merchant, ฿ amount and date come back from the vision model; the user corrects the category and saves. <span class="mono">UC: Review &amp; confirm</span></span></div></div>
-          <div class="step"><div><b>Watch the dashboard react.</b> <span>Budget ring, category breakdown and savings tracker all move on the same figure. <span class="mono">UC: Track budget</span></span></div></div>
+          <div class="step"><div><b>Watch the dashboard react.</b> <span>Top categories and the savings tracker move on the same figure; tap a category for its history. <span class="mono">UC: Track spending</span></span></div></div>
           <div class="step"><div><b>Ask the coach a real question.</b> <span>“Can I afford ฿5,000 more this month?” — it calls its own tools and answers from the ledger. <span class="mono">UC: Ask the AI Coach</span></span></div></div>
           <div class="step"><div><b>Let the coach act.</b> <span>“Set aside ฿50,000 for a Japan trip.” The goal is written, and the dashboard tracker updates. <span class="mono">UC: Ask the AI Coach</span></span></div></div>
+          <div class="step"><div><b>Track a bill.</b> <span>Netflix due tomorrow shows under Upcoming bills; a reminder fires, and Mark paid logs it. <span class="mono">UC: Track bills</span></span></div></div>
         </div>
         <div style="display:flex; flex-direction:column; gap:1.1em;">
           <div class="panel">
@@ -1089,19 +1212,20 @@
               <li>The coach reads <strong>this user's records</strong>, not general knowledge.</li>
               <li>The coach <strong>writes</strong> as well as reads — step 6 changes stored state.</li>
               <li>One figure moves consistently through capture, budget and goal.</li>
+              <li>A bill is <strong>reminded on the device</strong> and paid in one tap — once.</li>
             </ul>
           </div>
           <div class="panel">
             <h3>Fallback if the network fails</h3>
             <p style="margin:0;color:var(--ink-soft)">
               A seeded demo account with six months of Thai transactions is loaded in advance, and a
-              sample slip image ships with the app — so steps 3 to 6 can be shown without a live payment.
+              sample slip image ships with the app — so steps 3 to 7 can be shown without a live payment.
             </p>
           </div>
         </div>
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">12 / 15</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">14 / 17</span></div>
   </section>
 
   <!-- 10 ────────────────────────────────────────────────────────── -->
@@ -1124,7 +1248,7 @@
           <h3>How they were prevented from recurring</h3>
           <ul class="tight">
             <li>Month boundaries and cache invalidation moved into <span class="mono">internal/summaries</span> — one implementation, used by handlers and agents alike.</li>
-            <li>13 unit tests now pin the month arithmetic, the partial-update contract and the agent's tool list.</li>
+            <li>36 unit tests now pin the month and due-date arithmetic, the partial-update contract and the agent's tool list.</li>
             <li>Profile updates bind to a typed request struct, so an unknown field can no longer be written into the user document.</li>
             <li>Single-transaction routes are scoped by owner, closing an ID-guessing path.</li>
           </ul>
@@ -1136,35 +1260,33 @@
         worse than no coach at all.
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">13 / 15</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">15 / 17</span></div>
   </section>
 
   <!-- 11 ────────────────────────────────────────────────────────── -->
   <section class="slide">
     <div class="eyebrow">Remaining work</div>
-    <h2>From alpha to final demonstration</h2>
-    <div class="body">
-      <div style="flex:1; min-height:0; overflow:auto;">
+    <h2>From Alpha to D-Day: test, deploy, report, document</h2>
+    <div class="body" style="gap:1.6em;">
+      <div>
         <table>
-          <thead><tr><th style="width:26%">Task</th><th>Why it matters</th><th class="st">Priority</th></tr></thead>
+          <thead><tr><th style="width:22%">Task</th><th>What it covers</th><th class="st">Priority</th></tr></thead>
           <tbody>
-            <tr><td>Verify Firebase ID tokens server-side</td><td>The API currently trusts the UID in the request. This is the single most important correctness-of-access gap, and every endpoint depends on the same middleware.</td><td class="st"><span class="chip s-wip">Critical</span></td></tr>
-            <tr><td>Deploy the API</td><td>The client still points at a hardcoded LAN address. A hosted API removes the demo's dependence on a laptop on the same network.</td><td class="st"><span class="chip s-wip">High</span></td></tr>
-            <tr><td>Rotate exposed credentials</td><td>An example configuration file and an old evaluation script contain real-looking keys recoverable from history.</td><td class="st"><span class="chip s-wip">High</span></td></tr>
-            <tr><td>Transaction detail &amp; filtering</td><td>Completes FR-12 and FR-13; the detail endpoint already exists and is unused.</td><td class="st"><span class="chip s-todo">Medium</span></td></tr>
-            <tr><td>Widget &amp; integration tests</td><td>Client behaviour is currently verified by hand. The scan pipeline in particular deserves an automated path.</td><td class="st"><span class="chip s-todo">Medium</span></td></tr>
-            <tr><td>Restore coach-quality evaluation</td><td>A RAGAS-style harness existed and was removed; re-adding it makes prompt changes measurable rather than anecdotal.</td><td class="st"><span class="chip s-todo">Medium</span></td></tr>
-            <tr><td>Confirm agent writes with the user</td><td>The coach can change a budget from a single sentence. A confirmation step would make that safer.</td><td class="st"><span class="chip s-todo">Low</span></td></tr>
+            <tr><td>Testing</td><td>Widget and integration tests for the scan pipeline, Mark paid and reminders, plus a written test plan whose results feed Chapter 4.</td><td class="st"><span class="chip s-wip">High</span></td></tr>
+            <tr><td>Deployment</td><td>Host the API so the demo no longer depends on a laptop on the same network. Verify Firebase ID tokens server-side and rotate exposed keys before it goes public.</td><td class="st"><span class="chip s-wip">High</span></td></tr>
+            <tr><td>Report</td><td>Chapters 4–5 from 15 Sep; the complete capstone report in the LaTeX template from 17 Nov.</td><td class="st"><span class="chip s-wip">High</span></td></tr>
+            <tr><td>Documentation &amp; portfolio</td><td>SIT Portfolio by 5 Oct (poster 1920×1080, member photo 800×600, description, tools, demo video); README, user manual and installation video.</td><td class="st"><span class="chip s-wip">High</span></td></tr>
+            <tr><td>Agentic RAG improvements</td><td>The first ground-truth evaluation is done (slides 9–10). Next: fix the retrieval gaps it found, grow the test set, and add a confirmation step before the coach writes.</td><td class="st"><span class="chip s-todo">Later</span></td></tr>
           </tbody>
         </table>
       </div>
       <div class="cols c3">
-        <div class="panel"><h3>Next 2 weeks</h3><p style="margin:0;color:var(--ink-soft)">Auth middleware, deployment, credential rotation.</p></div>
-        <div class="panel"><h3>Following sprint</h3><p style="margin:0;color:var(--ink-soft)">FR-12 and FR-13, then the test suite.</p></div>
-        <div class="panel"><h3>Before D-Day</h3><p style="margin:0;color:var(--ink-soft)">Evaluation harness re-run, full demo rehearsal on the hosted API.</p></div>
+        <div class="panel"><h3>15 Sep – 5 Oct</h3><p style="margin:0;color:var(--ink-soft)">Chapter 4–5 draft, SIT Portfolio upload, API deployed.</p></div>
+        <div class="panel"><h3>14 – 20 Oct · Beta Test</h3><p style="margin:0;color:var(--ink-soft)">Test suite passing; demo rehearsed on the hosted API for the advisor.</p></div>
+        <div class="panel"><h3>16 Nov · D-Day</h3><p style="margin:0;color:var(--ink-soft)">Public demo, then the full report, manual and installation video by 18 Dec.</p></div>
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">14 / 15</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">16 / 17</span></div>
   </section>
 
   <!-- 12 ────────────────────────────────────────────────────────── -->
@@ -1173,9 +1295,9 @@
     <h2>Where SmartFin stands today</h2>
     <div class="body">
       <div class="metrics">
-        <div class="metric"><span class="v">11 / 14</span><span class="k">Functional requirements</span></div>
+        <div class="metric"><span class="v">14 / 15</span><span class="k">Functional requirements</span></div>
         <div class="metric"><span class="v">6 / 8</span><span class="k">Non-functional met</span></div>
-        <div class="metric"><span class="v">7</span><span class="k">Agent tools live</span></div>
+        <div class="metric"><span class="v">8</span><span class="k">Agent tools live</span></div>
         <div class="metric"><span class="v">2</span><span class="k">Capture paths</span></div>
       </div>
       <div class="cols c2" style="flex:1; min-height:0;">
@@ -1184,7 +1306,8 @@
           <p style="margin:0;color:var(--ink-soft); font-size:1.06em;">
             A Thai user can go from paying by PromptPay to seeing that payment reflected in their budget,
             their category breakdown and their savings goal — <strong>without typing a single number</strong> —
-            and can then ask an agent that reads and writes their real records what to do about it.
+            and can then ask an agent that reads and writes their real records what to do about it, while
+            recurring bills are reminded before they fall due.
           </p>
         </div>
         <div class="panel">
@@ -1193,7 +1316,7 @@
             <li>The API does not yet verify identity tokens.</li>
             <li>The backend runs locally; it is not deployed.</li>
             <li>Client test coverage is manual.</li>
-            <li>Two secondary screens remain unbuilt.</li>
+            <li>Agentic RAG improvements are planned after the D-Day deliverables.</li>
           </ul>
         </div>
       </div>
@@ -1201,7 +1324,7 @@
         <strong style="font-family:var(--f-display); font-size:1.5em;">Questions</strong>
       </div>
     </div>
-    <div class="foot"><span>SmartFin — CSC499 Alpha Test · 14 September 2026</span><span class="num">15 / 15</span></div>
+    <div class="foot"><span>SmartFin — CSC499 Alpha Test · 14 September 2026</span><span class="num">17 / 17</span></div>
   </section>
 
 </div>
