@@ -92,6 +92,12 @@ The extraction prompt is explicit about **Thai script transliteration and Buddhi
 
 This handler writes **nothing** to Mongo — the Flutter app creates the transaction separately after the user confirms on the verify screen.
 
+Two fallbacks hide failures from callers, so check them when evaluating: an unparseable model reply returns `Unknown Merchant` / 0, and a missing date silently becomes **today** (server local time), which makes a receipt with no printed date look correctly dated.
+
+### Evaluating the scanner (`cmd/slipeval`)
+
+`go run ./cmd/slipeval -repeats 2` sends every image in `eval-slips/images/` to `/api/scanner/process` as the app does (original file, multipart) and compares merchant, amount and date with `eval-slips/labels.csv`. **`eval-slips/` is git-ignored and must stay that way** — real slips carry names, account numbers and reference IDs; `summary.md` deliberately reports only file names and right/wrong marks. Rules: amount within ±฿0.5 (the scanner returns whole baht), merchant = normalised name contains any `|`-separated alias (Thai names are transliterated, so exact matching is unfair), date exact, and a blank label date means "not printed" and is excluded. Scans are saved raw, so after correcting a label run `go run ./cmd/slipeval -rescore eval-slips/results/<run>` — no new Gemini calls. Labels marked unverified are flagged in the summary.
+
 ## Endpoints beyond the obvious CRUD
 
 - `GET /api/coach/history/:user_id` — the stored transcript, newest-first internally then reversed so the client renders top-down. The orchestrator has always persisted both sides of every exchange; this is what reads it back. The Flutter coach screen is disposed on every tab switch, so the transcript **must** come from here rather than widget state.

@@ -57,5 +57,7 @@ node_modules
 smartfin-backend/.env
 # Raw coach evaluation output (answers, tool traces); summaries are copied to smartfin-docs/eval
 smartfin-backend/eval-results/
+# Real slips and receipts for the vision evaluation: names, account numbers, reference IDs
+smartfin-backend/eval-slips/
 smartfin-credentials.json
 **/smartfin-credentials.json
