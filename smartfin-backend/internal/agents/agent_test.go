@@ -61,3 +61,27 @@ func TestResearchAgentWebSearchFallback(t *testing.T) {
 		t.Errorf("Expected query to match in result, got %v", res["query"])
 	}
 }
+
+func TestLooksLikeStall(t *testing.T) {
+	stalls := []string{
+		"🐾 To figure out how much you saved in March 2026, I'll need to look at your income and expenses for that month. Please give me a moment to fetch that information for you!",
+		"🐾 ได้เลยค่ะ! ขอตรวจสอบค่าใช้จ่ายหมวดอาหารของคุณสำหรับเดือนมีนาคม 2026 ให้นะคะ",
+		"🐾 เข้าใจแล้วค่ะ! กำลังตรวจสอบบิลที่เลยกำหนดชำระให้นะคะ",
+	}
+	for _, s := range stalls {
+		if !looksLikeStall(s) {
+			t.Errorf("should be treated as a stall: %q", s)
+		}
+	}
+	answers := []string{
+		"You spent ฿1,300 on Food in March 2026 🐾",
+		"That's an interesting coding challenge! However, as your SmartFin Coach, my paw-some purpose is to help you with your financial well-being. 🐾",
+		"Your monthly budget limit is ฿15,000.",
+		"",
+	}
+	for _, s := range answers {
+		if looksLikeStall(s) {
+			t.Errorf("a real answer must not be nudged: %q", s)
+		}
+	}
+}

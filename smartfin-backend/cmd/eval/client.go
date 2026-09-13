@@ -39,6 +39,7 @@ type AskResult struct {
 	ToolsUsed    []string         `json:"tools_used"`
 	ActionsTaken []map[string]any `json:"actions_taken"`
 	ToolTrace    []TraceEntry     `json:"tool_trace"`
+	Nudged       bool             `json:"nudged"`
 	Error        string           `json:"error"`
 	Details      string           `json:"details"`
 }

@@ -82,6 +82,7 @@ func (h *CoachHandler) AskCoach(c *fiber.Ctx) error {
 	}
 	if debug {
 		body["tool_trace"] = output.ToolTrace
+		body["nudged"] = output.Nudged
 	}
 	return c.JSON(body)
 }

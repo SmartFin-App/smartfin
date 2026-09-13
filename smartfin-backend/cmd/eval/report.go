@@ -190,10 +190,16 @@ func summaryMarkdown(res *Results) string {
 
 	// T3
 	var recallSum, precSum float64
-	var recallN, precN, monthsCov, monthsExp, unintended, nonAction, retrieval, generation int
+	var recallN, precN, monthsCov, monthsExp, unintended, nonAction, retrieval, generation, nudges, nudgesPassed int
 	for _, t := range res.Trials {
 		if t.System != "agentic" {
 			continue
+		}
+		if t.Nudged {
+			nudges++
+			if t.Score.Pass {
+				nudgesPassed++
+			}
 		}
 		if t.Score.ToolRecall >= 0 {
 			recallSum += t.Score.ToolRecall
@@ -230,6 +236,7 @@ func summaryMarkdown(res *Results) string {
 	fmt.Fprintf(&b, "| Tool precision (mean) | %s |\n", ratio(precSum, precN))
 	fmt.Fprintf(&b, "| Expected months retrieved | %s |\n", frac(monthsCov, monthsExp))
 	fmt.Fprintf(&b, "| Missing-figure failures: retrieval / generation | %d / %d |\n", retrieval, generation)
+	fmt.Fprintf(&b, "| Stall nudges sent (trials that then passed) | %d (%d) |\n", nudges, nudgesPassed)
 	for _, sys := range m.Systems {
 		if sys == "agentic" {
 			continue

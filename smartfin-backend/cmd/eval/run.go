@@ -26,6 +26,7 @@ type Trial struct {
 	Status       string           `json:"status"` // ok | error | timeout
 	Error        string           `json:"error,omitempty"`
 	Retries      int              `json:"retries"`
+	Nudged       bool             `json:"nudged,omitempty"`
 	Tools        []string         `json:"tools,omitempty"`
 	ToolTrace    []TraceEntry     `json:"tool_trace,omitempty"`
 	ActionsTaken []map[string]any `json:"actions_taken,omitempty"`
@@ -90,6 +91,7 @@ func (r *Runner) runAgentic(ctx context.Context, c Case, rep int, t *Trial) {
 			t.Status = "ok"
 			t.Answer = res.Response
 			t.ToolTrace = res.ToolTrace
+			t.Nudged = res.Nudged
 			t.ActionsTaken = res.ActionsTaken
 			t.Tools = toolNames(res)
 			break

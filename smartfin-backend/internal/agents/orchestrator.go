@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/SmartFin-App/smartfin-backend/config"
 	"github.com/SmartFin-App/smartfin-backend/internal/models"
@@ -59,6 +60,39 @@ type AskCoachOutput struct {
 	ToolsUsed    []string         `json:"tools_used,omitempty"`
 	ActionsTaken []map[string]any `json:"actions_taken,omitempty"`
 	ToolTrace    []ToolTrace      `json:"tool_trace,omitempty"`
+	// Nudged is true when the first reply only announced a lookup and the loop
+	// asked the model once more to actually call the tool.
+	Nudged bool `json:"nudged,omitempty"`
+}
+
+// stallPhrases mark a reply that only promises to look something up. Gemini
+// sometimes sends one instead of calling a tool, and the loop used to take it as
+// the final answer — the user got "give me a moment…" and nothing after it. The
+// coach evaluation traced 10 of 12 failures in its second run to this.
+var stallPhrases = []string{
+	"a moment", "let me check", "let me look", "let me fetch", "let me pull", "let me gather", "let me get",
+	"i'll check", "i will check", "i'll look", "i'll fetch", "i'll gather", "i'll pull", "i'll get that",
+	"checking your", "looking up your", "please hold", "bear with me",
+	"สักครู่", "ขอตรวจสอบ", "กำลังตรวจสอบ", "ขอเช็ค", "ขอเรียกดู", "ขอดูข้อมูล", "เดี๋ยว",
+}
+
+const stallNudge = "You have not called any tool yet. Do not announce that you will check — call the tool(s) you need now, then answer with the real figures, in the same language as my question."
+
+// looksLikeStall reports whether a reply without tool calls is only a short
+// promise to check. Real answers without tools (an off-topic redirect, the budget
+// from the profile) do not use these phrases, and long replies are never treated
+// as stalls.
+func looksLikeStall(text string) bool {
+	t := strings.ToLower(strings.TrimSpace(text))
+	if t == "" || utf8.RuneCountInString(t) > 400 {
+		return false
+	}
+	for _, p := range stallPhrases {
+		if strings.Contains(t, p) {
+			return true
+		}
+	}
+	return false
 }
 
 // ToolTrace is one tool call as the model made it and as it was answered.
@@ -160,6 +194,7 @@ Follow this Reasoning Process:
 	var actionsTaken []map[string]any
 	var trace []ToolTrace
 	var finalResponse string
+	nudged := false
 
 	// Send initial user query
 	resp, err := chat.SendMessage(ctx, genai.Text(input.Message))
@@ -186,9 +221,22 @@ Follow this Reasoning Process:
 			}
 		}
 
-		// If no tool calls were requested, we have arrived at the final answer!
+		// If no tool calls were requested, we have arrived at the final answer —
+		// unless the first reply only promised to check. Nudge once to make the
+		// call; if the nudge itself fails, fall back to the text we have.
 		if len(functionCalls) == 0 {
-			finalResponse = strings.Join(textParts, " ")
+			text := strings.Join(textParts, " ")
+			if turn == 0 && !nudged && looksLikeStall(text) {
+				nudged = true
+				log.Printf("Orchestrator: first reply announced a lookup without calling a tool; nudging once")
+				next, nerr := chat.SendMessage(ctx, genai.Text(stallNudge))
+				if nerr == nil {
+					resp = next
+					continue
+				}
+				log.Printf("Orchestrator: nudge failed: %v", nerr)
+			}
+			finalResponse = text
 			break
 		}
 
@@ -274,6 +322,7 @@ Follow this Reasoning Process:
 		ToolsUsed:    toolsUsed,
 		ActionsTaken: actionsTaken,
 		ToolTrace:    trace,
+		Nudged:       nudged,
 	}, nil
 }
 
