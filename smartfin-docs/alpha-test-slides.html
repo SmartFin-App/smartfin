@@ -952,7 +952,7 @@
           <div class="panel">
             <h3>What is measured</h3>
             <ul class="tight">
-              <li><strong>Pass rate</strong> on the 23 questions every system can answer.</li>
+              <li><strong>Pass rate</strong> on the 23 questions every system can answer, and <strong>overall task success</strong> on all 30 — a system that cannot do a task fails it.</li>
               <li><strong>Numeric accuracy</strong> — required ฿ figures present in the answer.</li>
               <li><strong>Unsupported ฿ figures</strong> — amounts the records cannot produce.</li>
               <li><strong>Agent only</strong> — actions by database readback, unintended writes, tool recall and precision.</li>
@@ -967,13 +967,13 @@
   <!-- EVAL 2 ────────────────────────────────────────────────────── -->
   <section class="slide">
     <div class="eyebrow">Evaluation · 2 · Results · 30 cases × 3 runs each · agent runs 1 → 2 → 3</div>
-    <h2>Two fixes the evaluation found took the agent from 84% to 100%</h2>
+    <h2>After two fixes: 100% on questions, 97% on all 30 tasks</h2>
     <div class="body">
       <div class="metrics">
-        <div class="metric"><span class="v">84 → 100%</span><span class="k">Agentic coach · shared questions</span></div>
-        <div class="metric"><span class="v">100%</span><span class="k">One-shot RAG · 69/69</span></div>
-        <div class="metric"><span class="v">9%</span><span class="k">No retrieval · 6/69</span></div>
-        <div class="metric"><span class="v">13 → 3</span><span class="k">Agent failures of 90 trials</span></div>
+        <div class="metric"><span class="v">100%</span><span class="k">Agent · questions · was 84%</span></div>
+        <div class="metric"><span class="v">97%</span><span class="k">Agent · all 30 tasks · 87/90</span></div>
+        <div class="metric"><span class="v">87%</span><span class="k">One-shot RAG · all 30 tasks</span></div>
+        <div class="metric"><span class="v">17%</span><span class="k">No retrieval · all 30 tasks</span></div>
       </div>
       <div class="cols c25" style="flex:1; min-height:0; align-items:start;">
         <table class="fr">
@@ -989,7 +989,7 @@
             <tr><td>Safety</td><td class="st num">9/9</td><td class="st num">9/9</td><td class="st num"><strong>9/9</strong></td><td class="st num">9/9</td><td class="st num">9/9</td></tr>
             <tr><td>Actions (DB readback)</td><td class="st num">7/9</td><td class="st num">8/9</td><td class="st num"><strong>7/9</strong></td><td class="st num">—</td><td class="st num">—</td></tr>
             <tr><td>Memory across sessions</td><td class="st num">3/3</td><td class="st num">3/3</td><td class="st num"><strong>2/3</strong></td><td class="st num">—</td><td class="st num">—</td></tr>
-            <tr><td>Numeric accuracy</td><td class="st num">82%</td><td class="st num">80%</td><td class="st num"><strong>100%</strong></td><td class="st num">100%</td><td class="st num">0%</td></tr>
+            <tr><td>All 30 tasks (90 trials)</td><td class="st num">77/90</td><td class="st num">78/90</td><td class="st num"><strong>87/90</strong></td><td class="st num">78/90</td><td class="st num">15/90</td></tr>
           </tbody>
         </table>
         <div class="panel">
@@ -999,7 +999,7 @@
             <li><strong>Run 3 · nudge when it only announces a lookup.</strong> "Give me a moment…" with no tool call went 10 → 0; the nudge fired 8 times and all 8 then passed.</li>
             <li><strong>Still failing (3).</strong> Twice it said it logged an expense without writing it; once it did not check its memory.</li>
             <li><strong>Baselines claimed writes they cannot do</strong> in 7/9 requests; the agent wrote nothing unasked in 243/243 answers.</li>
-            <li><strong>Why one-shot ties</strong> — 47 transactions fit in one prompt. p50 latency 3.2 s vs 2.0 s.</li>
+            <li><strong>Why one-shot ties on questions only</strong> — 47 transactions fit in one prompt, but it cannot act or remember.</li>
           </ul>
         </div>
       </div>

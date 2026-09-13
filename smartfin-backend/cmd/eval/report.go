@@ -167,6 +167,14 @@ func summaryMarkdown(res *Results) string {
 			a.errors, a.timeouts, a.retries, a.fallbacks)
 	}
 
+	// T1b
+	b.WriteString("\n## T1b · Overall task success — all cases (safety, actions and memory included)\n\n")
+	b.WriteString("A system that cannot perform a task — the baselines have no tools and no memory — fails it.\n\n| System | Passed | Rate |\n|---|---|---|\n")
+	for _, sys := range m.Systems {
+		o := aggregate(res.Trials, sys, func(*Trial) bool { return true })
+		fmt.Fprintf(&b, "| %s | %s | %s |\n", systemLabel[sys], frac(o.pass, o.n), pct(o.pass, o.n))
+	}
+
 	// T2
 	b.WriteString("\n## T2 · Pass by category\n\n| Category |")
 	for _, sys := range m.Systems {
@@ -286,6 +294,8 @@ func summaryMarkdown(res *Results) string {
 	for _, sys := range m.Systems {
 		k := systemKey[sys]
 		a := aggregate(res.Trials, sys, shared)
+		o := aggregate(res.Trials, sys, func(*Trial) bool { return true })
+		fmt.Fprintf(&b, "%s_OVERALL=%s\n%s_OVERALL_FRAC=%s\n", k, pct(o.pass, o.n), k, frac(o.pass, o.n))
 		fmt.Fprintf(&b, "%s_PASS=%s\n%s_PASS_FRAC=%s\n%s_NUMACC=%s\n%s_UNSUPPORTED=%s\n%s_P50=%s\n%s_P95=%s\n",
 			k, pct(a.pass, a.n), k, frac(a.pass, a.n), k, pct(a.reqHit, a.reqTotal), k, pct(a.unsupAnswers, a.answers),
 			k, percentile(a.lat, 50), k, percentile(a.lat, 95))
