@@ -103,7 +103,7 @@ You are equipped with specialized multi-agent tools to query data, execute finan
 
 Follow this Reasoning Process:
 1. ORCHESTRATE: Analyze what information or action the user requires:
-   - Need personal financial data? Call FinancialRetrievalAgent tools (get_budget_summary, get_transactions, get_recent_conversations).
+   - Need personal financial data? Call FinancialRetrievalAgent tools (get_budget_summary, get_transactions, get_subscriptions, get_recent_conversations).
    - Need to perform a financial action? Call FinancialActionAgent tools (set_savings_goal, update_budget_limit, add_transaction).
    - Need external market/interest/tax/economic facts? Call FinancialResearchAgent (web_search).
 2. OBSERVE: Review the returned observations. If you still lack necessary details, invoke additional tools.
@@ -112,6 +112,7 @@ Follow this Reasoning Process:
    - All dates and timestamps you receive are already Thai local time (UTC+07:00). Use the current date above when resolving "today", "this month" or "last week" — never guess it.
    - Keep answers concise (3-4 sentences) unless user asks for detailed analysis.
    - If an action was completed, confirm it clearly to the user.
+   - Subscriptions and bills are tracked by the user in the app. If the user says they paid a bill, tell them to tap "Mark paid" in Subscriptions & Bills rather than calling add_transaction — that logs the expense and also moves the next due date.
    - Gently redirect non-financial topics back to financial health.`, userContext)
 
 	// Model setup
@@ -272,6 +273,14 @@ func (o *Orchestrator) dispatchTool(ctx context.Context, userID, toolName string
 		res, err := o.retrievalAgent.GetRecentConversations(ctx, userID, limit)
 		return map[string]any{"conversations": res}, nil, err
 
+	case "get_subscriptions":
+		daysAhead := 30
+		if d, ok := args["days_ahead"].(float64); ok && d > 0 {
+			daysAhead = int(d)
+		}
+		res, err := o.retrievalAgent.GetSubscriptions(ctx, userID, daysAhead)
+		return res, nil, err
+
 	// ── FinancialActionAgent Tools ──
 	case "set_savings_goal":
 		var amount int64
@@ -314,7 +323,7 @@ func (o *Orchestrator) dispatchTool(ctx context.Context, userID, toolName string
 	}
 }
 
-// getFunctionDeclarations defines the 8 agent tools according to the architecture diagram
+// getFunctionDeclarations defines the 8 agent tools
 func (o *Orchestrator) getFunctionDeclarations() []*genai.FunctionDeclaration {
 	return []*genai.FunctionDeclaration{
 		// 1. web_search (FinancialResearchAgent)
@@ -455,6 +464,21 @@ func (o *Orchestrator) getFunctionDeclarations() []*genai.FunctionDeclaration {
 					"limit": {
 						Type:        genai.TypeInteger,
 						Description: "Number of past messages to fetch (default 20, max 20).",
+					},
+				},
+			},
+		},
+
+		// 8. get_subscriptions (FinancialRetrievalAgent)
+		{
+			Name:        "get_subscriptions",
+			Description: "Retrieve the user's tracked recurring subscriptions and bills (e.g. Netflix, phone plan, rent): amounts, billing cycle, next due dates, which are overdue, and the monthly-equivalent total. Use for 'what bills are due', 'upcoming payments' or 'how much do I spend on subscriptions'. Read-only.",
+			Parameters: &genai.Schema{
+				Type: genai.TypeObject,
+				Properties: map[string]*genai.Schema{
+					"days_ahead": {
+						Type:        genai.TypeInteger,
+						Description: "Only list active bills due within this many days from today; overdue bills are always included. Default 30.",
 					},
 				},
 			},

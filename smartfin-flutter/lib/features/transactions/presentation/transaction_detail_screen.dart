@@ -579,6 +579,8 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
         return 'Scanned slip';
       case 'coach_agent':
         return 'AI Coach';
+      case 'subscription':
+        return 'Subscription';
       default:
         return 'Entered manually';
     }

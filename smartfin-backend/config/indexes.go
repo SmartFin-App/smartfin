@@ -61,6 +61,14 @@ var requiredIndexes = []indexSpec{
 		},
 		serves: "get_recent_conversations and the coach history endpoint",
 	},
+	{
+		collection: "subscriptions",
+		model: mongo.IndexModel{
+			Keys:    bson.D{{Key: "user_id", Value: 1}, {Key: "next_due_date", Value: 1}},
+			Options: options.Index().SetName("user_id_1_next_due_date_1"),
+		},
+		serves: "the subscriptions tracker list, the dashboard's upcoming-bills card and get_subscriptions",
+	},
 }
 
 // EnsureIndexes creates the indexes above if they do not already exist.

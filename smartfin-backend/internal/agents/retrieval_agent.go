@@ -17,19 +17,21 @@ import (
 
 // RetrievalAgent retrieves personal financial data from MongoDB Atlas
 type RetrievalAgent struct {
-	transactionsCol *mongo.Collection
-	usersCol        *mongo.Collection
-	summariesCol    *mongo.Collection
-	chatMessagesCol *mongo.Collection
+	transactionsCol  *mongo.Collection
+	usersCol         *mongo.Collection
+	summariesCol     *mongo.Collection
+	chatMessagesCol  *mongo.Collection
+	subscriptionsCol *mongo.Collection
 }
 
 // NewRetrievalAgent creates a new FinancialRetrievalAgent
 func NewRetrievalAgent() *RetrievalAgent {
 	return &RetrievalAgent{
-		transactionsCol: config.GetCollection("transactions"),
-		usersCol:        config.GetCollection("users"),
-		summariesCol:    config.GetCollection("monthly_summaries"),
-		chatMessagesCol: config.GetCollection("chat_messages"),
+		transactionsCol:  config.GetCollection("transactions"),
+		usersCol:         config.GetCollection("users"),
+		summariesCol:     config.GetCollection("monthly_summaries"),
+		chatMessagesCol:  config.GetCollection("chat_messages"),
+		subscriptionsCol: config.GetCollection("subscriptions"),
 	}
 }
 
@@ -221,4 +223,63 @@ func (a *RetrievalAgent) GetRecentConversations(ctx context.Context, userID stri
 		})
 	}
 	return results, nil
+}
+
+// GetSubscriptions returns the user's active tracked bills that fall due within
+// daysAhead days — overdue ones included — plus the monthly-equivalent total of
+// every active bill. Read-only: paying a bill is done with "Mark paid" in the app,
+// which also moves the due date, so the coach never books one itself.
+func (a *RetrievalAgent) GetSubscriptions(ctx context.Context, userID string, daysAhead int) (map[string]any, error) {
+	if daysAhead <= 0 {
+		daysAhead = 30
+	}
+	if daysAhead > 366 {
+		daysAhead = 366
+	}
+
+	opts := options.Find().SetSort(bson.D{{Key: "next_due_date", Value: 1}}).SetLimit(100)
+	cursor, err := a.subscriptionsCol.Find(ctx, bson.M{"user_id": userID, "active": true}, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query subscriptions: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var subs []models.Subscription
+	if err := cursor.All(ctx, &subs); err != nil {
+		return nil, fmt.Errorf("failed to decode subscriptions: %w", err)
+	}
+
+	now := time.Now()
+	bills := []map[string]any{}
+	var monthlyTotal, windowTotal int64
+	for _, s := range subs {
+		monthlyTotal += summaries.MonthlyEquivalent(s.Amount, s.BillingCycle)
+		days := summaries.DaysUntil(s.NextDueDate, now)
+		if days > daysAhead {
+			continue
+		}
+		windowTotal += s.Amount
+		bills = append(bills, map[string]any{
+			"id":                 s.ID.Hex(),
+			"name":               s.Name,
+			"amount":             s.Amount,
+			"billing_cycle":      s.BillingCycle,
+			"category":           s.Category,
+			"note":               s.Note,
+			"due_date":           summaries.DueDateString(s.NextDueDate),
+			"due_date_human":     s.NextDueDate.In(summaries.Zone).Format("Jan 02, 2006"),
+			"days_until_due":     days,
+			"status":             summaries.DueStatus(days, true),
+			"monthly_equivalent": summaries.MonthlyEquivalent(s.Amount, s.BillingCycle),
+		})
+	}
+
+	return map[string]any{
+		"today":               summaries.DueDateString(now),
+		"days_ahead":          daysAhead,
+		"active_count":        len(subs),
+		"monthly_total":       monthlyTotal,
+		"due_in_window_total": windowTotal,
+		"bills":               bills,
+	}, nil
 }

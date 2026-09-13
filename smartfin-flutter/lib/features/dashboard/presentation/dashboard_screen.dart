@@ -8,6 +8,7 @@ import 'package:smart_fin/core/network/dio_client.dart';
 import 'package:smart_fin/widgets/bottom_nav_bar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:smart_fin/features/transactions/data/transaction_repository_impl.dart';
+import 'package:smart_fin/features/subscriptions/data/subscription_repository_impl.dart';
 import 'package:smart_fin/features/scanner/services/gallery_watcher_service.dart';
 import 'package:smart_fin/features/scanner/presentation/widgets/slip_detection_sheet.dart';
 
@@ -25,6 +26,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   bool _isLoading = true;
   bool _loadFailed = false;
   Map<String, dynamic>? _savingsProgress;
+  // Active bills overdue or due within 7 days, soonest first.
+  List<Map<String, dynamic>> _upcomingBills = [];
+  int _upcomingTotal = 0;
   String _userName = 'there';
   String _currentMonth = '';
 
@@ -97,6 +101,123 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
 
   String _baht(num amount) {
     return '฿${amount.round().toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (m) => "${m[1]},")}';
+  }
+
+  Future<void> _openSubscriptions() async {
+    final changed = await context.push<bool>('/subscriptions');
+    if (changed == true && mounted) _loadData();
+  }
+
+  /// Bills that are overdue or due within a week. Hidden when there are none, so
+  /// it never adds an empty card for users who don't track bills. The figures and
+  /// day counts come from the server in Thai time; this only picks the wording.
+  Widget _buildUpcomingBillsCard() {
+    final count = _upcomingBills.length;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _openSubscriptions,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.4)),
+          boxShadow: const [
+            BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.02), blurRadius: 10, offset: Offset(0, 4)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color.fromRGBO(255, 159, 41, 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.event_repeat_outlined, size: 18, color: Color(0xFFFF9F29)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'UPCOMING BILLS',
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 10,
+                          letterSpacing: 2,
+                          color: const Color(0xFF9E9E9E),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${_baht(_upcomingTotal)} · $count bill${count == 1 ? '' : 's'}',
+                        style: GoogleFonts.bricolageGrotesque(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, size: 20, color: Color.fromRGBO(158, 158, 158, 0.6)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ..._upcomingBills.take(3).map(_buildUpcomingBillRow),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUpcomingBillRow(Map<String, dynamic> bill) {
+    final days = (bill['days_until_due'] as num?)?.toInt() ?? 0;
+    final String when;
+    if (days < 0) {
+      when = '${-days} day${days == -1 ? '' : 's'} overdue';
+    } else if (days == 0) {
+      when = 'Due today';
+    } else if (days == 1) {
+      when = 'Due tomorrow';
+    } else {
+      when = 'Due in $days days';
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              bill['name'] as String? ?? '-',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textDark),
+            ),
+          ),
+          Text(
+            when,
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
+              color: days < 0 ? const Color(0xFFEF4444) : const Color(0xFFFF9F29),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            bill['formatted_amount'] as String? ?? _baht((bill['amount'] as num?) ?? 0),
+            style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textDark),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Progress toward the savings goal. "Saved" is derived server-side by summing
@@ -386,6 +507,25 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             }
           } catch (e) {
             debugPrint('Savings progress unavailable: $e');
+          }
+        }(),
+        // Upcoming bills — non-fatal for the same reason as the savings goal.
+        () async {
+          try {
+            final res = await SubscriptionRepositoryImpl()
+                .getSubscriptions(userID: uid, activeOnly: true);
+            if (!res.success || !mounted) return;
+            final all = ((res.data?['subscriptions'] as List?) ?? [])
+                .map((e) => Map<String, dynamic>.from(e as Map))
+                .toList();
+            setState(() {
+              _upcomingBills = all
+                  .where((s) => ((s['days_until_due'] as num?) ?? 999) <= 7)
+                  .toList();
+              _upcomingTotal = (res.data?['due_soon_total'] as num?)?.toInt() ?? 0;
+            });
+          } catch (e) {
+            debugPrint('Upcoming bills unavailable: $e');
           }
         }(),
       ]);
@@ -854,6 +994,11 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                       if (_hasSavingsGoal) ...[
                         const SizedBox(height: 24),
                         _buildSavingsGoalCard(),
+                      ],
+
+                      if (!_isLoading && _upcomingBills.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        _buildUpcomingBillsCard(),
                       ],
 
                       const SizedBox(height: 48),

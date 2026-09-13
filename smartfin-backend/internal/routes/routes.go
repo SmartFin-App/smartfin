@@ -20,6 +20,7 @@ func SetupRoutes(app *fiber.App) {
 	coachHandler := handlers.NewCoachHandler()
 	summaryHandler := handlers.NewSummaryHandler()
 	photoHandler := handlers.NewPhotoHandler()
+	subscriptionHandler := handlers.NewSubscriptionHandler()
 
 	// Setup an API group with prefix /api
 	api := app.Group("/api")
@@ -45,6 +46,14 @@ func SetupRoutes(app *fiber.App) {
 	transactions.Get("/summary/:user_id", transactionHandler.GetTransactionSummary)
 	transactions.Put("/:id", transactionHandler.UpdateTransaction)
 	transactions.Delete("/:id", transactionHandler.DeleteTransaction)
+
+	// Subscriptions & bills tracker under /api/subscriptions
+	subscriptions := api.Group("/subscriptions")
+	subscriptions.Post("", subscriptionHandler.CreateSubscription)
+	subscriptions.Post("/:id/pay", subscriptionHandler.MarkPaid)
+	subscriptions.Get("/:user_id", subscriptionHandler.GetSubscriptions)
+	subscriptions.Put("/:id", subscriptionHandler.UpdateSubscription)
+	subscriptions.Delete("/:id", subscriptionHandler.DeleteSubscription)
 
 	// Scanner routes under /api/scanner
 	scanner := api.Group("/scanner")

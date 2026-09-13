@@ -14,19 +14,21 @@ import (
 
 // UserHandler structure
 type UserHandler struct {
-	collection             *mongo.Collection
-	transactionsCollection *mongo.Collection
-	summariesCollection    *mongo.Collection
-	chatMessagesCollection *mongo.Collection
+	collection              *mongo.Collection
+	transactionsCollection  *mongo.Collection
+	summariesCollection     *mongo.Collection
+	chatMessagesCollection  *mongo.Collection
+	subscriptionsCollection *mongo.Collection
 }
 
 // NewUserHandler returns a configured handler
 func NewUserHandler() *UserHandler {
 	return &UserHandler{
-		collection:             config.GetCollection("users"),
-		transactionsCollection: config.GetCollection("transactions"),
-		summariesCollection:    config.GetCollection("monthly_summaries"),
-		chatMessagesCollection: config.GetCollection("chat_messages"),
+		collection:              config.GetCollection("users"),
+		transactionsCollection:  config.GetCollection("transactions"),
+		summariesCollection:     config.GetCollection("monthly_summaries"),
+		chatMessagesCollection:  config.GetCollection("chat_messages"),
+		subscriptionsCollection: config.GetCollection("subscriptions"),
 	}
 }
 
@@ -159,7 +161,7 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 // DeleteUser handles DELETE /api/users/:firebase_uid
 //
 // This erases the account and everything attached to it: transactions, monthly
-// summaries and coach conversations. It is irreversible and there is no soft
+// summaries, coach conversations and tracked subscriptions. It is irreversible and there is no soft
 // delete, so it must only be reachable behind a client-side reauthentication.
 //
 // NOTE: like the rest of this API it does not verify a Firebase token, so
@@ -184,6 +186,7 @@ func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 		"transactions":  h.transactionsCollection,
 		"summaries":     h.summariesCollection,
 		"chat_messages": h.chatMessagesCollection,
+		"subscriptions": h.subscriptionsCollection,
 	} {
 		res, err := col.DeleteMany(ctx, owned)
 		if err != nil {
@@ -205,13 +208,14 @@ func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 		log.Printf("DeleteUser: no profile document for %s, owned records cleared", firebaseUID)
 	}
 
-	log.Printf("DeleteUser: erased %s (%d transactions, %d summaries, %d messages)",
-		firebaseUID, deleted["transactions"], deleted["summaries"], deleted["chat_messages"])
+	log.Printf("DeleteUser: erased %s (%d transactions, %d summaries, %d messages, %d subscriptions)",
+		firebaseUID, deleted["transactions"], deleted["summaries"], deleted["chat_messages"], deleted["subscriptions"])
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message":      "Account deleted successfully",
-		"transactions": deleted["transactions"],
-		"summaries":    deleted["summaries"],
-		"messages":     deleted["chat_messages"],
+		"message":       "Account deleted successfully",
+		"transactions":  deleted["transactions"],
+		"summaries":     deleted["summaries"],
+		"messages":      deleted["chat_messages"],
+		"subscriptions": deleted["subscriptions"],
 	})
 }

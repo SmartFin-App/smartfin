@@ -16,17 +16,17 @@ type CategorySummary struct {
 type MonthlySummary struct {
 	ID                bson.ObjectID     `bson:"_id,omitempty"        json:"id"`
 	UserID            string            `bson:"user_id"              json:"user_id"`
-	Month             string            `bson:"month"                json:"month"`               // "2026-04"
-	RecurringIncome   int64             `bson:"recurring_income"     json:"recurring_income"`    // from user profile
-	OneTimeIncome     int64             `bson:"one_time_income"      json:"one_time_income"`     // sum of income transactions
-	TotalIncome       int64             `bson:"total_income"         json:"total_income"`        // recurring + one_time
-	TotalExpenses     int64             `bson:"total_expenses"       json:"total_expenses"`      // sum of expense transactions
-	Available         int64             `bson:"available"            json:"available"`           // total_income - total_expenses
-	BudgetLimit       int64             `bson:"budget_limit"         json:"budget_limit"`        // from user profile
-	BudgetPercentage  float64           `bson:"budget_percentage"    json:"budget_percentage"`   // total_expenses / budget_limit × 100
-	Savings           int64             `bson:"savings"              json:"savings"`             // available if > 0, else 0
+	Month             string            `bson:"month"                json:"month"`             // "2026-04"
+	RecurringIncome   int64             `bson:"recurring_income"     json:"recurring_income"`  // from user profile
+	OneTimeIncome     int64             `bson:"one_time_income"      json:"one_time_income"`   // sum of income transactions
+	TotalIncome       int64             `bson:"total_income"         json:"total_income"`      // recurring + one_time
+	TotalExpenses     int64             `bson:"total_expenses"       json:"total_expenses"`    // sum of expense transactions
+	Available         int64             `bson:"available"            json:"available"`         // total_income - total_expenses
+	BudgetLimit       int64             `bson:"budget_limit"         json:"budget_limit"`      // from user profile
+	BudgetPercentage  float64           `bson:"budget_percentage"    json:"budget_percentage"` // total_expenses / budget_limit × 100
+	Savings           int64             `bson:"savings"              json:"savings"`           // available if > 0, else 0
 	ExpenseByCategory []CategorySummary `bson:"expense_by_category"  json:"expense_by_category"`
-	IsFrozen          bool              `bson:"is_frozen"            json:"is_frozen"`           // true when month has ended
+	IsFrozen          bool              `bson:"is_frozen"            json:"is_frozen"` // true when month has ended
 	CalculatedAt      time.Time         `bson:"calculated_at"        json:"calculated_at"`
 }
 

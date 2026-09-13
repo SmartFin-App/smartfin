@@ -19,6 +19,7 @@ import 'package:smart_fin/features/auth/presentation/initial_setup_screen.dart';
 import 'package:smart_fin/features/splash/presentation/views/splash_view.dart';
 import 'package:smart_fin/features/transactions/presentation/manual_add_screen.dart';
 import 'package:smart_fin/features/transactions/presentation/transaction_detail_screen.dart';
+import 'package:smart_fin/features/subscriptions/presentation/subscriptions_screen.dart';
 import 'package:smart_fin/widgets/bottom_nav_bar.dart';
 
 // ---------------------------------------------------------------------------
@@ -151,6 +152,13 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => TransactionDetailScreen(
         transactionID: state.pathParameters['id'] ?? '',
       ),
+    ),
+
+    // ── Subscriptions & bills ────────────────────────────────────────────
+    GoRoute(
+      path: '/subscriptions',
+      name: 'subscriptions',
+      builder: (context, state) => const SubscriptionsScreen(),
     ),
   ],
 );

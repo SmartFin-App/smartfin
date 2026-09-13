@@ -913,6 +913,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               Divider(height: 1, thickness: 1, color: const Color.fromRGBO(234, 226, 214, 0.3)),
                               _buildPreferencesRow(
+                                icon: Icons.event_repeat_outlined,
+                                label: 'Subscriptions & Bills',
+                                trailing: const Icon(Icons.chevron_right, size: 18, color: Color.fromRGBO(158, 158, 158, 0.5)),
+                                // push, not go: a subscreen, so back returns here.
+                                onTap: () => context.push<bool>('/subscriptions'),
+                              ),
+                              Divider(height: 1, thickness: 1, color: const Color.fromRGBO(234, 226, 214, 0.3)),
+                              _buildPreferencesRow(
                                 icon: Icons.shield_outlined,
                                 label: 'Security & Privacy',
                                 trailing: const Icon(Icons.chevron_right, size: 18, color: Color.fromRGBO(158, 158, 158, 0.5)),
