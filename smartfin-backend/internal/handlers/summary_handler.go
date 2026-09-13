@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
 	"github.com/SmartFin-App/smartfin-backend/config"
 	"github.com/SmartFin-App/smartfin-backend/internal/models"
@@ -315,10 +316,16 @@ const maxSavingsMonths = 24
 
 // GetSavingsProgress handles GET /api/summary/:user_id/savings-goal
 //
-// "Saved so far" is the sum of each month's savings (income minus expenses, floored
-// at zero) from the month the account was created through the current one. It is
-// derived rather than tracked separately, so there is no balance for the user to
-// keep up to date and no second source of truth to drift from the transactions.
+// "Saved so far" is the sum of each COMPLETED month's savings (income minus
+// expenses, floored at zero) since the account was created. It is derived rather
+// than tracked separately, so there is no balance for the user to keep up to date
+// and no second source of truth to drift from the transactions.
+//
+// The current month is deliberately excluded and reported separately as
+// this_month_surplus. A month's income lands in the summary on day one, so folding
+// the live month in meant a ฿12,000 salary counted as ฿12,000 "saved" before any
+// of it had been lived through — a ฿5,000 goal read as reached on the 1st, then
+// un-reached as the user spent. Surplus only becomes savings once the month ends.
 func (h *SummaryHandler) GetSavingsProgress(c *fiber.Ctx) error {
 	userID := c.Params("user_id")
 	if userID == "" {
@@ -339,18 +346,37 @@ func (h *SummaryHandler) GetSavingsProgress(c *fiber.Ctx) error {
 	now := time.Now().In(summaries.Zone)
 	anchor := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, summaries.Zone)
 
-	// Count from account creation, but never further back than the cap.
-	months := maxSavingsMonths
+	// Count from whichever came first: the account being created, or the oldest
+	// transaction on record. Bounding on signup alone hid every backdated entry —
+	// a user who scans older slips (or a seeded demo account) has history that
+	// legitimately predates the profile document.
+	startAnchor := anchor
 	if !user.CreatedAt.IsZero() {
 		created := user.CreatedAt.In(summaries.Zone)
-		elapsed := (anchor.Year()-created.Year())*12 + int(anchor.Month()) - int(created.Month())
-		if elapsed >= 0 && elapsed+1 < months {
-			months = elapsed + 1
+		startAnchor = time.Date(created.Year(), created.Month(), 1, 0, 0, 0, 0, summaries.Zone)
+	}
+
+	var oldest models.Transaction
+	oldestOpts := options.FindOne().SetSort(bson.D{{Key: "date", Value: 1}})
+	if err := h.transactionsCollection.FindOne(ctx, bson.M{"user_id": userID}, oldestOpts).Decode(&oldest); err == nil {
+		t := oldest.Date.In(summaries.Zone)
+		txAnchor := time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, summaries.Zone)
+		if txAnchor.Before(startAnchor) {
+			startAnchor = txAnchor
 		}
+	}
+
+	months := (anchor.Year()-startAnchor.Year())*12 + int(anchor.Month()) - int(startAnchor.Month()) + 1
+	if months > maxSavingsMonths {
+		months = maxSavingsMonths
+	}
+	if months < 1 {
+		months = 1
 	}
 
 	var saved int64
 	var lastMonthSavings int64
+	var thisMonthSurplus int64
 	counted := 0
 
 	for i := 0; i < months; i++ {
@@ -360,6 +386,13 @@ func (h *SummaryHandler) GetSavingsProgress(c *fiber.Ctx) error {
 			log.Printf("Warning: savings progress skipped %s/%s: %v", userID, month, err)
 			continue
 		}
+
+		if i == 0 {
+			// In progress: shown as context, never counted toward the goal.
+			thisMonthSurplus = s.Savings
+			continue
+		}
+
 		saved += s.Savings
 		if i == 1 {
 			lastMonthSavings = s.Savings
@@ -388,7 +421,9 @@ func (h *SummaryHandler) GetSavingsProgress(c *fiber.Ctx) error {
 		"remaining":          remaining,
 		"percentage":         percentage,
 		"last_month_savings": lastMonthSavings,
-		"months_counted":     counted,
+		"this_month_surplus": thisMonthSurplus,
+		// Completed months only — the in-progress one is not among them.
+		"months_counted": counted,
 	})
 }
 

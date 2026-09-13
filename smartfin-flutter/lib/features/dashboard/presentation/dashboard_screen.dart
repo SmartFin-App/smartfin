@@ -110,6 +110,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     final pct = ((p['percentage'] as num?) ?? 0).toDouble().clamp(0, 100).toDouble();
     final name = (p['goal_name'] as String?) ?? '';
     final lastMonth = (p['last_month_savings'] as num?) ?? 0;
+    final thisMonth = (p['this_month_surplus'] as num?) ?? 0;
     final reached = remaining <= 0 && goal > 0;
 
     return GestureDetector(
@@ -200,6 +201,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                     color: const Color(0xFF333333),
                   ),
                 ),
+                // Last month is what actually moved the bar; the live month is
+                // shown only when there is no completed month to report, and is
+                // labelled so it never reads as progress already banked.
                 if (lastMonth > 0)
                   Text(
                     '+${_baht(lastMonth)} last month',
@@ -207,6 +211,15 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                       fontWeight: FontWeight.w600,
                       fontSize: 11,
                       color: const Color(0xFF4CAF50),
+                    ),
+                  )
+                else if (thisMonth > 0)
+                  Text(
+                    '+${_baht(thisMonth)} so far this month',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
+                      color: const Color(0xFF9E9E9E),
                     ),
                   ),
               ],
