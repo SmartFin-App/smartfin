@@ -293,7 +293,8 @@ func (o *Orchestrator) dispatchTool(ctx context.Context, userID, toolName string
 		}
 		category, _ := args["category"].(string)
 		txType, _ := args["type"].(string)
-		res, err := o.retrievalAgent.GetTransactions(ctx, userID, limit, category, txType)
+		merchant, _ := args["merchant"].(string)
+		res, err := o.retrievalAgent.GetTransactions(ctx, userID, limit, category, txType, merchant)
 		return map[string]any{"transactions": res}, nil, err
 
 	case "get_recent_conversations":
@@ -466,7 +467,7 @@ func (o *Orchestrator) getFunctionDeclarations() []*genai.FunctionDeclaration {
 		// 6. get_transactions (FinancialRetrievalAgent)
 		{
 			Name:        "get_transactions",
-			Description: "Retrieve recent transactions from the database with optional filtering by category or type.",
+			Description: "Retrieve the user's transactions, newest first, with optional filtering by merchant, category or type. Use the merchant filter for questions about a specific shop, service or payee (e.g. 'how much have I spent at Netflix'), then add up the amounts.",
 			Parameters: &genai.Schema{
 				Type: genai.TypeObject,
 				Properties: map[string]*genai.Schema{
@@ -474,9 +475,13 @@ func (o *Orchestrator) getFunctionDeclarations() []*genai.FunctionDeclaration {
 						Type:        genai.TypeInteger,
 						Description: "Maximum number of transactions to return (default 20, max 100).",
 					},
+					"merchant": {
+						Type:        genai.TypeString,
+						Description: "Optional merchant name or part of it, case-insensitive (e.g. 'Netflix', 'Siam Paragon', 'Bumrungrad').",
+					},
 					"category": {
 						Type:        genai.TypeString,
-						Description: "Optional category filter (e.g. 'Food', 'Transport', 'Shopping').",
+						Description: "Optional category filter. Categories are exactly: Food, Transport, Shopping, Bills, Groceries, Health, Entertainment, Salary, Gifts, Refunds, Other. Leave it empty when unsure.",
 					},
 					"type": {
 						Type:        genai.TypeString,

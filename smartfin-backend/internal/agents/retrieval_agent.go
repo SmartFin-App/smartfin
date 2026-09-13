@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/SmartFin-App/smartfin-backend/config"
@@ -145,15 +147,22 @@ func (a *RetrievalAgent) GetBudgetSummary(ctx context.Context, userID, month str
 	}, nil
 }
 
-// GetTransactions retrieves the user's transactions with optional filters
-func (a *RetrievalAgent) GetTransactions(ctx context.Context, userID string, limit int, category, txType string) ([]map[string]any, error) {
+// GetTransactions retrieves the user's transactions with optional filters.
+//
+// merchant is a case-insensitive fragment of the merchant name. Without it the
+// tool only returns the newest rows, so "how much did I spend at Netflix?" never
+// reached older payments — the coach evaluation traced 7 of its 13 failures here.
+func (a *RetrievalAgent) GetTransactions(ctx context.Context, userID string, limit int, category, txType, merchant string) ([]map[string]any, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 30
 	}
 
 	filter := bson.M{"user_id": userID}
 	if category != "" {
-		filter["category"] = bson.M{"$regex": "^" + category, "$options": "i"}
+		filter["category"] = bson.M{"$regex": "^" + regexp.QuoteMeta(category), "$options": "i"}
+	}
+	if m := strings.TrimSpace(merchant); m != "" {
+		filter["merchant"] = bson.M{"$regex": regexp.QuoteMeta(m), "$options": "i"}
 	}
 	if txType != "" {
 		filter["type"] = txType
