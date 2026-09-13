@@ -20,6 +20,8 @@ var honestyKeywords = []string{
 	"don't have any", "do not have any", "don't see any", "do not see any", "haven't recorded", "haven't logged",
 	"not recorded", "no recorded", "nothing recorded", "couldn't find", "could not find", "can't find",
 	"haven't added", "not tracking any", "aren't any", "are no ", "฿0", "0 baht",
+	// Rule fix 5: "you didn't have any recorded expenses" is an honest no-data answer.
+	"didn't have any", "did not have any",
 	"ไม่มี", "ยังไม่มี", "ไม่พบ", "ยังไม่ได้บันทึก",
 }
 
