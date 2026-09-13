@@ -58,6 +58,7 @@ When working on this loop:
 
 - Tool results must pass through `sanitizeForGemini` (a JSON round-trip) before being returned as a `genai.FunctionResponse`, or protobuf conversion fails on types that aren't plain `map[string]any` / `[]any`.
 - Adding or removing a tool means updating `agent_test.go`, which asserts **exactly 8** declarations and checks each by name.
+- `get_transactions` has **no date filter** and returns the newest rows (default 20; a limit above 100 silently becomes 30). Questions about one shop or service must use its optional `merchant` filter (case-insensitive fragment) — before it existed, the coach could not answer "how much have I spent at Netflix?" and the evaluation traced 7 of 13 failures to it. The category filter is an escaped, case-insensitive prefix; the declaration lists the real category names because the model otherwise invents ones like "Healthcare".
 - `get_subscriptions` is deliberately **read-only**. The system prompt tells the model to send a user who says "I paid my Netflix" to the app's Mark paid button instead of calling `add_transaction` — that would log the expense but leave the bill's due date where it was.
 - Gemini arguments arrive as `float64` regardless of declared schema type, hence the `args["amount"].(float64)` conversions in `dispatchTool`.
 - If the loop exhausts its iterations without producing text, the orchestrator returns a canned "I've checked your data and updated your records" reply rather than an error.

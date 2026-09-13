@@ -966,41 +966,40 @@
 
   <!-- EVAL 2 ────────────────────────────────────────────────────── -->
   <section class="slide">
-    <div class="eyebrow">Evaluation · 2 · Results · 30 cases × 3 runs · 13 Sep 2026</div>
-    <h2>One-shot answers more; only the agent can act</h2>
+    <div class="eyebrow">Evaluation · 2 · Results · 30 cases × 3 runs · before and after the merchant fix</div>
+    <h2>The fix worked; a new stall kept the agent at 84%</h2>
     <div class="body">
       <div class="metrics">
-        <div class="metric"><span class="v">84%</span><span class="k">Agentic coach · 58/69 shared</span></div>
+        <div class="metric"><span class="v">84% → 84%</span><span class="k">Agentic coach · 58/69 both runs</span></div>
         <div class="metric"><span class="v">100%</span><span class="k">One-shot RAG · 69/69</span></div>
         <div class="metric"><span class="v">9%</span><span class="k">No retrieval · 6/69</span></div>
-        <div class="metric"><span class="v">7 / 9</span><span class="k">Agent actions verified in DB</span></div>
+        <div class="metric"><span class="v">2 → 7 / 9</span><span class="k">Merchant questions answered</span></div>
       </div>
       <div class="cols c25" style="flex:1; min-height:0; align-items:start;">
         <table class="fr">
-          <thead><tr><th>Category</th><th class="st">Agentic</th><th class="st">One-shot</th><th class="st">No retr.</th></tr></thead>
+          <thead><tr><th>Category · agent before / after fix</th><th class="st">Before</th><th class="st">After</th><th class="st">One-shot</th><th class="st">No retr.</th></tr></thead>
           <tbody>
-            <tr><td>Lookup</td><td class="st num">13/15</td><td class="st num"><strong>15/15</strong></td><td class="st num">0/15</td></tr>
-            <tr><td>Aggregation</td><td class="st num">12/15</td><td class="st num"><strong>15/15</strong></td><td class="st num">0/15</td></tr>
-            <tr><td>Bills</td><td class="st num"><strong>9/9</strong></td><td class="st num"><strong>9/9</strong></td><td class="st num">0/9</td></tr>
-            <tr><td>Thai</td><td class="st num">6/9</td><td class="st num"><strong>9/9</strong></td><td class="st num">0/9</td></tr>
-            <tr><td>Multi-turn</td><td class="st num">3/6</td><td class="st num"><strong>6/6</strong></td><td class="st num">0/6</td></tr>
-            <tr><td>No data</td><td class="st num"><strong>9/9</strong></td><td class="st num"><strong>9/9</strong></td><td class="st num">0/9</td></tr>
-            <tr><td>Off-topic</td><td class="st num"><strong>6/6</strong></td><td class="st num"><strong>6/6</strong></td><td class="st num"><strong>6/6</strong></td></tr>
-            <tr><td>Safety</td><td class="st num"><strong>9/9</strong></td><td class="st num"><strong>9/9</strong></td><td class="st num">7/9</td></tr>
-            <tr><td>Actions (DB readback)</td><td class="st num"><strong>7/9</strong></td><td class="st num">—</td><td class="st num">—</td></tr>
-            <tr><td>Memory across sessions</td><td class="st num"><strong>3/3</strong></td><td class="st num">—</td><td class="st num">—</td></tr>
-            <tr><td>Numeric accuracy</td><td class="st num">82%</td><td class="st num"><strong>100%</strong></td><td class="st num">0%</td></tr>
+            <tr><td>Lookup</td><td class="st num">13/15</td><td class="st num">14/15</td><td class="st num"><strong>15/15</strong></td><td class="st num">0/15</td></tr>
+            <tr><td>Aggregation</td><td class="st num">12/15</td><td class="st num">11/15</td><td class="st num"><strong>15/15</strong></td><td class="st num">0/15</td></tr>
+            <tr><td>Bills</td><td class="st num">9/9</td><td class="st num">9/9</td><td class="st num">9/9</td><td class="st num">0/9</td></tr>
+            <tr><td>Thai</td><td class="st num">6/9</td><td class="st num">5/9</td><td class="st num"><strong>9/9</strong></td><td class="st num">0/9</td></tr>
+            <tr><td>Multi-turn</td><td class="st num">3/6</td><td class="st num">5/6</td><td class="st num"><strong>6/6</strong></td><td class="st num">0/6</td></tr>
+            <tr><td>No data</td><td class="st num">9/9</td><td class="st num">8/9</td><td class="st num">9/9</td><td class="st num">0/9</td></tr>
+            <tr><td>Off-topic</td><td class="st num">6/6</td><td class="st num">6/6</td><td class="st num">6/6</td><td class="st num">6/6</td></tr>
+            <tr><td>Safety</td><td class="st num">9/9</td><td class="st num">9/9</td><td class="st num">9/9</td><td class="st num">9/9</td></tr>
+            <tr><td>Actions (DB readback)</td><td class="st num">7/9</td><td class="st num"><strong>8/9</strong></td><td class="st num">—</td><td class="st num">—</td></tr>
+            <tr><td>Memory across sessions</td><td class="st num">3/3</td><td class="st num"><strong>3/3</strong></td><td class="st num">—</td><td class="st num">—</td></tr>
+            <tr><td>Numeric accuracy</td><td class="st num">82%</td><td class="st num">80%</td><td class="st num"><strong>100%</strong></td><td class="st num">0%</td></tr>
           </tbody>
         </table>
         <div class="panel">
-          <h3>Where the agent failed · 13 of 90 trials</h3>
+          <h3>Agent failures · 13 → 12 of 90 trials</h3>
           <ul class="tight">
-            <li><strong>Merchant lookups (7)</strong> — <span class="mono">get_transactions</span> has no merchant filter: a tool gap, not a model error.</li>
-            <li><strong>Announced, then stopped (3)</strong> — "give me a moment…", no tool call.</li>
-            <li><strong>Claimed an action it didn't take (2)</strong> — nothing was written.</li>
-            <li><strong>Generation slip (1)</strong> — added Groceries to Food.</li>
-            <li><strong>Baselines claimed writes they can't do</strong> in 6/9 and 8/9 action requests; the agent wrote nothing unasked in 81/81.</li>
-            <li><strong>Why one-shot wins here</strong> — 47 transactions fit in one prompt; the agent's context stays bounded as history grows. p50 latency 3.0 s vs 2.1 s.</li>
+            <li><strong>Merchant lookups: 7 → 1</strong> — the new filter fixed Netflix totals and Bumrungrad.</li>
+            <li><strong>Announced, then stopped: 3 → 10</strong> — "give me a moment…" with no tool call. Now the main failure, mostly on Thai questions; it needs a prompt fix.</li>
+            <li><strong>Claimed an action it didn't take: 2 → 1</strong> — nothing was written.</li>
+            <li><strong>Baselines claimed writes they can't do</strong> in 7/9 and 9/9 requests; the agent wrote nothing unasked in 162/162.</li>
+            <li><strong>Why one-shot wins here</strong> — 47 transactions fit in one prompt; agent context stays bounded as history grows.</li>
           </ul>
         </div>
       </div>
@@ -1276,7 +1275,7 @@
             <tr><td>Deployment</td><td>Host the API so the demo no longer depends on a laptop on the same network. Verify Firebase ID tokens server-side and rotate exposed keys before it goes public.</td><td class="st"><span class="chip s-wip">High</span></td></tr>
             <tr><td>Report</td><td>Chapters 4–5 from 15 Sep; the complete capstone report in the LaTeX template from 17 Nov.</td><td class="st"><span class="chip s-wip">High</span></td></tr>
             <tr><td>Documentation &amp; portfolio</td><td>SIT Portfolio by 5 Oct (poster 1920×1080, member photo 800×600, description, tools, demo video); README, user manual and installation video.</td><td class="st"><span class="chip s-wip">High</span></td></tr>
-            <tr><td>Agentic RAG improvements</td><td>The first ground-truth evaluation is done (slides 9–10). Next: fix the retrieval gaps it found, grow the test set, and add a confirmation step before the coach writes.</td><td class="st"><span class="chip s-todo">Later</span></td></tr>
+            <tr><td>Agentic RAG improvements</td><td>Evaluation done and the merchant gap fixed (slides 9–10). Next: stop the coach announcing a lookup without making it, grow the test set, and confirm before the coach writes.</td><td class="st"><span class="chip s-todo">Later</span></td></tr>
           </tbody>
         </table>
       </div>
