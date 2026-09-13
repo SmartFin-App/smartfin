@@ -190,7 +190,7 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
                 Center(
                   child: Container(
                     width: 260,
-                    margin: const EdgeInsets.only(bottom: 48),
+                    margin: EdgeInsets.only(bottom: _isExpense ? 48 : 16),
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: const Color.fromRGBO(240, 235, 225, 0.3),
@@ -263,13 +263,20 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
                                 ] : [],
                               ),
                               alignment: Alignment.center,
-                              child: Text(
-                                "INCOME",
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 10,
-                                  letterSpacing: 2.0,
-                                  color: !_isExpense ? const Color(0xFF333333) : const Color(0xFF9E9E9E),
+                              // "Extra" because monthly salary is already counted from the
+                              // profile; logging it here would count it twice. scaleDown so
+                              // the longer label can never overflow its half of the pill.
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  "EXTRA INCOME",
+                                  maxLines: 1,
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 10,
+                                    letterSpacing: 2.0,
+                                    color: !_isExpense ? const Color(0xFF333333) : const Color(0xFF9E9E9E),
+                                  ),
                                 ),
                               ),
                             ),
@@ -279,6 +286,34 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
                     ),
                   ),
                 ),
+
+                // Salary is already counted from the profile's monthly income, so
+                // say so right where the user would otherwise log it again.
+                if (!_isExpense)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(32, 0, 32, 32),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(top: 2),
+                          child: Icon(Icons.info_outline, size: 14, color: Color(0xFF9E9E9E)),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Your monthly salary is already counted from your profile. Log extras here — bonuses, freelance pay or gifts.',
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 12,
+                              height: 1.4,
+                              color: const Color(0xFF9E9E9E),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
                 // Amount Input
                 FadeTransition(

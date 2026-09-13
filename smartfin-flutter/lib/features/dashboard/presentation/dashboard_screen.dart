@@ -224,9 +224,98 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                   ),
               ],
             ),
+            if (!reached) ...[
+              const SizedBox(height: 12),
+              _buildGoalProjection(p),
+            ],
           ],
         ),
       ),
+    );
+  }
+
+  /// One line that turns the goal into a plan. Income minus the chosen budget is
+  /// what the user sets aside each month; from that the server estimates months
+  /// to the goal and, with a target date, whether the budget gets there in time.
+  /// Every figure is computed server-side in whole Baht — this only picks words.
+  Widget _buildGoalProjection(Map p) {
+    const monthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    final budgetSet = p['budget_set'] == true;
+    final planned = (p['planned_monthly_saving'] as num?) ?? 0;
+    final monthsToGoal = (p['months_to_goal'] as num?)?.toInt();
+    final targetParsed = p['target_parsed'] == true;
+    final targetPassed = p['target_passed'] == true;
+    final requiredMonthly = (p['required_monthly_saving'] as num?) ?? 0;
+    final onTrack = p['on_track'] == true;
+    final remaining = (p['remaining'] as num?) ?? 0;
+    final target = DateTime.tryParse((p['target_date'] as String?) ?? '');
+    final targetLabel =
+        target != null ? '${monthNames[target.month - 1]} ${target.year}' : '';
+
+    const grey = Color(0xFF9E9E9E);
+    const green = Color(0xFF4CAF50);
+    const orange = Color(0xFFFF9F29);
+    const red = Color(0xFFEF4444);
+
+    final String text;
+    final Color color;
+    final IconData icon;
+
+    if (!budgetSet) {
+      text = 'Set a monthly budget to see how long this goal takes';
+      color = grey;
+      icon = Icons.info_outline;
+    } else if (planned <= 0) {
+      text = 'Your budget uses all your income — lower it to start saving';
+      color = red;
+      icon = Icons.warning_amber_rounded;
+    } else if (targetParsed && targetPassed) {
+      text = 'Target date has passed · ${_baht(remaining)} still to go';
+      color = orange;
+      icon = Icons.event_busy_outlined;
+    } else if (targetParsed && !onTrack) {
+      text =
+          'Needs ${_baht(requiredMonthly)}/month by $targetLabel — your budget leaves ${_baht(planned)}';
+      color = orange;
+      icon = Icons.trending_up;
+    } else if (targetParsed) {
+      text = '${_baht(planned)}/month planned · on track for $targetLabel';
+      color = green;
+      icon = Icons.check_circle_outline;
+    } else {
+      final eta = monthsToGoal == null
+          ? ''
+          : monthsToGoal <= 1
+              ? ' · about a month to go'
+              : ' · about $monthsToGoal months to go';
+      text = '${_baht(planned)}/month planned$eta';
+      color = grey;
+      icon = Icons.calendar_month_outlined;
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 1),
+          child: Icon(icon, size: 14, color: color),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.w600,
+              fontSize: 11.5,
+              height: 1.4,
+              color: color,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -366,29 +455,191 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
-  String _formatAmount(num value) {
-    final s = value.toStringAsFixed(0)
-        .replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
-    return '฿$s';
+  // ── Top categories ────────────────────────────────────────────────────────
+  // Replaces the old budget card, whose headline ("available to spend") was
+  // income − expenses. Income is an assumed profile figure credited in full on
+  // day one, so that headline was a projection dressed as a balance. Every
+  // figure on this card is a recorded expense.
+
+  /// Placeholder shaped like the loaded card, so the layout doesn't jump.
+  Widget _buildTopCategoriesSkeleton() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(40),
+        border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _shimmerBox(width: 110, height: 10),
+          for (var i = 0; i < 3; i++) ...[
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                _shimmerBox(width: 36, height: 36, radius: 12),
+                const SizedBox(width: 12),
+                Expanded(child: _shimmerBox(height: 14)),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
-  String get _coachMessage {
-    final percentage = ((_monthlySummary?['budget_percentage'] as num?) ?? 0).toDouble();
-    if (percentage > 100) {
-      return "You've exceeded your budget this month! Let's review your spending. 🐾";
-    } else if (percentage > 80) {
-      return "You've used ${percentage.toInt()}% of your budget. Slow down! 🐾";
-    } else if (percentage > 50) {
-      return "You've used ${percentage.toInt()}% of your budget this month. 🐾";
-    } else if (percentage == 0) {
-      return "Welcome! Start tracking by scanning a receipt or adding manually. 🐾";
-    }
-    return "You're doing great! Only ${percentage.toInt()}% of budget used. 🐾";
+  Widget _buildTopCategoriesCard() {
+    // Already sorted largest-first server-side, and [] rather than null when
+    // there are no expenses — but guard the shape anyway.
+    final raw = _monthlySummary?['expense_by_category'];
+    final categories =
+        (raw is List ? raw : const []).whereType<Map>().take(3).toList();
+
+    return GestureDetector(
+      onTap: () => context.push('/history'),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(40),
+          border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.4)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'TOP CATEGORIES',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w800,
+                fontSize: 10,
+                letterSpacing: 2,
+                color: const Color(0xFF9E9E9E),
+              ),
+            ),
+            if (categories.isEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                'No spending yet this month. Scan a slip or add an expense to see where your money goes 🐾',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                  height: 1.5,
+                  color: const Color.fromRGBO(51, 51, 51, 0.8),
+                ),
+              ),
+            ] else
+              for (final c in categories) ...[
+                const SizedBox(height: 20),
+                GestureDetector(
+                  // Opaque so a tap anywhere across the row, gaps included,
+                  // opens this category instead of falling through to the
+                  // card-level tap that opens unfiltered History.
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    final category = (c['category'] as String?)?.trim() ?? '';
+                    // Type and month travel with the category so History's
+                    // totals match the card: category alone would pull that
+                    // category's transactions from every month.
+                    context.push(Uri(path: '/history', queryParameters: {
+                      'type': 'expense',
+                      if (category.isNotEmpty) 'category': category,
+                      if (_currentMonth.isNotEmpty) 'month': _currentMonth,
+                    }).toString());
+                  },
+                  child: _buildCategoryRow(c),
+                ),
+              ],
+          ],
+        ),
+      ),
+    );
   }
 
-  double get _budgetPct {
-    final pct = ((_monthlySummary?['budget_percentage'] as num?) ?? 0).toDouble();
-    return (pct / 100).clamp(0.0, 1.0);
+  Widget _buildCategoryRow(Map c) {
+    final name = (c['category'] as String?)?.trim();
+    final label = (name == null || name.isEmpty) ? 'Other' : name;
+    final amount = (c['amount'] as num?) ?? 0;
+    final pct = ((c['percentage'] as num?) ?? 0).toDouble();
+    final style = _categoryStyle[label] ?? _categoryStyle['Other']!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: style.color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(style.icon, size: 18, color: style.color),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: const Color(0xFF333333),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              _baht(amount),
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+                color: const Color(0xFF333333),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(9999),
+                child: Container(
+                  height: 6,
+                  color: const Color.fromRGBO(240, 235, 225, 0.8),
+                  alignment: Alignment.centerLeft,
+                  child: FractionallySizedBox(
+                    widthFactor: (pct / 100).clamp(0.0, 1.0),
+                    child: Container(color: style.color),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              '${pct.round()}% of spending',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w600,
+                fontSize: 11,
+                color: const Color(0xFF9E9E9E),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   // ── Shimmer placeholder ───────────────────────────────────────────────────
@@ -475,13 +726,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final available = (_monthlySummary?['available'] as num?) ?? 0;
-    final budgetPercentage = ((_monthlySummary?['budget_percentage'] as num?) ?? 0).toDouble();
-    final budgetLimit = (_monthlySummary?['budget_limit'] as num?) ?? 0;
-    final totalIncome = (_monthlySummary?['total_income'] as num?) ?? 0;
-    final totalExpenses = (_monthlySummary?['total_expenses'] as num?) ?? 0;
     final formattedMonth = (_monthlySummary?['formatted_month'] as String?) ?? 'Loading...';
-    final savingsMessage = _monthlySummary?['savings_message'] as String?;
 
     return Scaffold(
       backgroundColor: AppColors.cream,
@@ -566,7 +811,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                       ),
                       const SizedBox(height: 12),
 
-                      // ── Budget Card ──────────────────────────────────────
+                      // ── Top Categories ───────────────────────────────────
                       // A failed load must not render as a real ฿0 month.
                       _loadFailed && !_isLoading
                           ? Container(
@@ -603,227 +848,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                               ),
                             )
                           : _isLoading
-                          ? Container(
-                              height: 180,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEAE2D6),
-                                borderRadius: BorderRadius.circular(40),
-                              ),
-                            )
-                          : Container(
-                              padding: const EdgeInsets.all(32),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(40),
-                                border: Border.all(
-                                    color: const Color.fromRGBO(
-                                        234, 226, 214, 0.4)),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.02),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                children: [
-                                  Text(
-                                    "AVAILABLE TO SPEND",
-                                    style: GoogleFonts.inter(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 10,
-                                      letterSpacing: 2,
-                                      color: const Color(0xFF9E9E9E),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    _formatAmount(available),
-                                    style: GoogleFonts.bricolageGrotesque(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 36,
-                                      letterSpacing: -1.8,
-                                      color: available < 0
-                                          ? const Color(0xFFEF4444)
-                                          : const Color(0xFF333333),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 32),
-                                  // Progress bar
-                                  Container(
-                                    width: 180,
-                                    height: 6,
-                                    decoration: BoxDecoration(
-                                      color: const Color.fromRGBO(
-                                          240, 235, 225, 0.6),
-                                      borderRadius:
-                                          BorderRadius.circular(9999),
-                                    ),
-                                    alignment: Alignment.centerLeft,
-                                    child: AnimatedContainer(
-                                      duration:
-                                          const Duration(milliseconds: 600),
-                                      curve: Curves.easeOut,
-                                      width: 180 * _budgetPct,
-                                      height: 6,
-                                      decoration: BoxDecoration(
-                                        color: budgetPercentage > 100
-                                            ? const Color(0xFFEF4444)
-                                            : const Color(0xFFFF9F29),
-                                        borderRadius:
-                                            BorderRadius.circular(9999),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: const Color(0xFFFF9F29)
-                                                .withOpacity(0.3),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    "${budgetPercentage.toInt()}% OF ฿${_formatAmount(budgetLimit).replaceAll('฿', '')} BUDGET",
-                                    style: GoogleFonts.inter(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 10,
-                                      letterSpacing: 2,
-                                      color: const Color(0xFF9E9E9E),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 24),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        "Income ฿${_formatAmount(totalIncome).replaceAll('฿', '')}",
-                                        style: GoogleFonts.inter(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 10,
-                                          color: const Color(0xFF4CAF50),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 24),
-                                      Text(
-                                        "Spent ฿${_formatAmount(totalExpenses).replaceAll('฿', '')}",
-                                        style: GoogleFonts.inter(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 10,
-                                          color: const Color(0xFFEF4444),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                      const SizedBox(height: 32),
-
-                      // ── AI Coach Bubble ──────────────────────────────────
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 64,
-                            height: 64,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                  color: const Color.fromRGBO(
-                                      234, 226, 214, 0.4)),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.02),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Image.asset('assets/images/lucky_cat.png',
-                                width: 38,
-                                height: 38,
-                                filterQuality: FilterQuality.medium),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(0),
-                                      topRight: Radius.circular(24),
-                                      bottomLeft: Radius.circular(24),
-                                      bottomRight: Radius.circular(24),
-                                    ),
-                                    border: Border.all(
-                                        color: const Color.fromRGBO(
-                                            234, 226, 214, 0.4)),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.02),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: _isLoading
-                                      ? Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            _shimmerBox(height: 14),
-                                            const SizedBox(height: 8),
-                                            _shimmerBox(width: 160, height: 14),
-                                          ],
-                                        )
-                                      : Text(
-                                          _coachMessage,
-                                          style: GoogleFonts.inter(
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 14,
-                                            height: 23 / 14,
-                                            color: const Color.fromRGBO(
-                                                51, 51, 51, 0.8),
-                                          ),
-                                        ),
-                                ),
-                                if (!_hasSavingsGoal &&
-                                    savingsMessage != null &&
-                                    savingsMessage.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 12),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF4CAF50).withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.3)),
-                                      ),
-                                      child: Text(
-                                        savingsMessage,
-                                        style: GoogleFonts.inter(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 12,
-                                          color: const Color(0xFF4CAF50),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                              ? _buildTopCategoriesSkeleton()
+                              : _buildTopCategoriesCard(),
 
                       if (_hasSavingsGoal) ...[
                         const SizedBox(height: 24),

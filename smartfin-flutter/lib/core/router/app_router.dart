@@ -76,7 +76,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/history',
       name: 'history',
-      builder: (context, state) => const TransactionListScreen(),
+      // Optional query filters let another screen open History pre-filtered,
+      // e.g. /history?type=expense&category=Food&month=2026-09 from the
+      // dashboard's top-categories card. The bottom nav opens it unfiltered.
+      builder: (context, state) => TransactionListScreen(
+        initialType: state.uri.queryParameters['type'],
+        initialCategory: state.uri.queryParameters['category'],
+        initialMonth: state.uri.queryParameters['month'],
+      ),
     ),
     GoRoute(
       path: '/coach',

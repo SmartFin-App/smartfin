@@ -1174,7 +1174,46 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet>
                     color: const Color(0xFF9E9E9E),
                   ),
                 ),
-                const SizedBox(height: 40),
+                // Live: what this budget leaves to save each month — the figure the
+                // savings-goal projection is built on. Rebuilds as the amount is
+                // typed (the controller listener calls setState), and keeps a fixed
+                // height so the sheet doesn't jump. 32 + 8 matches the old 40px gap.
+                Builder(builder: (_) {
+                  final income = widget.monthlyIncome;
+                  final typed = int.tryParse(_amountController.text
+                          .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                      0;
+                  String? line;
+                  Color lineColor = const Color(0xFF4CAF50);
+                  if (income > 0 && typed > 0) {
+                    if (typed < income) {
+                      final left = (income - typed).toString().replaceAllMapped(
+                          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                          (m) => '${m[1]},');
+                      line = 'Leaves ฿$left each month to save';
+                    } else {
+                      line = 'That uses all of your income — nothing left to save';
+                      lineColor = const Color(0xFFEF4444);
+                    }
+                  }
+                  return SizedBox(
+                    height: 32,
+                    child: Center(
+                      child: line == null
+                          ? const SizedBox.shrink()
+                          : Text(
+                              line,
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                                color: lineColor,
+                              ),
+                            ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 8),
 
                 // Amount display with blinking cursor
                 Stack(

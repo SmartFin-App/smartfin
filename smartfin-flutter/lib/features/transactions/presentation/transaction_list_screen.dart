@@ -9,7 +9,19 @@ import 'package:smart_fin/widgets/bottom_nav_bar.dart';
 import 'package:smart_fin/features/transactions/data/transaction_repository_impl.dart';
 
 class TransactionListScreen extends StatefulWidget {
-  const TransactionListScreen({super.key});
+  /// Starting filters, set when another screen opens History for a specific
+  /// slice — the dashboard's top-categories card passes type, category and
+  /// month. All of them stay editable from the filter sheet.
+  final String? initialType;
+  final String? initialCategory;
+  final String? initialMonth;
+
+  const TransactionListScreen({
+    super.key,
+    this.initialType,
+    this.initialCategory,
+    this.initialMonth,
+  });
 
   @override
   State<TransactionListScreen> createState() => _TransactionListScreenState();
@@ -27,7 +39,17 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
   @override
   void initState() {
     super.initState();
+    // Applied before the first load, so a pre-filtered open never flashes the
+    // unfiltered list first.
+    _filterType = _nonEmpty(widget.initialType);
+    _filterCategory = _nonEmpty(widget.initialCategory);
+    _filterMonth = _nonEmpty(widget.initialMonth);
     _loadTransactions();
+  }
+
+  static String? _nonEmpty(String? value) {
+    final trimmed = value?.trim();
+    return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
   }
 
   Future<void> _loadTransactions() async {
@@ -133,7 +155,7 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
                   _filterChip('All', type == null, () => setSheet(() => type = null)),
                   _filterChip('Expense', type == 'expense',
                       () => setSheet(() => type = 'expense')),
-                  _filterChip('Income', type == 'income',
+                  _filterChip('Extra income', type == 'income',
                       () => setSheet(() => type = 'income')),
                 ]),
                 const SizedBox(height: 20),

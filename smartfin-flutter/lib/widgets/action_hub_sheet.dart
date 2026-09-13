@@ -232,8 +232,8 @@ class ActionHubSheet extends StatelessWidget {
             iconBgColor: const Color.fromRGBO(76, 175, 80, 0.05),
             icon: Icons.account_balance_wallet_outlined,
             iconColor: const Color(0xFF4CAF50),
-            title: "Add Income",
-            subtitle: "Log your earnings",
+            title: "Add Extra Income",
+            subtitle: "Bonuses, freelance pay or gifts",
             onTap: () {
               Navigator.pop(context);
               context.go('/manual-add?type=income');

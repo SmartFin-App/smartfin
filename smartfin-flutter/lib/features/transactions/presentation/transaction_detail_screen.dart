@@ -510,7 +510,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
               ),
               child: Column(
                 children: [
-                  _row('Type', isIncome ? 'Income' : 'Expense'),
+                  _row('Type', isIncome ? 'Extra income' : 'Expense'),
                   _divider(),
                   _row('Category', category),
                   _divider(),

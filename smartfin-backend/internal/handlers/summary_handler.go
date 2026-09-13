@@ -411,6 +411,10 @@ func (h *SummaryHandler) GetSavingsProgress(c *fiber.Ctx) error {
 		}
 	}
 
+	// Turn the goal into a plan the user can act on: what their own budget
+	// leaves each month, and whether that reaches the target date in time.
+	proj := summaries.ProjectGoal(remaining, user.MonthlyIncome, user.BudgetLimit, user.SavingsTargetDate, time.Now())
+
 	return c.JSON(fiber.Map{
 		"user_id":            userID,
 		"has_goal":           goal > 0,
@@ -424,6 +428,17 @@ func (h *SummaryHandler) GetSavingsProgress(c *fiber.Ctx) error {
 		"this_month_surplus": thisMonthSurplus,
 		// Completed months only — the in-progress one is not among them.
 		"months_counted": counted,
+		// Plan: income minus the chosen budget, and what it means for the goal.
+		"monthly_income":          user.MonthlyIncome,
+		"budget_limit":            user.BudgetLimit,
+		"budget_set":              proj.BudgetSet,
+		"planned_monthly_saving":  proj.PlannedMonthlySaving,
+		"months_to_goal":          proj.MonthsToGoal, // null when the budget saves nothing
+		"target_parsed":           proj.TargetParsed,
+		"target_passed":           proj.TargetPassed,
+		"months_until_target":     proj.MonthsUntilTarget,
+		"required_monthly_saving": proj.RequiredMonthlySaving,
+		"on_track":                proj.OnTrack,
 	})
 }
 
