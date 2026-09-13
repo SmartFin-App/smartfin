@@ -361,7 +361,7 @@
 <div class="deck">
 
   <div class="print-note">
-    17 slides · 16:9 · To submit: print this page to PDF (landscape, no margins, background graphics on) — one slide per page.
+    18 slides · 16:9 · To submit: print this page to PDF (landscape, no margins, background graphics on) — one slide per page.
   </div>
 
   <!-- 1 ─────────────────────────────────────────────────────────── -->
@@ -380,7 +380,7 @@
         <div><b>Alpha Test</b>Milestone</div>
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">01 / 17</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">01 / 18</span></div>
   </section>
 
   <!-- 2 ─────────────────────────────────────────────────────────── -->
@@ -408,7 +408,7 @@
         SmartFin turns that image into structured data, then lets an AI agent reason over it.
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">02 / 17</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">02 / 18</span></div>
   </section>
 
   <!-- 3 ─────────────────────────────────────────────────────────── -->
@@ -503,7 +503,7 @@
         </div>
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">03 / 17</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">03 / 18</span></div>
   </section>
 
   <!-- 4 ─────────────────────────────────────────────────────────── -->
@@ -543,7 +543,7 @@
         regulatory burden a one-semester project cannot honestly meet.
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">04 / 17</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">04 / 18</span></div>
   </section>
 
   <!-- 5 ─────────────────────────────────────────────────────────── -->
@@ -637,7 +637,7 @@
         <figcaption>The coach never queries Mongo directly — every read and write goes through a declared tool, which is what makes its actions auditable.</figcaption>
       </figure>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">05 / 17</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">05 / 18</span></div>
   </section>
 
   <!-- SEQ ─────────────────────────────────────────────────────── -->
@@ -723,7 +723,7 @@
         <figcaption>The model is never given database access — it can only request one of eight declared tools, which is what makes every action it takes reviewable.</figcaption>
       </figure>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">06 / 17</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">06 / 18</span></div>
   </section>
 
   <!-- ER ──────────────────────────────────────────────────────── -->
@@ -827,7 +827,7 @@
         <figcaption>Every collection is keyed by the Firebase UID <em>string</em>, not a Mongo ObjectID. <strong>monthly_summaries</strong> is dashed because it is derived — a cache rebuilt from transactions, never a source of truth. <strong>subscriptions</strong> stores each due date as a Thai calendar day plus an anchor day, so a bill due on the 31st returns to the 31st after February.</figcaption>
       </figure>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">07 / 17</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">07 / 18</span></div>
   </section>
 
   <!-- ACTIVITY ────────────────────────────────────────────────── -->
@@ -915,7 +915,7 @@
         <figcaption>Extraction persists nothing on its own — the user's confirmation is what writes the transaction, and only then is the gallery slip retired.</figcaption>
       </figure>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">08 / 17</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">08 / 18</span></div>
   </section>
 
   <!-- EVAL 1 ────────────────────────────────────────────────────── -->
@@ -961,7 +961,7 @@
         </div>
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">09 / 17</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">09 / 18</span></div>
   </section>
 
   <!-- EVAL 2 ────────────────────────────────────────────────────── -->
@@ -1004,7 +1004,45 @@
         </div>
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">10 / 17</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">10 / 18</span></div>
+  </section>
+
+  <!-- EVAL 3 ────────────────────────────────────────────────────── -->
+  <section class="slide">
+    <div class="eyebrow">Evaluation · 3 · Slip scanner · 30 real images × 2 scans · 13 Sep 2026</div>
+    <h2>Every amount read correctly; a missing date gets invented</h2>
+    <div class="body">
+      <div class="metrics">
+        <div class="metric"><span class="v">100%</span><span class="k">Amount · 60/60 scans</span></div>
+        <div class="metric"><span class="v">93%</span><span class="k">Merchant · 56/60</span></div>
+        <div class="metric"><span class="v">93%</span><span class="k">Date · 56/60</span></div>
+        <div class="metric"><span class="v">87%</span><span class="k">All three fields right · 52/60</span></div>
+      </div>
+      <div class="cols c25" style="flex:1; min-height:0; align-items:start;">
+        <table class="fr">
+          <thead><tr><th>Field</th><th class="st">E-slips</th><th class="st">Receipts</th><th class="st">All</th></tr></thead>
+          <tbody>
+            <tr><td>Images<small>15 K PLUS slips · 15 photographed paper receipts</small></td><td class="st num">15</td><td class="st num">15</td><td class="st num">30</td></tr>
+            <tr><td>Amount<small>within ฿0.50 — the scanner stores whole baht</small></td><td class="st num"><strong>30/30</strong></td><td class="st num"><strong>30/30</strong></td><td class="st num"><strong>60/60</strong></td></tr>
+            <tr><td>Merchant<small>shop or payee name, transliterated from Thai</small></td><td class="st num">28/30</td><td class="st num">28/30</td><td class="st num">56/60</td></tr>
+            <tr><td>Date<small>Gregorian, including Buddhist-era years</small></td><td class="st num"><strong>30/30</strong></td><td class="st num">26/30</td><td class="st num">56/60</td></tr>
+            <tr><td>All three fields right<small>the user would not need to fix anything</small></td><td class="st num"><strong>28/30</strong></td><td class="st num">24/30</td><td class="st num">52/60</td></tr>
+            <tr><td>Median time per scan</td><td class="st num">4.9 s</td><td class="st num">5.4 s</td><td class="st num">5.2 s</td></tr>
+          </tbody>
+        </table>
+        <div class="panel">
+          <h3>What it handled · where it failed</h3>
+          <ul class="tight">
+            <li><strong>Handled:</strong> satang amounts (฿702.50, ฿1,152.39), rotated, upside-down and crumpled receipts, Buddhist-era years (2569) and a handwritten date.</li>
+            <li><strong>Invented dates (4 scans).</strong> Two receipts print no date; instead of today it returned a date two years back — the expense would land in the wrong month.</li>
+            <li><strong>Thai names misread (4 scans).</strong> Two small shops' Thai names came back mistranslated or misspelled.</li>
+            <li><strong>Confidence can't flag errors</strong> — 0.98 on right and wrong scans alike.</li>
+          </ul>
+        </div>
+      </div>
+      <p style="margin:0; font-family:var(--f-mono); font-size:0.74em; color:var(--muted);">Preliminary: n = 30, e-slips from one bank · labels drafted from the images, verification in progress · images kept out of the repo (personal data).</p>
+    </div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">11 / 18</span></div>
   </section>
 
   <!-- 6 ─────────────────────────────────────────────────────────── -->
@@ -1044,7 +1082,7 @@
         </table>
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">11 / 17</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">12 / 18</span></div>
   </section>
 
   <!-- 7 ─────────────────────────────────────────────────────────── -->
@@ -1104,7 +1142,7 @@
         — testing and deployment — rather than being presented as complete.
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">12 / 17</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">13 / 18</span></div>
   </section>
 
   <!-- 8 ─────────────────────────────────────────────────────────── -->
@@ -1185,7 +1223,7 @@
         </div>
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">13 / 17</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">14 / 18</span></div>
   </section>
 
   <!-- 9 ─────────────────────────────────────────────────────────── -->
@@ -1224,7 +1262,7 @@
         </div>
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">14 / 17</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">15 / 18</span></div>
   </section>
 
   <!-- 10 ────────────────────────────────────────────────────────── -->
@@ -1259,7 +1297,7 @@
         worse than no coach at all.
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">15 / 17</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">16 / 18</span></div>
   </section>
 
   <!-- 11 ────────────────────────────────────────────────────────── -->
@@ -1271,7 +1309,7 @@
         <table>
           <thead><tr><th style="width:22%">Task</th><th>What it covers</th><th class="st">Priority</th></tr></thead>
           <tbody>
-            <tr><td>Testing</td><td>Widget and integration tests for the scan pipeline, Mark paid and reminders, plus a written test plan whose results feed Chapter 4.</td><td class="st"><span class="chip s-wip">High</span></td></tr>
+            <tr><td>Testing</td><td>Widget and integration tests for the scan pipeline, Mark paid and reminders; a larger slip set across banks; fix the invented-date case the slip evaluation found (slide 11).</td><td class="st"><span class="chip s-wip">High</span></td></tr>
             <tr><td>Deployment</td><td>Host the API so the demo no longer depends on a laptop on the same network. Verify Firebase ID tokens server-side and rotate exposed keys before it goes public.</td><td class="st"><span class="chip s-wip">High</span></td></tr>
             <tr><td>Report</td><td>Chapters 4–5 from 15 Sep; the complete capstone report in the LaTeX template from 17 Nov.</td><td class="st"><span class="chip s-wip">High</span></td></tr>
             <tr><td>Documentation &amp; portfolio</td><td>SIT Portfolio by 5 Oct (poster 1920×1080, member photo 800×600, description, tools, demo video); README, user manual and installation video.</td><td class="st"><span class="chip s-wip">High</span></td></tr>
@@ -1285,7 +1323,7 @@
         <div class="panel"><h3>16 Nov · D-Day</h3><p style="margin:0;color:var(--ink-soft)">Public demo, then the full report, manual and installation video by 18 Dec.</p></div>
       </div>
     </div>
-    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">16 / 17</span></div>
+    <div class="foot"><span>SmartFin — Alpha Test</span><span class="num">17 / 18</span></div>
   </section>
 
   <!-- 12 ────────────────────────────────────────────────────────── -->
@@ -1323,7 +1361,7 @@
         <strong style="font-family:var(--f-display); font-size:1.5em;">Questions</strong>
       </div>
     </div>
-    <div class="foot"><span>SmartFin — CSC499 Alpha Test · 14 September 2026</span><span class="num">17 / 17</span></div>
+    <div class="foot"><span>SmartFin — CSC499 Alpha Test · 14 September 2026</span><span class="num">18 / 18</span></div>
   </section>
 
 </div>
