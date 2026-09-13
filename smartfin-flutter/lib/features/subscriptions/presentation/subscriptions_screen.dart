@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:smart_fin/constants/color_style.dart';
 import 'package:smart_fin/features/subscriptions/data/subscription_repository_impl.dart';
+import 'package:smart_fin/features/subscriptions/services/bill_reminder_service.dart';
 
 /// Subscriptions & bills the user tracks by hand: what is overdue, what is due
 /// this week, and what they cost per month. "Mark paid" logs the bill as an
@@ -54,6 +55,10 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   /// Bills with a "Mark paid" request in flight, so a second tap does nothing.
   final Set<String> _paying = {};
 
+  /// Notification permission is asked for once per visit, and only once there
+  /// is an active bill to be reminded about.
+  bool _askedPermission = false;
+
   String get _uid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
   @override
@@ -90,6 +95,16 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
         _error = res.error ?? 'Could not load your bills.';
       }
     });
+
+    if (res.success) {
+      // Every load reschedules reminders, so edits, payments, pauses and
+      // deletions never leave a stale one behind.
+      BillReminderService().syncAll(_subs);
+      if (!_askedPermission && _subs.any((s) => s['active'] == true)) {
+        _askedPermission = true;
+        BillReminderService().requestPermission();
+      }
+    }
   }
 
   void _toast(String message, {bool error = false}) {
@@ -442,6 +457,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     if (res.success) {
       _changed = true;
       _toast('Bill deleted');
+      await BillReminderService().cancelFor(id);
       await _load();
     } else {
       _toast(res.error ?? 'Could not delete this bill', error: true);
@@ -506,6 +522,137 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   }
 
   // ── UI ──────────────────────────────────────────────────────────────────────
+
+  // ── Reminders ───────────────────────────────────────────────────────────────
+
+  /// Explains the reminders and lets the user fire a test one — reminders are
+  /// otherwise at 09:00, which nobody wants to wait for to check they work.
+  Future<void> _showReminderSheet() async {
+    final service = BillReminderService();
+    final enabled = await service.notificationsEnabled();
+    if (!mounted) return;
+    Map<String, dynamic>? sample;
+    for (final s in _subs) {
+      if (s['active'] == true) {
+        sample = s;
+        break;
+      }
+    }
+
+    Future<void> run(BuildContext sheetContext, Future<bool> Function() send, String ok) async {
+      Navigator.pop(sheetContext);
+      final granted = await service.requestPermission();
+      if (!granted) {
+        _toast('Notifications are off for SmartFin. Turn them on in Settings.', error: true);
+        return;
+      }
+      _toast(await send() ? ok : 'Could not send a test reminder', error: false);
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAE2D6),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text('Bill reminders',
+                style: GoogleFonts.bricolageGrotesque(
+                    fontWeight: FontWeight.w800, fontSize: 20, color: AppColors.textDark)),
+            const SizedBox(height: 6),
+            Text(
+              'SmartFin reminds you at 9:00 the day before a bill is due, and again on the day.',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 13, color: _muted),
+            ),
+            const SizedBox(height: 16),
+            _reminderOption(
+              icon: Icons.notifications_active_outlined,
+              title: 'Send a test reminder now',
+              onTap: () => run(ctx, () => service.showTestNow(sample), 'Test reminder sent 🐾'),
+            ),
+            _reminderOption(
+              icon: Icons.timer_outlined,
+              title: 'Remind me in 10 seconds',
+              subtitle: 'Go to the home screen to see it arrive',
+              onTap: () => run(ctx, () => service.scheduleTest(seconds: 10, bill: sample),
+                  'Scheduled — it may take a few seconds longer'),
+            ),
+            if (!enabled)
+              _reminderOption(
+                icon: Icons.settings_outlined,
+                title: 'Turn on notifications',
+                subtitle: 'Notifications are currently off for SmartFin',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  service.openSettings();
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _reminderOption({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color.fromRGBO(255, 159, 41, 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 20, color: _orange),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textDark)),
+                  if (subtitle != null)
+                    Text(subtitle,
+                        style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w500, fontSize: 11, color: _muted)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, size: 18, color: Color.fromRGBO(158, 158, 158, 0.5)),
+          ],
+        ),
+      ),
+    );
+  }
 
   InputDecoration _fieldDecoration(String label) => InputDecoration(
         labelText: label,
@@ -899,6 +1046,8 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                         fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.textDark),
                   ),
                 ),
+                _headerButton(icon: Icons.notifications_none_rounded, onTap: _showReminderSheet),
+                const SizedBox(width: 8),
                 _headerButton(icon: Icons.add_rounded, onTap: () => _openEditor(), filled: true),
               ],
             ),

@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:smart_fin/core/network/dio_client.dart';
 import 'package:smart_fin/features/scanner/services/gallery_watcher_service.dart';
+import 'package:smart_fin/features/subscriptions/services/bill_reminder_service.dart';
 import 'package:smart_fin/widgets/bottom_nav_bar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -596,6 +597,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
+              // Don't remind the next person on this device about these bills.
+              await BillReminderService().cancelAll();
               await FirebaseAuth.instance.signOut();
               final prefs = await SharedPreferences.getInstance();
               for (final key in const [

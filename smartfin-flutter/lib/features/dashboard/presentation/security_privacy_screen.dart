@@ -8,6 +8,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_fin/constants/color_style.dart';
 import 'package:smart_fin/core/network/dio_client.dart';
+import 'package:smart_fin/features/subscriptions/services/bill_reminder_service.dart';
 
 /// Security actions that need a recent login: changing the password and deleting
 /// the account. Firebase rejects both with `requires-recent-login` when the session
@@ -307,6 +308,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
       // retryable, whereas deleting the login first would strand the data with no
       // way to reach it.
       await DioClient.dio.delete('/api/users/$uid');
+      await BillReminderService().cancelAll();
       await _user!.delete();
 
       final prefs = await SharedPreferences.getInstance();

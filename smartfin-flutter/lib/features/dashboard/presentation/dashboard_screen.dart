@@ -9,6 +9,7 @@ import 'package:smart_fin/widgets/bottom_nav_bar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:smart_fin/features/transactions/data/transaction_repository_impl.dart';
 import 'package:smart_fin/features/subscriptions/data/subscription_repository_impl.dart';
+import 'package:smart_fin/features/subscriptions/services/bill_reminder_service.dart';
 import 'package:smart_fin/features/scanner/services/gallery_watcher_service.dart';
 import 'package:smart_fin/features/scanner/presentation/widgets/slip_detection_sheet.dart';
 
@@ -518,6 +519,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             final all = ((res.data?['subscriptions'] as List?) ?? [])
                 .map((e) => Map<String, dynamic>.from(e as Map))
                 .toList();
+            // The dashboard is where most sessions start, so reminders are kept
+            // current from here too, not only from the tracker screen.
+            BillReminderService().syncAll(all);
             setState(() {
               _upcomingBills = all
                   .where((s) => ((s['days_until_due'] as num?) ?? 999) <= 7)
