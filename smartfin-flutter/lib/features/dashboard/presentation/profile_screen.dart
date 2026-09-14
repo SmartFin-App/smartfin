@@ -25,7 +25,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _slipWatcherEnabled = true;
   int _currentIncome = 0;
   int _budgetLimit = 0;
-  int _monthlyIncome = 0;
   int _savingsGoal = 0;
   String? _savingsGoalName;
   String? _savingsTargetDate;
@@ -81,7 +80,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         if (income > 0) {
           _currentIncome = income;
-          _monthlyIncome = income;
         }
         if (budget > 0) _budgetLimit = budget;
         if (name != null && name.isNotEmpty) _displayName = name;
@@ -318,7 +316,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _currentIncome = income;
         _budgetLimit = budget;
-        _monthlyIncome = income;
       });
     }
   }
@@ -543,7 +540,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => _BudgetEditorSheet(
         currentBudget: _budgetLimit,
-        monthlyIncome: _monthlyIncome,
+        monthlyIncome: _currentIncome,
         scaffoldContext: context,
       ),
     );

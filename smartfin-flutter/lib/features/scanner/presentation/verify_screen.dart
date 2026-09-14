@@ -23,7 +23,6 @@ class _VerifyScreenState extends State<VerifyScreen> {
   final TextEditingController _amountController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   String _selectedCategory = 'Food';
-  double _confidence = 0.0;
   bool _isLoading = false;
 
   final List<Map<String, dynamic>> _categories = [
@@ -59,7 +58,6 @@ class _VerifyScreenState extends State<VerifyScreen> {
     if (data != null) {
       _merchantController.text = data['merchant'] as String? ?? '';
       _amountController.text = (data['amount'] ?? 0).toString();
-      _confidence = ((data['confidence'] ?? 0.0) as num).toDouble();
 
       // Parse date string. The value is model-extracted, so it can be a Buddhist-era
       // year (2569) or otherwise out of range — which would both crash the date picker
@@ -87,20 +85,6 @@ class _VerifyScreenState extends State<VerifyScreen> {
     _merchantController.dispose();
     _amountController.dispose();
     super.dispose();
-  }
-
-  // ── Confidence helpers ────────────────────────────────────────────────────
-
-  Color get _confidenceColor {
-    if (_confidence > 0.8) return const Color(0xFF4CAF50);
-    if (_confidence > 0.6) return const Color(0xFFFF9F29);
-    return const Color(0xFFEF4444);
-  }
-
-  String get _confidenceBannerText {
-    if (_confidence > 0.8) return 'Great scan! Data extracted successfully. 🐾';
-    if (_confidence > 0.6) return 'Good scan. Please verify the details below.';
-    return 'Low confidence. Please check all fields carefully.';
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────
@@ -209,8 +193,6 @@ class _VerifyScreenState extends State<VerifyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pctInt = (_confidence * 100).toInt();
-
     return Scaffold(
       backgroundColor: AppColors.cream,
       body: Stack(
@@ -222,18 +204,21 @@ class _VerifyScreenState extends State<VerifyScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Confidence banner
+                // Always ask for a check. The model's confidence score is not
+                // shown: in the slip evaluation it was 0.98 on right and wrong
+                // scans alike, so a "Great scan!" message could stop users from
+                // catching a misread merchant or an invented date.
                 Container(
                   width: double.infinity,
                   margin: const EdgeInsets.only(bottom: 24),
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  color: _confidenceColor.withOpacity(0.1),
+                  color: const Color(0xFFFF9F29).withValues(alpha: 0.1),
                   child: Text(
-                    _confidenceBannerText,
+                    'Please check the details below before saving.',
                     style: GoogleFonts.inter(
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
-                      color: _confidenceColor,
+                      color: const Color(0xFFFF9F29),
                     ),
                   ),
                 ),
@@ -455,26 +440,6 @@ class _VerifyScreenState extends State<VerifyScreen> {
                             ),
                           ),
                         ],
-                      ),
-                      // Confidence badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: _confidenceColor.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(9999),
-                          border: Border.all(
-                              color: _confidenceColor.withOpacity(0.3)),
-                        ),
-                        child: Text(
-                          'AI $pctInt% sure',
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 10,
-                            letterSpacing: 0.5,
-                            color: _confidenceColor,
-                          ),
-                        ),
                       ),
                     ],
                   ),
