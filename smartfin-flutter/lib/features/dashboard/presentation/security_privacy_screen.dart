@@ -316,7 +316,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
 
       if (!mounted) return;
       _toast('Your account and data have been deleted');
-      context.go('/onboarding');
+      context.go('/login');
     } on DioException catch (e) {
       _toast('Could not delete your data: ${DioClient.handleError(e)}',
           error: true);

@@ -44,8 +44,8 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
   /// session, rather than after a fixed delay.
   ///
   /// `currentUser` is null until that restore completes, so a timer that expires
-  /// first sent a signed-in user to onboarding as though they had never logged
-  /// in — rare on a warm start, likely on a cold one.
+  /// first sent a signed-in user to the login screen as though they had never
+  /// logged in — rare on a warm start, likely on a cold one.
   Future<void> _routeWhenAuthResolved() async {
     // Keep the splash on screen long enough to read, but run the auth wait
     // alongside it rather than after it.
@@ -69,7 +69,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
 
     await minimumDisplay;
     if (!mounted) return;
-    context.go(user != null ? '/home' : '/onboarding');
+    context.go(user != null ? '/home' : '/login');
   }
 
   @override

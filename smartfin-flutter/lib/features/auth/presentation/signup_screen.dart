@@ -506,7 +506,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             if (context.canPop()) {
                               context.pop();
                             } else {
-                              context.go('/onboarding');
+                              context.go('/login');
                             }
                           },
                           child: Container(

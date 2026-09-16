@@ -59,25 +59,22 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: password);
       if (mounted) {
         context.go('/home');
       }
     } on FirebaseAuthException catch (e) {
       String message = e.message ?? "An error occurred during login.";
-      if (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential') {
+      if (e.code == 'user-not-found' ||
+          e.code == 'wrong-password' ||
+          e.code == 'invalid-credential') {
         message = "Incorrect email or password.";
       } else if (e.code == 'invalid-email') {
         message = "Please enter a valid email address.";
       }
-      
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
       }
     } finally {
       if (mounted) {
@@ -140,15 +137,17 @@ class _LoginScreenState extends State<LoginScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel',
-                style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w700, color: const Color(0xFF9E9E9E))),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: const Color(0xFF9E9E9E)),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: Text('Send link',
-                style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w700, color: const Color(0xFFFF9F29))),
+            child: Text(
+              'Send link',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: const Color(0xFFFF9F29)),
+            ),
           ),
         ],
       ),
@@ -209,7 +208,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
-      
+
       if (mounted) {
         if (userCredential.additionalUserInfo?.isNewUser ?? false) {
           context.go('/setup');
@@ -225,9 +224,9 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to sign in: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Failed to sign in: $e")));
       }
     } finally {
       if (mounted) {
@@ -306,7 +305,7 @@ class _LoginScreenState extends State<LoginScreen> {
               color: const Color(0xFFEF4444),
             ),
           ),
-        ]
+        ],
       ],
     );
   }
@@ -330,10 +329,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   builder: (context, value, child) {
                     return Opacity(
                       opacity: value,
-                      child: Transform.scale(
-                        scale: 0.8 + (0.2 * value),
-                        child: child,
-                      ),
+                      child: Transform.scale(scale: 0.8 + (0.2 * value), child: child),
                     );
                   },
                   child: Image.asset('assets/images/lucky_cat.png', width: 48, height: 48),
@@ -349,16 +345,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Email Field
                 _buildFieldLabel('EMAIL ADDRESS'),
                 const SizedBox(height: 8),
-                _buildTextField(
-                  controller: _emailController,
-                  errorText: _emailError,
-                ),
+                _buildTextField(controller: _emailController, errorText: _emailError),
                 const SizedBox(height: 24),
-                
+
                 // Password Field
                 _buildFieldLabel('PASSWORD'),
                 const SizedBox(height: 8),
@@ -367,7 +360,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   isPassword: true,
                   errorText: _passwordError,
                 ),
-                
+
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerRight,
@@ -383,9 +376,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 32),
-                
+
                 // Log In Button
                 GestureDetector(
                   onTap: _isLoading ? null : _validateAndSubmit,
@@ -421,13 +414,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 32),
-                
+
                 // Divider
                 Row(
                   children: [
-                    Expanded(child: Container(height: 1, color: const Color.fromRGBO(234, 226, 214, 0.4))),
+                    Expanded(
+                      child: Container(height: 1, color: const Color.fromRGBO(234, 226, 214, 0.4)),
+                    ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Text(
@@ -440,12 +435,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
-                    Expanded(child: Container(height: 1, color: const Color.fromRGBO(234, 226, 214, 0.4))),
+                    Expanded(
+                      child: Container(height: 1, color: const Color.fromRGBO(234, 226, 214, 0.4)),
+                    ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // Google Button
                 GestureDetector(
                   onTap: _isGoogleLoading ? null : _handleGoogleSignIn,
@@ -469,17 +466,16 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(color: Color(0xFF333333), strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF333333),
+                                strokeWidth: 2,
+                              ),
                             ),
                           )
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Image.asset(
-                                'assets/images/google_logo.png',
-                                width: 16, 
-                                height: 16,
-                              ),
+                              Image.asset('assets/images/google_logo.png', width: 16, height: 16),
                               const SizedBox(width: 6),
                               Text(
                                 'Google',
@@ -493,7 +489,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 48),
 
                 // Bottom Nav
@@ -525,7 +521,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
             ),
           ),
-          
+
           // Header
           Positioned(
             top: 0,
@@ -540,7 +536,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Stack(
                     children: [
                       Positioned(
-                        top: 48, 
+                        top: 48,
                         left: 0,
                         right: 0,
                         child: IgnorePointer(
@@ -556,30 +552,32 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      Positioned(
-                        left: 24,
-                        top: 40,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            if (context.canPop()) {
-                              context.pop();
-                            } else {
-                              context.go('/onboarding');
-                            }
-                          },
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.6)),
-                              borderRadius: BorderRadius.circular(12),
+                      // Login is where the splash lands a signed-out user, so there
+                      // is usually nothing behind it; the arrow only shows when it
+                      // was pushed from somewhere, such as the signup screen.
+                      if (context.canPop())
+                        Positioned(
+                          left: 24,
+                          top: 40,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => context.pop(),
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.6)),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.chevron_left,
+                                color: Color(0xFF333333),
+                                size: 20,
+                              ),
                             ),
-                            child: const Icon(Icons.chevron_left, color: Color(0xFF333333), size: 20),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),

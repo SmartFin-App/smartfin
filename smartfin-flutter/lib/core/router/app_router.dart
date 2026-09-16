@@ -12,7 +12,6 @@ import 'package:smart_fin/features/dashboard/presentation/dashboard_screen.dart'
 import 'package:smart_fin/features/dashboard/presentation/profile_screen.dart';
 import 'package:smart_fin/features/dashboard/presentation/account_settings_screen.dart';
 import 'package:smart_fin/features/dashboard/presentation/security_privacy_screen.dart';
-import 'package:smart_fin/features/auth/presentation/onboarding_screen.dart';
 import 'package:smart_fin/features/auth/presentation/login_screen.dart';
 import 'package:smart_fin/features/auth/presentation/signup_screen.dart';
 import 'package:smart_fin/features/auth/presentation/initial_setup_screen.dart';
@@ -23,7 +22,7 @@ import 'package:smart_fin/features/subscriptions/presentation/subscriptions_scre
 import 'package:smart_fin/widgets/bottom_nav_bar.dart';
 
 // ---------------------------------------------------------------------------
-// Protected routes — redirect to /onboarding when not authenticated
+// Protected routes — redirect to /login when not authenticated
 // ---------------------------------------------------------------------------
 
 const _protectedPaths = ['/home', '/history', '/coach', '/profile'];
@@ -41,16 +40,11 @@ final GoRouter appRouter = GoRouter(
   initialLocation: '/splash',
   redirect: _authRedirect,
   routes: [
-    // ── Auth & onboarding ────────────────────────────────────────────────
+    // ── Auth ─────────────────────────────────────────────────────────────
     GoRoute(
       path: '/splash',
       name: 'splash',
       builder: (context, state) => const SplashView(),
-    ),
-    GoRoute(
-      path: '/onboarding',
-      name: 'onboarding',
-      builder: (context, state) => const OnboardingScreen(),
     ),
     GoRoute(
       path: '/login',

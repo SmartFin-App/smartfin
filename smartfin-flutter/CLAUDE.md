@@ -33,7 +33,7 @@ The pub package name is **`smart_fin`**, so imports are `package:smart_fin/…` 
 
 ## Structure
 
-Feature-first: `lib/features/<feature>/{data,bloc,presentation}` for auth, dashboard, transactions, scanner, coach, onboarding, splash. Shared UI in `lib/widgets/`, theme tokens in `lib/constants/{color_style,text_style}.dart` (cream background, Bricolage Grotesque via google_fonts, wired up in `main.dart`).
+Feature-first: `lib/features/<feature>/{data,bloc,presentation}` for auth, dashboard, transactions, scanner, coach, splash. Shared UI in `lib/widgets/`, theme tokens in `lib/constants/{color_style,text_style}.dart` (cream background, Bricolage Grotesque via google_fonts, wired up in `main.dart`).
 
 **There is no BLoC, despite the layout.** Every file under `features/*/bloc/` is a ~100-byte comment stub, and `flutter_bloc` is never imported anywhere in `lib/` — both it and `flutter_riverpod` are dead weight in `pubspec.yaml`. All state is `StatefulWidget` + `setState`, and repositories are constructed directly at the call site. Match that pattern rather than half-introducing BLoC for one feature.
 
@@ -45,7 +45,7 @@ Routing is one top-level `GoRouter` in `lib/core/router/app_router.dart`; every 
 
 - `lib/features/coach/{coach_screen,coach_service,chat_bubble,suggestion_chip}.dart` (~100 bytes each)
 - `lib/core/injection/injection_container.dart` — the real one is `lib/core/di/injection_container.dart`
-- `presentation/views/*_view.dart` for dashboard, coach, and onboarding
+- `presentation/views/*_view.dart` for dashboard and coach
 - every `features/*/bloc/*_{bloc,event,state}.dart` file (12 of them)
 
 **The router imports `presentation/*_screen.dart` — those are the live files.** The only real view under a `views/` directory is `splash/presentation/views/splash_view.dart`.
@@ -72,7 +72,7 @@ Repositories return `ApiResponse<T>` (`ApiResponse.success(data)` / `ApiResponse
 
 ## Screens with non-obvious behaviour
 
-- **Splash** waits on `authStateChanges().first` (5s timeout), not a fixed delay. Firebase restores the persisted session asynchronously, and a timer that expired first sent a signed-in user to onboarding. The branding pause runs concurrently with that wait — don't reintroduce a `Future.delayed` gate.
+- **Splash** waits on `authStateChanges().first` (5s timeout), not a fixed delay. Firebase restores the persisted session asynchronously, and a timer that expired first sent a signed-in user to the login screen. The branding pause runs concurrently with that wait — don't reintroduce a `Future.delayed` gate.
 - **Coach** restores its transcript from `GET /api/coach/history/:user_id` on init, falling back to the welcome greeting only when there is none. The screen is disposed on every tab switch, and the client builds the coach's `history` payload from that list, so without the restore the agent also loses its conversational memory.
 - **Transaction detail** (`/transaction/:id`) is reached with `context.push`, not `go`, so back returns to History; it returns `true` when the record changed so the list refreshes. Edit and delete both send `user_id` — the API refuses single-transaction writes without it.
 - **History** filters server-side (type, category, month) so its month window matches the summaries; only the free-text search is local. It accepts **starting filters as query parameters** — `/history?type=expense&category=Food&month=2026-09` — read in `app_router.dart` and applied in `initState` before the first load. The dashboard's top-categories rows use this and always send all three: a category alone would pull that category's transactions from every month, so History's total would stop matching the card. The bottom nav still opens History unfiltered. Because the route builder lives on the top-level `appRouter`, changes to it need a hot **restart**, not a reload.
