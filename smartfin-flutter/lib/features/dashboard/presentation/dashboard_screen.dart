@@ -12,6 +12,7 @@ import 'package:smart_fin/features/subscriptions/data/subscription_repository_im
 import 'package:smart_fin/features/subscriptions/services/bill_reminder_service.dart';
 import 'package:smart_fin/features/scanner/services/gallery_watcher_service.dart';
 import 'package:smart_fin/features/scanner/presentation/widgets/slip_detection_sheet.dart';
+import 'package:smart_fin/features/scanner/presentation/widgets/slip_folders_sheet.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -73,9 +74,34 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   Future<void> _checkForNewSlips() async {
     if (!mounted) return;
     try {
-      final slip = await GalleryWatcherService().checkForNewSlips();
-      if (slip != null && mounted) {
-        SlipDetectionSheet.show(context, slip);
+      final watcher = GalleryWatcherService();
+      final result = await watcher.checkForNewSlipsDetailed();
+      if (!mounted) return;
+
+      if (result.slip != null) {
+        SlipDetectionSheet.show(context, result.slip!);
+        return;
+      }
+
+      // Auto-Detect finds nothing when the slips live in a folder we do not
+      // recognise — a bank we never listed, a renamed album, or screenshots.
+      // Offer the picker once rather than letting the feature look broken; a
+      // check that runs on every resume must not nag.
+      if (result.status == SlipCheckStatus.noAlbum &&
+          await watcher.shouldOfferFolderPicker()) {
+        await watcher.markFolderPickerOffered();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+                "We couldn't find your slip folder. Pick one so SmartFin can spot new slips. 🐾"),
+            duration: const Duration(seconds: 8),
+            action: SnackBarAction(
+              label: 'Pick',
+              onPressed: () => SlipFoldersSheet.show(context),
+            ),
+          ),
+        );
       }
     } catch (e) {
       debugPrint('Error auto-checking slips: $e');

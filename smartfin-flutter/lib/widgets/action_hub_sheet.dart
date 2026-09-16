@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:smart_fin/features/scanner/services/gallery_watcher_service.dart';
 import 'package:smart_fin/features/scanner/presentation/widgets/slip_detection_sheet.dart';
+import 'package:smart_fin/features/scanner/presentation/widgets/slip_folders_sheet.dart';
 
 class ActionHubSheet extends StatelessWidget {
   const ActionHubSheet({super.key});
@@ -94,7 +95,10 @@ class ActionHubSheet extends StatelessWidget {
       case SlipCheckStatus.disabled:
         return "Auto-Detect is turned off. You can switch it back on in your profile.";
       case SlipCheckStatus.noAlbum:
-        return "No 'SmartFin Receipts' album yet. Save PromptPay slips to that album to auto-detect! 🐾";
+        // Most people keep slips in their banking app's own folder rather than
+        // making one for us, so point at the picker instead of asking them to
+        // reorganise their gallery.
+        return "We couldn't find your slip folder. Pick the one your bank saves slips to. 🐾";
       case SlipCheckStatus.none:
       case SlipCheckStatus.found:
         return "No new slips found. You're all caught up! 🐾";
@@ -196,10 +200,20 @@ class ActionHubSheet extends StatelessWidget {
               if (result.slip != null) {
                 SlipDetectionSheet.show(rootContext, result.slip!);
               } else {
+                // A tap on Auto-Detect is an explicit request, so the picker is
+                // offered every time no folder matched — this is the only way
+                // back for anyone who dismissed the dashboard's one-time offer.
+                final offerPicker = result.status == SlipCheckStatus.noAlbum;
                 messenger.showSnackBar(
                   SnackBar(
                     content: Text(_slipCheckMessage(result.status)),
-                    duration: const Duration(seconds: 3),
+                    duration: Duration(seconds: offerPicker ? 8 : 3),
+                    action: offerPicker
+                        ? SnackBarAction(
+                            label: 'Pick',
+                            onPressed: () => SlipFoldersSheet.show(rootContext),
+                          )
+                        : null,
                   ),
                 );
               }

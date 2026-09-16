@@ -99,13 +99,19 @@ The backend keys every record by **Firebase UID**, and screens read it inline at
 
 **Manual:** `/scanner` (camera) → `/processing` → `/verify`. `ScannerRepositoryImpl` posts the image as multipart `FormData` to `/api/scanner/process`; the backend extracts fields with Gemini Vision but persists nothing, so the **verify screen is what actually creates the transaction**. Never skip it.
 
-**Automatic:** `lib/features/scanner/services/gallery_watcher_service.dart` — a singleton watching the photo library via `photo_manager` for new Thai banking e-slips. It resolves a target album by cascade:
+**Automatic:** `lib/features/scanner/services/gallery_watcher_service.dart` — a singleton watching the photo library via `photo_manager` for new Thai banking e-slips.
 
-1. Exact/normalized match on `"SmartFin Receipts"`
-2. Keywords: `smartfin`, `receipt`, `slip`, `สลิป`
-3. Thai banking app folders: K PLUS, SCB, Krungthai, PromptPay, BBL
+**A hand-picked selection wins over the cascade.** `selectedAlbumIds()` holds album ids chosen in Profile → Slip Folders (`smartfin_slip_album_ids`, empty = automatic), and `findSlipAlbums()` uses exactly those when any still exist. No hardcoded list covers every bank, renamed folder, or the people who screenshot slips instead of saving them. Otherwise it auto-matches by name, our own album first:
 
-There is deliberately **no** fallback to Download / Recent / All — matching those made every photo in the camera roll look like a payment slip. No match returns `SlipCheckStatus.noAlbum`, and `checkForNewSlipsDetailed()` distinguishes that from `permissionDenied`, `disabled`, and `none` so the UI can say which.
+1. `"SmartFin Receipts"`
+2. Keywords: `smartfin`, `receipt`, `slip`, `สลิป`, `ใบเสร็จ`
+3. `bankAlbumAliases` — `kplus`, `kasikorn`, `scbeasy`, `krungthai`, `bualuang`, `krungsri`, `kma`, `ttb`, `promptpay`, `truemoney`, `mymo` and more
+
+**Compare album names only through `normalizeAlbumName`**, which lower-cases and strips everything but letters, digits and combining marks. Real phones spell the same folder "KPLUS", "K PLUS" and "K-Plus", and the old matcher looked for the literal `'k plus'`, so the folder most users actually have never matched. Marks are kept because Thai vowel signs are marks, not letters — dropping them turns `สลิป` into `สลป`. `test/gallery_watcher_album_match_test.dart` covers both.
+
+`findSlipAlbums()` returns **every** match, capped at `_maxWatchedAlbums` (8), and `checkForNewSlipsDetailed()` offers the newest unprocessed asset across all of them — someone with two banking apps had slips from one of them permanently hidden when this stopped at the first album.
+
+**Screenshots is deliberately not auto-matched** (nor Download / Recent / All): matching those made every photo in the camera roll look like a payment slip. Someone who screenshots slips can tick that folder in the picker. No match returns `SlipCheckStatus.noAlbum`, and `checkForNewSlipsDetailed()` distinguishes that from `permissionDenied`, `disabled`, and `none` so the UI can say which.
 
 **The user-facing name for this feature is "Auto-Detect"** — in the action hub, the profile toggle, and the slide deck. `GalleryWatcherService` keeps its name in code because it accurately describes the mechanism; don't surface "gallery watcher" in UI copy. The feature also needs a real MediaStore album to exist: `photo_manager` lists albums from MediaStore, not the filesystem, so an empty `/sdcard/Pictures/SmartFin Receipts` directory is **not** an album and correctly reports `noAlbum`.
 
