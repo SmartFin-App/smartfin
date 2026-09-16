@@ -32,7 +32,14 @@ class DioClient {
   /// Returns the correct base URL depending on platform and run mode.
   /// Emulator:        flutter run --dart-define=IS_EMULATOR=true
   /// Physical device: flutter run
+  /// Any target:      `flutter run --dart-define=API_BASE_URL=http://MAC_LAN_IP:3000`
+  ///
+  /// A physical iPhone must use the override: 'localhost' there means the phone
+  /// itself, not the Mac running the server.
   static String get baseUrl {
+    const override = String.fromEnvironment('API_BASE_URL');
+    if (override.isNotEmpty) return override;
+
     if (Platform.isAndroid) {
       const bool isEmulator =
           bool.fromEnvironment('IS_EMULATOR', defaultValue: true);
