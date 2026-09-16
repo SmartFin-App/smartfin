@@ -193,19 +193,7 @@ class _CoachScreenState extends State<CoachScreen>
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 32,
-          height: 32,
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border:
-                Border.all(color: const Color.fromRGBO(234, 226, 214, 0.4)),
-          ),
-          child: Image.asset('assets/images/lucky_cat.png',
-              filterQuality: FilterQuality.medium),
-        ),
+        const _CoachAvatar(),
         const SizedBox(width: 12),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -264,19 +252,7 @@ class _CoachScreenState extends State<CoachScreen>
             isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
           if (!isUser) ...[
-            Container(
-              width: 32,
-              height: 32,
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: const Color.fromRGBO(234, 226, 214, 0.4)),
-              ),
-              child: Image.asset('assets/images/lucky_cat.png',
-                  filterQuality: FilterQuality.medium),
-            ),
+            const _CoachAvatar(),
             const SizedBox(width: 12),
           ],
           Flexible(
@@ -618,6 +594,28 @@ class _CoachScreenState extends State<CoachScreen>
           const SmartFinBottomNav(currentIndex: 2, showFab: false),
         ],
       ),
+    );
+  }
+}
+
+/// The coach's mascot. The lucky cat is the coach's face throughout the app —
+/// the rest of the interface uses the SmartFin wordmark instead.
+class _CoachAvatar extends StatelessWidget {
+  const _CoachAvatar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 32,
+      height: 32,
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.4)),
+      ),
+      child: Image.asset('assets/images/lucky_cat.png',
+          filterQuality: FilterQuality.medium),
     );
   }
 }

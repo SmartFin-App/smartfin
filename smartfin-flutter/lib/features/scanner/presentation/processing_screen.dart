@@ -130,11 +130,10 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                   child: child,
                 );
               },
-              child: Image.asset(
-                'assets/images/lucky_cat.png',
-                width: 120,
-                height: 120,
-                filterQuality: FilterQuality.medium,
+              child: const Icon(
+                Icons.receipt_long_outlined,
+                size: 96,
+                color: Color(0xFFFF9F29),
               ),
             ),
             const SizedBox(height: 32),

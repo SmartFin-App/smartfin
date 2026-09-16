@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_fin/constants/color_style.dart';
+import 'package:smart_fin/widgets/smartfin_logo.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -332,7 +333,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Transform.scale(scale: 0.8 + (0.2 * value), child: child),
                     );
                   },
-                  child: Image.asset('assets/images/lucky_cat.png', width: 48, height: 48),
+                  child: const SmartFinLogo(fontSize: 28),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -535,23 +536,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: const Color.fromRGBO(255, 249, 240, 0.8),
                   child: Stack(
                     children: [
-                      Positioned(
-                        top: 48,
-                        left: 0,
-                        right: 0,
-                        child: IgnorePointer(
-                          child: Text(
-                            'Welcome Back',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.bricolageGrotesque(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                              letterSpacing: -0.45,
-                              color: const Color(0xFF333333),
-                            ),
-                          ),
-                        ),
-                      ),
                       // Login is where the splash lands a signed-out user, so there
                       // is usually nothing behind it; the arrow only shows when it
                       // was pushed from somewhere, such as the signup screen.

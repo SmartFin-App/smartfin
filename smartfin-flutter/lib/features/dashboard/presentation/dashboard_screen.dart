@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_fin/constants/color_style.dart';
 import 'package:smart_fin/core/network/dio_client.dart';
 import 'package:smart_fin/widgets/bottom_nav_bar.dart';
+import 'package:smart_fin/widgets/smartfin_logo.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:smart_fin/features/transactions/data/transaction_repository_impl.dart';
 import 'package:smart_fin/features/subscriptions/data/subscription_repository_impl.dart';
@@ -31,7 +32,6 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   // Active bills overdue or due within 7 days, soonest first.
   List<Map<String, dynamic>> _upcomingBills = [];
   int _upcomingTotal = 0;
-  String _userName = 'there';
   String _currentMonth = '';
 
   static const Map<String, ({IconData icon, Color color})> _categoryStyle = {
@@ -493,13 +493,6 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
 
     try {
       await Future.wait([
-        // Load name from prefs
-        SharedPreferences.getInstance().then((prefs) {
-          final name = prefs.getString('user_name') ??
-              FirebaseAuth.instance.currentUser?.displayName?.split(' ').first ??
-              'there';
-          if (mounted) setState(() => _userName = name);
-        }),
         // Monthly Summary
         DioClient.dio.get(
           '/api/summary/$uid',
@@ -576,8 +569,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
               await prefs.setInt('user_budget_limit', mongoBudget);
             }
             if ((userData['name'] as String?)?.isNotEmpty == true) {
+              // Still cached: the coach greeting and Account settings read it.
+              // Only the dashboard header stopped showing the name.
               await prefs.setString('user_name', userData['name'] as String);
-              if (mounted) setState(() => _userName = userData['name'] as String);
             }
           }
         } catch (_) {
@@ -926,30 +920,29 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              'Hi $_userName!',
-                              style: GoogleFonts.bricolageGrotesque(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 24,
-                                letterSpacing: -0.5,
-                                color: const Color(0xFF333333),
-                              ),
-                            ),
+                            // Brand mark rather than a greeting: the name told
+                            // the user nothing they did not know, and the logo
+                            // gives every screenshot an identifiable header.
+                            const SmartFinLogo(),
                             GestureDetector(
                               onTap: () => context.push('/profile'),
                               child: Container(
                                 width: 36,
                                 height: 36,
+                                alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
+                                  color: Colors.white,
                                   border:
                                       Border.all(color: const Color(0xFFEAE2D6)),
-                                  image: const DecorationImage(
-                                    image: AssetImage(
-                                        'assets/images/lucky_cat.png'),
-                                    fit: BoxFit.cover,
-                                    filterQuality: FilterQuality.medium,
-                                  ),
+                                ),
+                                // The cat is the logo on the left now, so this
+                                // button uses a person icon rather than showing
+                                // the same image twice in one row.
+                                child: const Icon(
+                                  Icons.person_outline,
+                                  size: 20,
+                                  color: Color(0xFF333333),
                                 ),
                               ),
                             ),
@@ -1413,16 +1406,6 @@ class _IncomeSetupDialogState extends State<_IncomeSetupDialog> with TickerProvi
                 ),
               ),
 
-              // Floating Cat
-              Positioned(
-                top: 0, // The stack is topCenter, card is margin top 48. This sits at 0, meaning it overflows 48px above the card!
-                child: Image.asset(
-                  'assets/images/lucky_cat.png',
-                  width: 96,
-                  height: 96,
-                  filterQuality: FilterQuality.medium,
-                ),
-              ),
             ],
           ),
         ),

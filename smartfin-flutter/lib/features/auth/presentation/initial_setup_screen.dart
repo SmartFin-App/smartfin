@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_fin/constants/color_style.dart';
 import 'package:smart_fin/core/network/dio_client.dart';
 import 'package:smart_fin/features/auth/data/auth_repository_impl.dart';
+import 'package:smart_fin/widgets/smartfin_logo.dart';
 
 class InitialSetupScreen extends StatefulWidget {
   const InitialSetupScreen({super.key});
@@ -288,7 +289,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
                     scale: _catScale,
                     child: Column(
                       children: [
-                        Image.asset('assets/images/lucky_cat.png', width: 128, height: 128),
+                        const SmartFinLogo(fontSize: 40, letterSpacing: -2),
                         const SizedBox(height: 16),
                         Text(
                           "Let's Build Your Profile.",

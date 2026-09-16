@@ -160,11 +160,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   /// Resolves the avatar. `photo_url` is stored relative ("/api/users/<uid>/photo")
   /// so it survives the API host changing between emulator, LAN device and
   /// deployment; a Google account's absolute URL is used as-is.
-  ImageProvider _avatarImage() {
+  /// Null when the user has no picture, so the caller draws a person icon —
+  /// there is no placeholder image to fall back on any more.
+  ImageProvider? _avatarImage() {
     final url = _photoUrl ?? FirebaseAuth.instance.currentUser?.photoURL;
-    if (url == null || url.isEmpty) {
-      return const AssetImage('assets/images/lucky_cat.png');
-    }
+    if (url == null || url.isEmpty) return null;
     if (url.startsWith('http')) return NetworkImage(url);
     // The path is stable across replacements, so without a version the cached
     // bytes would survive an upload and the picture would appear not to change.
@@ -698,17 +698,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   )
                                 ],
                               ),
-                              child: Container(
+                              child: Builder(builder: (context) {
+                                final avatar = _avatarImage();
+                                return Container(
                                 width: 96,
                                 height: 96,
+                                alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(24),
+                                  color: const Color(0xFFF0EBE1),
                                   border: Border.all(color: Colors.white, width: 4),
-                                  image: DecorationImage(
-                                    image: _avatarImage(),
-                                    fit: BoxFit.cover,
-                                    filterQuality: FilterQuality.medium,
-                                  ),
+                                  image: avatar == null
+                                      ? null
+                                      : DecorationImage(
+                                          image: avatar,
+                                          fit: BoxFit.cover,
+                                          filterQuality: FilterQuality.medium,
+                                        ),
                                 ),
                                 child: _isUploadingPhoto
                                     ? Container(
@@ -727,8 +733,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           ),
                                         ),
                                       )
-                                    : null,
-                              ),
+                                    : (avatar == null
+                                        ? const Icon(Icons.person_outline,
+                                            size: 40, color: Color(0xFF9E9E9E))
+                                        : null),
+                              );
+                              }),
                             ),
                           ),
                           // Affordance: without it the avatar reads as decoration.
@@ -1339,16 +1349,6 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet>
             ),
           ),
 
-          // Floating lucky cat
-          Positioned(
-            top: 0,
-            child: Image.asset(
-              'assets/images/lucky_cat.png',
-              width: 80,
-              height: 80,
-              filterQuality: FilterQuality.medium,
-            ),
-          ),
         ],
       ),
     );

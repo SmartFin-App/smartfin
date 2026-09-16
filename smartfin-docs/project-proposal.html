@@ -1,0 +1,510 @@
+<title>SmartFin Project Proposal</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm; }
+
+  :root {
+    --ink: #1a1a1a;
+    --muted: #5b5b5b;
+    --rule: #d8d2c8;
+    --accent: #b46a00;
+    --band: #faf7f2;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: "Georgia", "Times New Roman", serif;
+    color: var(--ink);
+    background: #fff;
+    font-size: 10.5pt;
+    line-height: 1.55;
+    margin: 0;
+    padding: 0 16px;
+    max-width: 190mm;
+    margin-inline: auto;
+  }
+
+  h1, h2, h3, .label, table, .cover-meta {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+
+  /* ---------- cover ---------- */
+  .cover {
+    min-height: 245mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    page-break-after: always;
+  }
+  .cover .kicker {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: .18em;
+    font-size: 8.5pt;
+    color: var(--muted);
+    margin-bottom: 28px;
+  }
+  .cover h1 {
+    font-size: 20pt;
+    line-height: 1.35;
+    margin: 0 0 14px;
+    font-weight: 700;
+  }
+  .cover .title-th {
+    font-family: "Sarabun", "Noto Sans Thai", "Thonburi", "Helvetica Neue", sans-serif;
+    font-size: 15pt;
+    line-height: 1.5;
+    margin: 0 0 32px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .cover .rule {
+    width: 64px; height: 2px; background: var(--accent);
+    margin: 0 auto 32px;
+  }
+  .cover-meta {
+    font-size: 10pt;
+    color: var(--muted);
+    line-height: 1.9;
+  }
+  .cover-meta strong { color: var(--ink); font-weight: 600; }
+  .fillin {
+    color: #9a6b00;
+    background: #fff4e0;
+    padding: 0 6px;
+    border-radius: 3px;
+  }
+
+  /* ---------- structure ---------- */
+  h2 {
+    font-size: 12.5pt;
+    margin: 26px 0 10px;
+    padding-bottom: 5px;
+    border-bottom: 1.5px solid var(--rule);
+    page-break-after: avoid;
+  }
+  h2 .num { color: var(--accent); margin-right: 8px; }
+  h3 {
+    font-size: 10.5pt;
+    margin: 16px 0 6px;
+    page-break-after: avoid;
+  }
+  p { margin: 0 0 10px; text-align: justify; }
+  ul, ol { margin: 0 0 10px; padding-left: 20px; }
+  li { margin-bottom: 5px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+    margin: 12px 0 16px;
+    page-break-inside: avoid;
+  }
+  th, td {
+    border: 1px solid var(--rule);
+    padding: 6px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--band); font-weight: 600; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  caption {
+    caption-side: bottom;
+    font-size: 8.5pt;
+    color: var(--muted);
+    text-align: left;
+    padding-top: 6px;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+
+  .callout {
+    background: var(--band);
+    border-left: 3px solid var(--accent);
+    padding: 10px 14px;
+    margin: 14px 0;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+  }
+  .callout p:last-child { margin-bottom: 0; }
+
+  code, .mono {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 8.8pt;
+    background: #f4f1ec;
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
+  .figure {
+    margin: 14px 0 18px;
+    page-break-inside: avoid;
+  }
+  .figure svg { display: block; max-width: 100%; height: auto; }
+  figcaption {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 8.5pt;
+    color: var(--muted);
+    padding-top: 6px;
+  }
+
+  .page-break { page-break-before: always; }
+  .avoid-break { page-break-inside: avoid; }
+
+  .refs { font-size: 9pt; }
+  .refs li { margin-bottom: 7px; }
+
+  @media screen and (max-width: 640px) {
+    body { font-size: 11pt; padding: 0 16px; }
+    .cover { min-height: auto; padding: 40px 0; }
+    .figure svg { width: 100%; }
+  }
+</style>
+
+<section class="cover">
+  <div class="kicker">School of Information Technology &middot; KMUTT &middot; Senior Project CSC499</div>
+
+  <h1>SmartFin: Automatic Expense Tracking with Thai&nbsp;E&#8209;Slip Recognition and an AI Financial Coach</h1>
+
+  <div class="title-th">สมาร์ทฟิน: ระบบบันทึกค่าใช้จ่ายอัตโนมัติด้วยการอ่านสลิปอิเล็กทรอนิกส์<br>และผู้ช่วยทางการเงินอัจฉริยะ</div>
+
+  <div class="rule"></div>
+
+  <div class="cover-meta">
+    <div><strong>Project Proposal</strong></div>
+    <div>Submitted 18 September 2026</div>
+    <br>
+    <div><strong>Student</strong></div>
+    <div>Thaw Zin Moe Myint &middot; Student ID <span class="fillin">[student ID]</span></div>
+    <br>
+    <div><strong>Project Advisor</strong></div>
+    <div><span class="fillin">[advisor name and title]</span></div>
+    <br>
+    <div><strong>Programme</strong></div>
+    <div><span class="fillin">[programme / curriculum]</span>, Academic Year <span class="fillin">[year]</span></div>
+  </div>
+</section>
+
+<h2><span class="num">1</span>Introduction and Motivation</h2>
+
+<p>Cashless payment is now the default in Thailand. PromptPay transfers, QR payments and mobile banking applications such as K PLUS, SCB EASY, Krungthai NEXT and Bangkok Bank produce an electronic confirmation slip for every transaction, and most people keep those slips as images in their phone's photo gallery. The record of what a person spent therefore already exists on their device — but it exists as pictures, not as data that can be summed, categorised or questioned.</p>
+
+<p>Personal finance applications available today do not close that gap. They ask the user to type each expense by hand, which is the step most people abandon within a few weeks. The applications that do offer automation are built around credit-card statements and bank feeds common in Western markets, and they handle neither the Thai-language merchant names nor the Buddhist-era dates (2567, 2569) printed on Thai slips. The result is a familiar pattern: a user installs a budgeting application, enters expenses diligently for a fortnight, and then stops.</p>
+
+<p>SmartFin addresses this from the opposite direction. Rather than asking the user to record what they spent, it reads the evidence they already have. A payment slip is captured — by camera, or detected automatically in the gallery folder the banking application saves to — and a vision model extracts the merchant, the amount and the date, which the user confirms before the expense is stored. On top of that record, a conversational financial coach answers questions about the user's own spending by retrieving and computing over their stored transactions rather than by guessing.</p>
+
+<h2><span class="num">2</span>Problem Statement</h2>
+
+<p>Three specific problems motivate this work.</p>
+
+<ol>
+  <li><strong>Manual entry is the point of failure in expense tracking.</strong> Recording an expense requires the user to stop, open an application, and type an amount, a merchant and a category. The effort is small but it recurs several times a day, and compliance decays quickly.</li>
+  <li><strong>Thai payment slips are not served by existing extraction tools.</strong> A Thai e-slip mixes Thai and Latin script, prints amounts with a ฿ symbol and satang decimals, and frequently dates transactions in the Buddhist era. Generic receipt-scanning services misread all three.</li>
+  <li><strong>Financial advice in existing applications is generic.</strong> Applications that offer "insights" typically render fixed rules — a bar turning red at 80% of a budget — rather than answering a question about the user's actual data. A user cannot ask "how much did I spend on food in March?" and receive a figure computed from their own transactions.</li>
+</ol>
+
+<h2><span class="num">3</span>Objectives</h2>
+
+<ol>
+  <li>To design and implement a mobile application that records an expense from a Thai mobile-banking e-slip or a retail receipt with no manual typing of the merchant, amount or date.</li>
+  <li>To implement automatic detection of newly saved payment slips in the device photo gallery, so that an expense can be recorded without the user opening the application first.</li>
+  <li>To implement a conversational financial coach that answers questions about the user's own financial data using an agentic retrieval-augmented generation (RAG) architecture, in which a language model calls retrieval and action tools over the user's database records.</li>
+  <li>To implement a subscription and bill tracker that reminds the user of recurring payments before they fall due.</li>
+  <li>To evaluate both artificial-intelligence components quantitatively — the slip extractor against hand-labelled ground truth, and the coach against values recomputed from the database and against baseline architectures.</li>
+</ol>
+
+<h2><span class="num">4</span>Scope and Limitations</h2>
+
+<h3>4.1 In scope</h3>
+<ul>
+  <li>A mobile application for Android and iOS, built from a single Flutter codebase.</li>
+  <li>Extraction of merchant, amount and date from Thai mobile-banking e-slips (PromptPay, K PLUS, SCB EASY, Krungthai NEXT, Bangkok Bank) and from printed retail receipts, including Buddhist-era date conversion.</li>
+  <li>Expense and income records, categorisation, monthly summaries and a spending history with server-side filtering.</li>
+  <li>A conversational coach with retrieval tools over the user's data, a small number of write actions, and a web-search tool for general financial questions.</li>
+  <li>Manual entry of recurring bills, with due-date tracking and on-device reminders.</li>
+  <li>Thai and English conversation.</li>
+</ul>
+
+<h3>4.2 Out of scope</h3>
+<ul>
+  <li><strong>No direct bank integration.</strong> SmartFin does not connect to any banking API and never handles credentials. It reads only images the user already holds.</li>
+  <li><strong>No automatic posting of expenses.</strong> Every extracted slip is presented for confirmation before it is stored; the model's output is never written to the database unreviewed.</li>
+  <li>No multi-currency support. All amounts are integer Thai Baht.</li>
+  <li>No investment, lending, tax or credit advice.</li>
+  <li>No shared or family accounts; each account is single-user.</li>
+</ul>
+
+<h3>4.3 Known limitations</h3>
+<ul>
+  <li>Extraction accuracy depends on a third-party vision model and on image quality. Measured accuracy is reported in Section 8.</li>
+  <li>Automatic gallery detection depends on the folder in which a banking application saves its slips; users whose folder is not recognised must select it manually.</li>
+  <li>Slip images are transmitted to a third-party model provider for extraction. This is disclosed to the user and discussed in Section 9.</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h2><span class="num">5</span>Related Work and Technology Review</h2>
+
+<h3>5.1 Existing personal finance applications</h3>
+<p>Commercial applications fall into two groups. The first — including the majority of applications marketed in Thailand — are manual ledgers with charts; they are reliable but depend entirely on user discipline. The second group automates ingestion through bank-feed aggregation, which is mature in markets with open-banking regulation but is not generally available to a student project in Thailand, and would in any case require handling banking credentials. SmartFin takes a third path: it automates ingestion from artefacts the user already possesses, which requires no institutional access and no credentials.</p>
+
+<h3>5.2 Optical extraction from receipts</h3>
+<p>Traditional receipt processing pairs an optical character recognition engine with rules or a trained parser to locate fields. This pipeline is brittle on Thai slips, where layout varies by bank and the script mixes with Latin digits. Recent multimodal large language models accept an image directly and return structured fields, absorbing layout variation without per-bank templates. SmartFin adopts this approach, prompting the model to return a JSON object and to convert Buddhist-era years explicitly.</p>
+
+<h3>5.3 Retrieval-augmented generation and agentic architectures</h3>
+<p>Retrieval-augmented generation supplies a language model with retrieved context so that its answers rest on data rather than on parametric memory. The conventional form retrieves once and generates once. An <em>agentic</em> variant instead gives the model a set of callable tools and lets it decide, over several turns, which to call and with what arguments — so a question requiring two different lookups, or a lookup followed by a write, can be served by one request. This project implements the agentic form and, in Section 8, measures it against the conventional one-shot form and against a no-retrieval baseline on the same task set.</p>
+
+<h2><span class="num">6</span>Methodology and System Design</h2>
+
+<h3>6.1 Development approach</h3>
+<p>The project follows an iterative approach with working software at each departmental milestone (Alpha, Beta, D-Day). Each feature is implemented end to end — client, API and database — before the next is started, so that every milestone has a demonstrable application rather than partial layers.</p>
+
+<h3>6.2 Technology stack</h3>
+
+<table>
+  <caption>Table 1 — Implementation technologies.</caption>
+  <thead>
+    <tr><th>Layer</th><th>Technology</th><th>Rationale</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Mobile client</td><td>Flutter (Dart 3.11)</td><td>One codebase for Android and iOS; direct access to camera and photo library.</td></tr>
+    <tr><td>Backend API</td><td>Go 1.26 with Fiber v2</td><td>Compiled, statically typed, low memory footprint; straightforward concurrency for multi-turn model calls.</td></tr>
+    <tr><td>Database</td><td>MongoDB Atlas</td><td>Document model suits variable transaction and summary shapes; managed hosting.</td></tr>
+    <tr><td>Vision extraction</td><td>Gemini 2.5 Flash</td><td>Accepts an image directly and returns structured JSON; handles Thai script without a separate OCR stage.</td></tr>
+    <tr><td>Coach reasoning</td><td>Gemini 2.5 Flash function calling</td><td>Native tool-calling loop, which is the mechanism the agentic architecture requires.</td></tr>
+    <tr><td>Authentication</td><td>Firebase Authentication</td><td>Email and Google sign-in without implementing credential storage.</td></tr>
+    <tr><td>Notifications</td><td>On-device local notifications</td><td>Bill reminders without a server-side scheduler.</td></tr>
+  </tbody>
+</table>
+
+<h3>6.3 System architecture</h3>
+
+<figure class="figure">
+<svg viewBox="0 0 620 430" width="100%" role="img"
+     aria-label="System architecture: a Flutter client calls a Go Fiber API over HTTPS; the API contains a stateless scanner handler, a coach orchestrator with retrieval and action tools, and CRUD handlers; the scanner and orchestrator call the Gemini model, and the tools and handlers read and write MongoDB Atlas.">
+  <defs>
+    <marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 0 L8 4 L0 8 z" fill="#5b5b5b"/>
+    </marker>
+    <style>
+      .bx { fill: #fff; stroke: #b0a99c; stroke-width: 1; }
+      .grp { fill: #faf7f2; stroke: #b46a00; stroke-width: 1.2; }
+      .ext { fill: #fdf3e3; stroke: #b46a00; stroke-width: 1; stroke-dasharray: 3 2; }
+      .db { fill: #f2efe9; stroke: #b0a99c; stroke-width: 1; }
+      .t { font: 9px "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #1a1a1a; }
+      .ti { font: 600 9.5px "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #1a1a1a; }
+      .ts { font: 7.5px "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #5b5b5b; }
+      .lbl { font: 7.5px "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #5b5b5b; }
+      .ln { stroke: #5b5b5b; stroke-width: 1; fill: none; marker-end: url(#ar); }
+    </style>
+  </defs>
+
+  <!-- client -->
+  <rect class="grp" x="10" y="10" width="600" height="58" rx="5"/>
+  <text class="ti" x="22" y="27">Flutter mobile client</text>
+  <text class="t" x="22" y="47">Camera / Gallery</text>
+  <text class="t" x="138" y="47">Dashboard</text>
+  <text class="t" x="228" y="47">History</text>
+  <text class="t" x="308" y="47">Coach chat</text>
+  <text class="t" x="400" y="47">Bills</text>
+  <text class="t" x="462" y="47">Subscriptions</text>
+
+  <path class="ln" d="M310 68 L310 96"/>
+  <text class="lbl" x="318" y="86">HTTPS / JSON</text>
+
+  <!-- api -->
+  <rect class="grp" x="10" y="98" width="600" height="196" rx="5"/>
+  <text class="ti" x="22" y="115">Go Fiber API</text>
+
+  <rect class="bx" x="24" y="126" width="150" height="40" rx="4"/>
+  <text class="t" x="34" y="142">Scanner handler</text>
+  <text class="ts" x="34" y="156">stateless — persists nothing</text>
+
+  <rect class="bx" x="196" y="126" width="180" height="40" rx="4"/>
+  <text class="t" x="206" y="142">Coach orchestrator</text>
+  <text class="ts" x="206" y="156">≤ 5 turns, 45 s budget</text>
+
+  <rect class="bx" x="398" y="126" width="190" height="40" rx="4"/>
+  <text class="t" x="408" y="142">CRUD handlers</text>
+  <text class="ts" x="408" y="156">transactions, summaries, bills</text>
+
+  <!-- tools -->
+  <rect class="bx" x="196" y="206" width="84" height="40" rx="4"/>
+  <text class="t" x="206" y="222">Retrieval</text>
+  <text class="ts" x="206" y="236">4 tools</text>
+
+  <rect class="bx" x="292" y="206" width="84" height="40" rx="4"/>
+  <text class="t" x="302" y="222">Action</text>
+  <text class="ts" x="302" y="236">3 tools</text>
+
+  <rect class="bx" x="388" y="206" width="84" height="40" rx="4"/>
+  <text class="t" x="398" y="222">Research</text>
+  <text class="ts" x="398" y="236">web search</text>
+
+  <path class="ln" d="M286 166 L238 202"/>
+  <path class="ln" d="M292 166 L330 202"/>
+  <path class="ln" d="M300 166 L420 202"/>
+
+  <!-- external model -->
+  <rect class="ext" x="24" y="206" width="150" height="40" rx="4"/>
+  <text class="t" x="34" y="222">Gemini 2.5 Flash</text>
+  <text class="ts" x="34" y="236">vision + function calling</text>
+  <path class="ln" d="M99 166 L99 202"/>
+  <path class="ln" d="M196 146 L180 146 L180 214 L176 214"/>
+
+  <!-- database -->
+  <path class="db" d="M210 330 a90 11 0 0 1 180 0 v50 a90 11 0 0 1 -180 0 z"/>
+  <path d="M210 330 a90 11 0 0 0 180 0" fill="none" stroke="#b0a99c"/>
+  <text class="ti" x="256" y="355">MongoDB Atlas</text>
+  <text class="ts" x="230" y="370">users · transactions · summaries · bills · chat</text>
+
+  <path class="ln" d="M238 246 L238 300 L262 322"/>
+  <path class="ln" d="M334 246 L334 316"/>
+  <path class="ln" d="M493 166 L493 300 L360 322"/>
+
+  <text class="lbl" x="398" y="408">Slip images are sent to the model and never stored on the server.</text>
+</svg>
+<figcaption>Figure 1 — System architecture. Arrows show the direction of calls.</figcaption>
+</figure>
+
+<p>Two design decisions in this architecture are worth stating explicitly. First, <strong>slip scanning is stateless on the server</strong>: the extraction endpoint returns fields and persists nothing, so the transaction is created only when the user confirms it on the verification screen. Second, <strong>all monetary values are integer Thai Baht end to end</strong>, from the database through the API to the interface, so that no floating-point rounding can alter a user's recorded amount.</p>
+
+<h3>6.4 Slip capture flow</h3>
+<p>The application offers two paths to the same outcome. In the <em>manual</em> path the user photographs a slip or receipt. In the <em>automatic</em> path a gallery watcher detects a newly saved image in a folder associated with a banking application and offers it. Both paths converge on an extraction request, followed by a verification screen where the user checks the merchant, amount, date and category before saving. Because folder naming varies between banking applications and devices, folder names are matched after normalisation, several folders are watched simultaneously, and the user may nominate a folder manually when automatic matching fails.</p>
+
+<h3>6.5 The AI coach</h3>
+<p>A question sent to the coach starts a bounded reasoning loop on the server. The model receives the user's question, the current date in Thai local time, and a set of tool declarations grouped into three roles:</p>
+
+<ul>
+  <li><strong>Retrieval tools</strong> — monthly budget summary, transactions (filterable by category, type and merchant), subscriptions, and recent conversation history.</li>
+  <li><strong>Action tools</strong> — set a savings goal, update a budget limit, add a transaction.</li>
+  <li><strong>Research tool</strong> — web search, for general financial questions not answerable from the user's own data.</li>
+</ul>
+
+<p>The model selects tools, receives their results, and may call further tools before composing an answer. The loop is bounded at five turns and a 45-second server budget. Every exchange is persisted so that the conversation survives the client screen being disposed, which also gives the coach a memory of earlier sessions.</p>
+
+<div class="page-break"></div>
+
+<h2><span class="num">7</span>Evaluation Methodology</h2>
+
+<p>Both artificial-intelligence components are evaluated quantitatively against ground truth rather than by demonstration or by subjective judgement. An earlier attempt used a language model to judge its own answers; it was discarded because the judge scored against a hint of the context rather than against the real data, so its scores could not be defended. Both current harnesses are deterministic and scored by rule.</p>
+
+<h3>7.1 Coach evaluation</h3>
+<p>A test set of 30 scripted tasks spans ten categories: lookup, aggregation, bills, Thai-language questions, multi-turn conversation, empty-account behaviour, off-topic redirection, safety, write actions and memory. Each task runs on a freshly seeded account, and the expected values are recomputed from MongoDB rather than hard-coded, so the harness cannot drift from the data. Answers are scored by rule: required figures must appear within ±฿1, required keywords must be present, prohibited keywords must be absent, and for write tasks the database is read back to confirm the change actually occurred. Three architectures are compared on identical tasks:</p>
+
+<ul>
+  <li><strong>Agentic RAG</strong> — the implemented system, with the full tool loop.</li>
+  <li><strong>One-shot RAG</strong> — the same model and persona, given the user's data as context in a single turn, with no tools.</li>
+  <li><strong>No retrieval</strong> — the same model and persona with no data at all, to establish a floor.</li>
+</ul>
+
+<p>Every task is repeated three times per architecture, giving 90 trials per architecture. Two figures are reported: the pass rate on the 23 tasks every architecture is capable of attempting, and overall task success on all 30 — where an architecture that cannot perform a task fails it.</p>
+
+<h3>7.2 Slip extraction evaluation</h3>
+<p>Thirty real images — 15 mobile-banking e-slips and 15 printed retail receipts — were labelled by hand with the true merchant, amount and date, then scanned twice each through the production endpoint, giving 60 scans. An amount is correct within ±0.5 Baht; a merchant is correct if the extracted name contains an accepted alias, which accommodates transliteration; a date must match exactly. Where a receipt prints no date at all, the extractor is required to return the current date rather than invent one. Because the images are real payment records containing personal data, they are excluded from version control and no identifying detail is reproduced in any report.</p>
+
+<h2><span class="num">8</span>Results to Date</h2>
+
+<h3>8.1 Coach evaluation results</h3>
+
+<table>
+  <caption>Table 2 — Coach architectures on 30 tasks &times; 3 repetitions (90 trials each).</caption>
+  <thead>
+    <tr>
+      <th>Metric</th>
+      <th class="num">Agentic RAG</th>
+      <th class="num">One-shot RAG</th>
+      <th class="num">No retrieval</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Pass rate, 23 shared questions (69 trials)</td><td class="num">100% (69/69)</td><td class="num">100% (69/69)</td><td class="num">—</td></tr>
+    <tr><td>Overall task success, all 30 tasks (90 trials)</td><td class="num"><strong>97% (87/90)</strong></td><td class="num">87% (78/90)</td><td class="num">17%</td></tr>
+    <tr><td>Write actions performed</td><td class="num">7/9</td><td class="num">0/9</td><td class="num">0/9</td></tr>
+    <tr><td>Cross-session memory</td><td class="num">2/3</td><td class="num">0/3</td><td class="num">0/3</td></tr>
+    <tr><td>Numeric accuracy</td><td class="num">100%</td><td class="num">100%</td><td class="num">—</td></tr>
+    <tr><td>Unsupported ฿ figures (fabrication)</td><td class="num">0%</td><td class="num">0%</td><td class="num">—</td></tr>
+    <tr><td>Median response time</td><td class="num">3.2 s</td><td class="num">2.0 s</td><td class="num">—</td></tr>
+  </tbody>
+</table>
+
+<p>Three findings deserve emphasis, including one that does not favour the implemented system.</p>
+
+<ul>
+  <li><strong>Retrieval is what matters most.</strong> Without access to the user's data the model answers 17% of tasks; with it, both retrieval architectures answer every shared question correctly. This is the difference between an application that knows the user's finances and one that does not.</li>
+  <li><strong>One-shot RAG matches the agentic system on read-only questions</strong>, and is faster. The agentic architecture earns its cost on the tasks the baseline structurally cannot do: it performed 7 of 9 write actions and 2 of 3 memory tasks, where the baseline scored zero on both — and in 7 of 9 write trials the baseline <em>claimed</em> to have performed an action it had no ability to perform.</li>
+  <li><strong>Neither retrieval architecture fabricated a monetary figure</strong> across 180 trials, which is the property that matters most in a financial application.</li>
+</ul>
+
+<p>Two failure modes were found and corrected during evaluation: the transaction tool could not filter by merchant name, so merchant-specific questions failed; and the model sometimes replied "give me a moment" instead of calling a tool. Both were fixed and re-measured, raising the shared pass rate from 84% to 100%. Three agentic failures remain: two false "logged" claims after a write, and one missed memory recall.</p>
+
+<h3>8.2 Slip extraction results</h3>
+
+<table>
+  <caption>Table 3 — Extraction accuracy on 30 labelled images, scanned twice each (60 scans).</caption>
+  <thead>
+    <tr><th>Field</th><th class="num">All images</th><th class="num">E-slips (30 scans)</th><th class="num">Receipts (30 scans)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Amount</td><td class="num"><strong>100% (60/60)</strong></td><td class="num">100%</td><td class="num">100%</td></tr>
+    <tr><td>Merchant</td><td class="num">93% (56/60)</td><td class="num">—</td><td class="num">—</td></tr>
+    <tr><td>Date</td><td class="num">93% (56/60)</td><td class="num">—</td><td class="num">—</td></tr>
+    <tr><td>All three fields correct</td><td class="num">87% (52/60)</td><td class="num">93% (28/30)</td><td class="num">80% (24/30)</td></tr>
+  </tbody>
+</table>
+
+<p>Amounts — the field with the greatest consequence if wrong — were extracted correctly in every scan, including satang decimals, rotated and creased receipts, and Buddhist-era years. The eight remaining errors have two causes: four scans invented a date on two receipts that print no date, and four misread Thai shop names. Both are attributable to the extraction prompt rather than to the model's capability, and correcting them is scheduled before the Beta Test. Identical output was produced on both scans of 87% of images, and the median extraction time was 5.2 seconds. Measured token usage puts the cost of one scan at approximately ฿0.05.</p>
+
+<div class="callout">
+  <p><strong>On self-reported confidence.</strong> The extractor was asked to return a confidence score, and returned 0.98 on correct and incorrect extractions alike. The score was therefore removed from the interface rather than shown to users, since a confident-looking wrong answer is worse than no score at all. The verification screen now asks every user to check every field.</p>
+</div>
+
+<h2><span class="num">9</span>Privacy and Ethical Considerations</h2>
+
+<ul>
+  <li><strong>Payment slips contain personal data</strong> — names, partial account numbers and transaction references. Slip images used for evaluation are excluded from version control, and no name taken from a slip appears in any report, slide or summary.</li>
+  <li><strong>Images are processed by a third-party model provider.</strong> This is inherent to the chosen approach and is disclosed to the user; images are not stored on the project's server, which holds only the confirmed fields.</li>
+  <li><strong>No banking credentials are requested or handled at any point.</strong></li>
+  <li><strong>The user confirms every extracted expense</strong> before it is recorded, so no financial record is created by the model alone.</li>
+  <li><strong>The coach declines actions outside its remit</strong>, including deletion requests, and its write actions are limited to three narrowly defined operations.</li>
+</ul>
+
+<h2><span class="num">10</span>Project Timeline</h2>
+
+<table>
+  <caption>Table 4 — Milestones. Departmental milestone dates as scheduled for CSC499.</caption>
+  <thead>
+    <tr><th>Phase</th><th>Date</th><th>Deliverable</th><th>Status</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Core implementation</td><td>To 14 Sep 2026</td><td>Authentication, transactions, dashboard, history, slip scanning, AI coach, bill tracker</td><td>Complete</td></tr>
+    <tr><td><strong>Alpha Test</strong></td><td>14 Sep 2026</td><td>Working application demonstrated; both AI components evaluated</td><td>Complete</td></tr>
+    <tr><td>Refinement</td><td>Sep – Oct 2026</td><td>Extraction prompt corrections, write-action verification, interface revisions from Alpha feedback</td><td>In progress</td></tr>
+    <tr><td><strong>Beta Test</strong></td><td>14 – 20 Oct 2026</td><td>Feature-complete application; user testing with real participants</td><td>Scheduled</td></tr>
+    <tr><td>Deployment and hardening</td><td>Oct – Nov 2026</td><td>Backend deployment, credential rotation, larger evaluation set</td><td>Scheduled</td></tr>
+    <tr><td><strong>D-Day presentation</strong></td><td>16 Nov 2026</td><td>Final demonstration and defence</td><td>Scheduled</td></tr>
+    <tr><td>Final report</td><td>18 Dec 2026</td><td>Complete project report</td><td>Scheduled</td></tr>
+    <tr><td>Project video</td><td>23 Dec 2026</td><td>Demonstration video</td><td>Scheduled</td></tr>
+  </tbody>
+</table>
+
+<h2><span class="num">11</span>Expected Outcomes</h2>
+
+<ol>
+  <li>A working mobile application that records a Thai payment slip as a categorised expense without manual typing, with measured field accuracy reported rather than asserted.</li>
+  <li>A conversational financial coach that answers questions from the user's own data, with a quantified comparison against two baseline architectures on an identical task set.</li>
+  <li>Two reusable evaluation harnesses — one for extraction accuracy against labelled images, one for coach answers against database ground truth — that can be re-run after any change to a prompt, a tool or a model.</li>
+  <li>Evidence on a question of practical interest beyond this project: <em>when</em> an agentic architecture is worth its additional latency and cost compared with conventional single-pass retrieval. The measurements here indicate the answer is: when the task requires acting or remembering, not when it requires only looking up.</li>
+</ol>
+
+<h2><span class="num">12</span>References</h2>
+
+<ol class="refs">
+  <li>Bank of Thailand. <em>Payment Systems Report</em>. Bangkok: Bank of Thailand. [Statistics on PromptPay and mobile-banking adoption.]</li>
+  <li>Lewis, P. et al. "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks." <em>Advances in Neural Information Processing Systems</em>, 2020.</li>
+  <li>Yao, S. et al. "ReAct: Synergizing Reasoning and Acting in Language Models." <em>International Conference on Learning Representations</em>, 2023.</li>
+  <li>Schick, T. et al. "Toolformer: Language Models Can Teach Themselves to Use Tools." <em>Advances in Neural Information Processing Systems</em>, 2023.</li>
+  <li>Google. <em>Gemini API Documentation: Image Understanding and Function Calling</em>. Google AI for Developers.</li>
+  <li>Office of the Personal Data Protection Committee. <em>Personal Data Protection Act B.E. 2562 (2019)</em>. Bangkok.</li>
+  <li><span class="fillin">[add any papers or applications your advisor expects to see cited]</span></li>
+</ol>

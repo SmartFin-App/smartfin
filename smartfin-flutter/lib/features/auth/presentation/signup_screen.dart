@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_fin/constants/color_style.dart';
+import 'package:smart_fin/widgets/smartfin_logo.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -249,7 +250,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                     );
                   },
-                  child: Image.asset('assets/images/lucky_cat.png', width: 48, height: 48),
+                  child: const SmartFinLogo(fontSize: 28),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -480,23 +481,6 @@ class _SignupScreenState extends State<SignupScreen> {
                   color: const Color.fromRGBO(255, 249, 240, 0.8),
                   child: Stack(
                     children: [
-                      Positioned(
-                        top: 48, 
-                        left: 0,
-                        right: 0,
-                        child: IgnorePointer(
-                          child: Text(
-                            'Create Account',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.bricolageGrotesque(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                              letterSpacing: -0.45,
-                              color: const Color(0xFF333333),
-                            ),
-                          ),
-                        ),
-                      ),
                       Positioned(
                         left: 24,
                         top: 40,

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:smart_fin/constants/color_style.dart';
+import 'package:smart_fin/widgets/smartfin_logo.dart';
 
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
@@ -95,64 +96,36 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Cat and Glow
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Glow behind cat
-                    Container(
-                      width: 288,
-                      height: 288,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color.fromRGBO(255, 159, 41, 0.05),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color.fromRGBO(255, 159, 41, 0.05),
-                            blurRadius: 50,
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Lucky cat image
-                    AnimatedBuilder(
-                      animation: _bounceAnimation,
-                      builder: (context, child) {
-                        return Transform.translate(
-                          offset: Offset(0, _bounceAnimation.value),
-                          child: child,
-                        );
-                      },
-                      child: Image.asset(
-                        'assets/images/lucky_cat.png',
-                        width: 160,
-                        height: 161,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                // App name
-                Text(
-                  'SmartFin',
-                  style: GoogleFonts.bricolageGrotesque(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 60,
-                    letterSpacing: -3,
-                    color: const Color(0xFF333333),
-                  ),
+                // Wordmark, carrying the bounce the cat illustration used to.
+                AnimatedBuilder(
+                  animation: _bounceAnimation,
+                  builder: (context, child) {
+                    return Transform.translate(
+                      offset: Offset(0, _bounceAnimation.value),
+                      child: child,
+                    );
+                  },
+                  child: const SmartFinLogo(fontSize: 60, letterSpacing: -3),
                 ),
                 const SizedBox(height: 8),
                 // Tagline
-                Text(
-                  'YOUR AI FINANCIAL COACH',
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    letterSpacing: 4.2,
-                    color: const Color(0xFFFF9F29),
+                // Four characters longer than the old tagline, so the tracking
+                // is tightened to keep it on one line on a 360dp screen.
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'AUTOMATIC EXPENSE TRACKING',
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        letterSpacing: 3,
+                        color: const Color(0xFFFF9F29),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
                 ),
               ],
             ),

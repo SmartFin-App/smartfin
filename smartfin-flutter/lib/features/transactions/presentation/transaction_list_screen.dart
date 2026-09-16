@@ -620,14 +620,10 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Opacity(
-                              opacity: 0.4,
-                              child: Image.asset(
-                                'assets/images/lucky_cat.png',
-                                width: 72,
-                                height: 72,
-                                filterQuality: FilterQuality.medium,
-                              ),
+                            const Icon(
+                              Icons.cloud_off_outlined,
+                              size: 64,
+                              color: Color(0xFFD8D2C8),
                             ),
                             const SizedBox(height: 16),
                             Text(
@@ -675,14 +671,10 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Opacity(
-                            opacity: 0.5,
-                            child: Image.asset(
-                              'assets/images/lucky_cat.png',
-                              width: 80,
-                              height: 80,
-                              filterQuality: FilterQuality.medium,
-                            ),
+                          const Icon(
+                            Icons.receipt_long_outlined,
+                            size: 64,
+                            color: Color(0xFFD8D2C8),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -716,12 +708,10 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Opacity(
-                            opacity: 0.5,
-                            child: Image.asset('assets/images/lucky_cat.png',
-                                width: 80,
-                                height: 80,
-                                filterQuality: FilterQuality.medium),
+                          const Icon(
+                            Icons.search_off_outlined,
+                            size: 64,
+                            color: Color(0xFFD8D2C8),
                           ),
                           const SizedBox(height: 16),
                           Text(
