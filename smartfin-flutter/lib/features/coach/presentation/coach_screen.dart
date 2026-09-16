@@ -65,9 +65,11 @@ class _CoachScreenState extends State<CoachScreen>
         setState(() {
           _messages = res.data!.map((m) {
             final created = DateTime.tryParse(m['created_at'] as String? ?? '');
+            final at = created?.toLocal() ?? DateTime.now();
             return <String, dynamic>{
               'isUser': m['role'] == 'user',
-              'time': _formatTime(created?.toLocal() ?? DateTime.now()),
+              'at': at,
+              'time': _formatTime(at),
               'text': m['content'] as String? ?? '',
             };
           }).toList();
@@ -81,6 +83,7 @@ class _CoachScreenState extends State<CoachScreen>
     setState(() {
       _messages.add({
         'isUser': false,
+        'at': DateTime.now(),
         'time': _formatTime(DateTime.now()),
         'text':
             'Hi $_userName! 🐾 I\'m your SmartFin Coach. Ask me anything about your spending!',
@@ -118,6 +121,7 @@ class _CoachScreenState extends State<CoachScreen>
     setState(() {
       _messages.add({
         'isUser': true,
+        'at': DateTime.now(),
         'time': _formatTime(DateTime.now()),
         'text': userMessage,
       });
@@ -138,6 +142,7 @@ class _CoachScreenState extends State<CoachScreen>
       _isTyping = false;
       _messages.add({
         'isUser': false,
+        'at': DateTime.now(),
         'time': _formatTime(DateTime.now()),
         'text': result.success
             ? (result.data ?? 'Sorry, I had trouble responding 🐾')
@@ -168,6 +173,24 @@ class _CoachScreenState extends State<CoachScreen>
     h = h > 12 ? h - 12 : (h == 0 ? 12 : h);
     String ms = m < 10 ? '0$m' : '$m';
     return '$h:$ms $period';
+  }
+
+  static bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  static const _months = [
+    'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+    'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+  ];
+
+  /// "TODAY", "YESTERDAY", or "12 SEP 2026" for anything older.
+  String _dayLabel(DateTime date) {
+    final now = DateTime.now();
+    if (_sameDay(date, now)) return 'TODAY';
+    if (_sameDay(date, now.subtract(const Duration(days: 1)))) {
+      return 'YESTERDAY';
+    }
+    return '${date.day} ${_months[date.month - 1]} ${date.year}';
   }
 
   double _easeBounce(double x) {
@@ -414,52 +437,58 @@ class _CoachScreenState extends State<CoachScreen>
                   padding: const EdgeInsets.symmetric(
                           horizontal: 24, vertical: 24)
                       .copyWith(bottom: 156),
-                  itemCount:
-                      _messages.length + (_isTyping ? 2 : 1),
+                  itemCount: _messages.length + (_isTyping ? 1 : 0),
                   itemBuilder: (context, index) {
-                    // Date pill header
-                    if (index == 0) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 32),
-                        child: Center(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color.fromRGBO(
-                                  240, 235, 225, 0.6),
-                              borderRadius:
-                                  BorderRadius.circular(9999),
-                            ),
-                            child: Text(
-                              'TODAY',
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 9,
-                                letterSpacing: 1.5,
-                                color: const Color(0xFF9E9E9E),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-
-                    final realIndex = index - 1;
-
                     // Typing indicator
-                    if (realIndex == _messages.length && _isTyping) {
+                    if (index == _messages.length) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 32),
                         child: _buildTypingIndicator(),
                       );
                     }
 
-                    if (realIndex >= _messages.length) {
-                      return const SizedBox.shrink();
+                    final message = _messages[index];
+                    final bubble = _buildMessage(message);
+
+                    // A separator goes above the first message of each day. The
+                    // transcript is restored from the server and can span weeks,
+                    // so a single pill at the top once labelled every old message
+                    // "TODAY".
+                    final at = message['at'] as DateTime?;
+                    final previous =
+                        index == 0 ? null : _messages[index - 1]['at'] as DateTime?;
+                    if (at == null || (previous != null && _sameDay(at, previous))) {
+                      return bubble;
                     }
 
-                    return _buildMessage(_messages[realIndex]);
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 32),
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color.fromRGBO(240, 235, 225, 0.6),
+                                borderRadius: BorderRadius.circular(9999),
+                              ),
+                              child: Text(
+                                _dayLabel(at),
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 9,
+                                  letterSpacing: 1.5,
+                                  color: const Color(0xFF9E9E9E),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        bubble,
+                      ],
+                    );
                   },
                 ),
               ),
@@ -510,7 +539,7 @@ class _CoachScreenState extends State<CoachScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Smart Coach',
+                            'AI Coach',
                             style: GoogleFonts.bricolageGrotesque(
                               fontWeight: FontWeight.w700,
                               fontSize: 18,
