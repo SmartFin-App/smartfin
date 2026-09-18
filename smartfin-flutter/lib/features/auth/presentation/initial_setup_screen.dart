@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -17,10 +18,12 @@ class InitialSetupScreen extends StatefulWidget {
 }
 
 class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProviderStateMixin {
-  String? selectedIncome;
   String? selectedStatus;
   String? selectedHealth;
   final _nameController = TextEditingController();
+  // Optional. SmartFin tracks spending, so the budget is the one figure worth
+  // asking for up front; it used to be set silently to 70% of an income figure.
+  final _budgetController = TextEditingController();
   bool _isLoading = false;
 
   late AnimationController _catController;
@@ -70,22 +73,13 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
     _catController.dispose();
     _contentController.dispose();
     _nameController.dispose();
+    _budgetController.dispose();
     super.dispose();
-  }
-
-  double _parseIncome(String bracket) {
-    switch (bracket) {
-      case 'Under 20k': return 15000;
-      case '20k-50k':   return 35000;
-      case '50k-100k':  return 75000;
-      case '100k+':     return 150000;
-      default:          return 0;
-    }
   }
 
   Future<void> _submitSetup() async {
     final name = _nameController.text.trim();
-    if (name.isEmpty || selectedIncome == null || selectedStatus == null || selectedHealth == null) {
+    if (name.isEmpty || selectedStatus == null || selectedHealth == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please complete all fields to continue')),
       );
@@ -101,8 +95,9 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
       // Update Firebase display name
       await user.updateDisplayName(name);
 
-      final monthlyIncome = _parseIncome(selectedIncome!);
-      final budgetLimit = monthlyIncome * 0.7;
+      // Zero means "not set": the dashboard and the coach say so rather than
+      // measuring spending against a limit the user never chose.
+      final budgetLimit = int.tryParse(_budgetController.text.trim()) ?? 0;
 
       // Save to Go backend
       final repo = AuthRepositoryImpl();
@@ -111,11 +106,9 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
         name: name,
         email: user.email ?? '',
         photoURL: user.photoURL ?? '',
-        monthlyIncome: monthlyIncome,
-        incomeBracket: selectedIncome!,
         currentStatus: selectedStatus!,
         financialHealth: selectedHealth!,
-        budgetLimit: budgetLimit,
+        budgetLimit: budgetLimit.toDouble(),
       );
 
       if (!result.success) {
@@ -131,13 +124,13 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('setup_complete', true);
       await prefs.setString('user_name', name);
-      await prefs.setString('user_income', selectedIncome!);
       await prefs.setString('user_status', selectedStatus!);
       await prefs.setString('user_health', selectedHealth!);
       // setInt, not setDouble: these are read back with getInt, which throws a
       // TypeError on a stored double and left Profile showing ฿0.
-      await prefs.setInt('user_income_amount', monthlyIncome.round());
-      await prefs.setInt('user_budget_limit', budgetLimit.round());
+      if (budgetLimit > 0) {
+        await prefs.setInt('user_budget_limit', budgetLimit);
+      }
       await prefs.setBool('onboarding_complete', true);
 
       if (mounted) {
@@ -352,24 +345,62 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
                           ),
                         ),
 
-                        // Section 1: Monthly Income
-                        _buildSectionLabel('MONTHLY INCOME'),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          physics: const ClampingScrollPhysics(),
-                          child: Row(
-                            children: [
-                              _buildPill('Under 20k', selectedIncome, (val) => setState(() => selectedIncome = val)),
-                              const SizedBox(width: 8),
-                              _buildPill('20k-50k', selectedIncome, (val) => setState(() => selectedIncome = val)),
-                              const SizedBox(width: 8),
-                              _buildPill('50k-100k', selectedIncome, (val) => setState(() => selectedIncome = val)),
-                              const SizedBox(width: 8),
-                              _buildPill('100k+', selectedIncome, (val) => setState(() => selectedIncome = val)),
+                        // Section 1: Monthly Budget (optional)
+                        _buildSectionLabel('MONTHLY BUDGET (OPTIONAL)'),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFEAE2D6)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.02),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
                             ],
                           ),
+                          child: TextField(
+                            controller: _budgetController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(8),
+                            ],
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                              color: const Color(0xFF333333),
+                            ),
+                            decoration: InputDecoration(
+                              prefixText: '฿ ',
+                              prefixStyle: GoogleFonts.inter(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                color: const Color(0xFFFF9F29),
+                              ),
+                              hintText: 'e.g. 15000',
+                              hintStyle: GoogleFonts.inter(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                color: const Color.fromRGBO(158, 158, 158, 0.3),
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                            ),
+                          ),
                         ),
-                        
+                        const SizedBox(height: 8),
+                        Text(
+                          "How much you aim to spend each month. SmartFin shows your spending against it. You can skip this and set it later in Profile.",
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 11,
+                            height: 1.4,
+                            color: const Color(0xFF9E9E9E),
+                          ),
+                        ),
+
                         const SizedBox(height: 32),
 
                         // Section 2: Current Status

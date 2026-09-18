@@ -20,7 +20,6 @@ class AccountSettingsScreen extends StatefulWidget {
 }
 
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
-  static const _incomeBrackets = ['Under 20k', '20k-50k', '50k-100k', '100k+'];
   static const _statuses = ['Student', 'Pro', 'Founder'];
   static const _healthOptions = [
     'Debt-Free',
@@ -31,7 +30,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   final TextEditingController _nameController = TextEditingController();
 
-  String? _incomeBracket;
   String? _status;
   String? _health;
   String _email = '';
@@ -63,7 +61,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       setState(() {
         _nameController.text =
             prefs.getString('user_name') ?? user?.displayName ?? '';
-        _incomeBracket = prefs.getString('user_income');
         _status = prefs.getString('user_status');
         _health = prefs.getString('user_health');
       });
@@ -89,8 +86,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         _email = (data['email'] as String?)?.isNotEmpty == true
             ? data['email'] as String
             : _email;
-        _incomeBracket = _valueOrNull(data['income_bracket'], _incomeBrackets) ??
-            _incomeBracket;
         _status = _valueOrNull(data['current_status'], _statuses) ?? _status;
         _health = _valueOrNull(data['financial_health'], _healthOptions) ?? _health;
         _isLoading = false;
@@ -102,7 +97,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           _isLoading = false;
           // Cached values may still be usable; only flag a hard failure when the
           // form would otherwise be empty.
-          _loadFailed = _nameController.text.isEmpty && _incomeBracket == null;
+          _loadFailed = _nameController.text.isEmpty && _status == null;
         });
       }
     }
@@ -142,12 +137,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
     setState(() => _isSaving = true);
     try {
-      // Deliberately not sending monthly_income: the bracket is a coarse band, and
-      // overwriting an exact figure the user set in Profile with a band midpoint
-      // would silently lose it.
+      // No income bracket here: it is derived from the exact monthly income, which
+      // is edited in Profile. A separate picker let the two contradict each other
+      // ("Under 20k" beside an income of ฿80,000).
       await DioClient.dio.put('/api/users/$uid', data: {
         'name': name,
-        if (_incomeBracket != null) 'income_bracket': _incomeBracket,
         if (_status != null) 'current_status': _status,
         if (_health != null) 'financial_health': _health,
       });
@@ -161,9 +155,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_name', name);
-      if (_incomeBracket != null) {
-        await prefs.setString('user_income', _incomeBracket!);
-      }
       if (_status != null) await prefs.setString('user_status', _status!);
       if (_health != null) await prefs.setString('user_health', _health!);
 
@@ -246,12 +237,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 28),
-
-                    _sectionLabel('INCOME BRACKET'),
-                    const SizedBox(height: 12),
-                    _pillGroup(_incomeBrackets, _incomeBracket,
-                        (v) => setState(() => _incomeBracket = v)),
                     const SizedBox(height: 28),
 
                     _sectionLabel('CURRENT STATUS'),

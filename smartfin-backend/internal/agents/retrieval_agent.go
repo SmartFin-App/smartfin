@@ -37,14 +37,16 @@ func NewRetrievalAgent() *RetrievalAgent {
 	}
 }
 
-// GetBudgetSummary retrieves the monthly financial summary for a user
+// GetBudgetSummary retrieves a month's spending for a user: total, by category,
+// and against their budget. There is no income in it — SmartFin tracks spending
+// only, so "saved" and "available" are not figures it can know.
 func (a *RetrievalAgent) GetBudgetSummary(ctx context.Context, userID, month string) (map[string]any, error) {
 	if month == "" || month == "current" {
 		now := time.Now()
 		month = fmt.Sprintf("%d-%02d", now.Year(), int(now.Month()))
 	}
 
-	// Fetch user profile for income / budget
+	// Fetch user profile for the budget limit
 	var user models.User
 	_ = a.usersCol.FindOne(ctx, bson.M{"firebase_uid": userID}).Decode(&user)
 
@@ -54,12 +56,9 @@ func (a *RetrievalAgent) GetBudgetSummary(ctx context.Context, userID, month str
 	if err == nil {
 		return map[string]any{
 			"month":              summary.Month,
-			"total_income":       summary.TotalIncome,
 			"total_expenses":     summary.TotalExpenses,
-			"available":          summary.Available,
 			"budget_limit":       summary.BudgetLimit,
 			"budget_percentage":  summary.BudgetPercentage,
-			"savings":            summary.Savings,
 			"category_breakdown": summary.ExpenseByCategory,
 		}, nil
 	}
@@ -80,6 +79,7 @@ func (a *RetrievalAgent) GetBudgetSummary(ctx context.Context, userID, month str
 
 	cursor, err := a.transactionsCol.Find(ctx, bson.M{
 		"user_id": userID,
+		"type":    "expense",
 		"date": bson.M{
 			"$gte": startOfMonth,
 			"$lt":  endOfMonth,
@@ -96,24 +96,17 @@ func (a *RetrievalAgent) GetBudgetSummary(ctx context.Context, userID, month str
 	}
 
 	var totalExpenses int64
-	var oneTimeIncome int64
 	catMap := make(map[string]int64)
 
 	for _, t := range transactions {
-		if t.Type == "expense" {
-			totalExpenses += t.Amount
-			cat := t.Category
-			if cat == "" {
-				cat = "General"
-			}
-			catMap[cat] += t.Amount
-		} else if t.Type == "income" {
-			oneTimeIncome += t.Amount
+		totalExpenses += t.Amount
+		cat := t.Category
+		if cat == "" {
+			cat = "General"
 		}
+		catMap[cat] += t.Amount
 	}
 
-	totalIncome := user.MonthlyIncome + oneTimeIncome
-	available := totalIncome - totalExpenses
 	budgetPct := float64(0)
 	if user.BudgetLimit > 0 {
 		budgetPct = (float64(totalExpenses) / float64(user.BudgetLimit)) * 100
@@ -137,12 +130,9 @@ func (a *RetrievalAgent) GetBudgetSummary(ctx context.Context, userID, month str
 
 	return map[string]any{
 		"month":              month,
-		"total_income":       totalIncome,
 		"total_expenses":     totalExpenses,
-		"available":          available,
 		"budget_limit":       user.BudgetLimit,
 		"budget_percentage":  math.Round(budgetPct*10) / 10,
-		"savings":            int64(math.Max(0, float64(available))),
 		"category_breakdown": breakdown,
 	}, nil
 }
@@ -152,7 +142,7 @@ func (a *RetrievalAgent) GetBudgetSummary(ctx context.Context, userID, month str
 // merchant is a case-insensitive fragment of the merchant name. Without it the
 // tool only returns the newest rows, so "how much did I spend at Netflix?" never
 // reached older payments — the coach evaluation traced 7 of its 13 failures here.
-func (a *RetrievalAgent) GetTransactions(ctx context.Context, userID string, limit int, category, txType, merchant string) ([]map[string]any, error) {
+func (a *RetrievalAgent) GetTransactions(ctx context.Context, userID string, limit int, category, merchant string) ([]map[string]any, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 30
 	}
@@ -164,9 +154,9 @@ func (a *RetrievalAgent) GetTransactions(ctx context.Context, userID string, lim
 	if m := strings.TrimSpace(merchant); m != "" {
 		filter["merchant"] = bson.M{"$regex": regexp.QuoteMeta(m), "$options": "i"}
 	}
-	if txType != "" {
-		filter["type"] = txType
-	}
+	// Expenses only. Income rows can still exist from before SmartFin became
+	// spending-only, and must not surface.
+	filter["type"] = "expense"
 
 	opts := options.Find().SetSort(bson.D{{Key: "date", Value: -1}}).SetLimit(int64(limit))
 	cursor, err := a.transactionsCol.Find(ctx, filter, opts)

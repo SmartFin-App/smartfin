@@ -71,15 +71,30 @@ func (a *ResearchAgent) WebSearch(ctx context.Context, query string) (map[string
 		}, nil
 	}
 
-	// Fallback: Financial knowledge summary for common Thai finance queries
-	log.Printf("Web search fallback triggered for: %s", query)
-	fallbackSummary := a.getFinancialFallback(query)
+	log.Printf("ResearchAgent: web search unavailable for: %s", query)
+	return searchUnavailable(query), nil
+}
+
+// searchUnavailable is what the coach receives when no search backend answered.
+//
+// It carries no figures on purpose. This used to return a canned paragraph —
+// a 2.50% policy rate, savings rates, inflation, tax allowances — labelled
+// "Financial Knowledge Base", and the model could not tell it from a live
+// result: it told users the policy rate was "currently 2.50% (as of mid-2026)",
+// a hardcoded number with a date the model invented. For rates, prices and
+// allowances that change, saying "I couldn't check" is the only honest answer.
+func searchUnavailable(query string) map[string]any {
 	return map[string]any{
-		"query":    query,
-		"source":   "Financial Knowledge Base",
-		"fallback": true,
-		"summary":  fallbackSummary,
-	}, nil
+		"query":     query,
+		"available": false,
+		"source":    "none",
+		"results":   []any{},
+		"note": "Web search is unavailable right now, so no current information was retrieved. " +
+			"Do not state any current rate, price, statistic or tax figure, from memory or otherwise. " +
+			"Tell the user you could not check the latest figure, and point them to where to confirm it: " +
+			"the bank's own website or app for deposit rates, bot.or.th for the policy rate and inflation, " +
+			"rd.go.th for tax allowances.",
+	}
 }
 
 // searchDuckDuckGo queries DuckDuckGo HTML and extracts clean text snippets
@@ -185,19 +200,4 @@ func (a *ResearchAgent) searchSerpAPI(ctx context.Context, query, apiKey string)
 		})
 	}
 	return results, nil
-}
-
-// getFinancialFallback provides grounded financial facts for common Thai financial inquiries
-func (a *ResearchAgent) getFinancialFallback(query string) string {
-	q := strings.ToLower(query)
-	if strings.Contains(q, "interest") || strings.Contains(q, "bot") || strings.Contains(q, "rate") {
-		return "Bank of Thailand (BOT) policy interest rate is around 2.50%. Standard commercial bank savings accounts offer ~0.25%-0.50%, while digital high-yield savings accounts (e.g., Dime!, Make by KBank, LHB You) offer 1.50% - 3.00% on initial tiers."
-	}
-	if strings.Contains(q, "inflation") {
-		return "Thailand's headline inflation rate hovers around 0.5% to 1.5%, remaining within the Bank of Thailand's official target range of 1.0% - 3.0%."
-	}
-	if strings.Contains(q, "tax") || strings.Contains(q, "ssf") || strings.Contains(q, "rmf") {
-		return "Thai Personal Income Tax deduction allowances: Personal exemption 60,000 THB; SSF (Super Savings Fund) up to 30% of income (max 200,000 THB); RMF (Retirement Mutual Fund) up to 30% of income (max 500,000 THB combined retirement limit); Life and health insurance up to 100,000 THB."
-	}
-	return fmt.Sprintf("General financial guidelines for Thailand: Target an emergency fund of 3-6 months of essential living expenses, maintain monthly debt payments under 30-36%% of net income, and allocate 10-20%% of monthly income toward automated savings.")
 }

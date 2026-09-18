@@ -1,7 +1,7 @@
 // Command eval scores the SmartFin AI coach against answers that can be checked.
 //
-// It creates throwaway eval users through the API (profile, the 47 seeded demo
-// transactions and three bills), asks 30 scripted questions, and scores every
+// It creates throwaway eval users through the API (profile, the 44 seeded demo
+// expenses and three bills), asks 28 scripted questions, and scores every
 // answer by rule against figures recomputed from MongoDB. The agentic coach is
 // compared with two baselines on the same model: no retrieval, and one-shot RAG
 // with the user's complete records pasted into the prompt.
@@ -41,11 +41,9 @@ import (
 var allSystems = []string{"agentic", "oneshot", "noretrieval"}
 
 const (
-	seededIncome  = 35000
 	seededBudget  = 15000
-	emptyIncome   = 28000
 	emptyBudget   = 12000
-	seededTxCount = 47
+	seededTxCount = 44
 )
 
 type billSpec struct {
@@ -166,7 +164,7 @@ func main() {
 		log.Fatal(err)
 	}
 	seeded := BuildTruth(refData)
-	emptyData := UserData{Name: "Eval User", Income: emptyIncome, Budget: emptyBudget}
+	emptyData := UserData{Name: "Eval User", Budget: emptyBudget}
 	empty := BuildTruth(emptyData)
 	seededBase, emptyBase := seeded.AllowedBase(refData.Txs), empty.AllowedBase(nil)
 
@@ -308,11 +306,11 @@ func setupUsers(ctx context.Context, api *Client, plans []userPlan, now time.Tim
 func setupUser(ctx context.Context, api *Client, p userPlan, now time.Time) error {
 	sctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-	income, budget := int64(seededIncome), int64(seededBudget)
+	budget := int64(seededBudget)
 	if p.Empty {
-		income, budget = emptyIncome, emptyBudget
+		budget = emptyBudget
 	}
-	if err := api.CreateUser(sctx, p.UID, income, budget); err != nil {
+	if err := api.CreateUser(sctx, p.UID, budget); err != nil {
 		return err
 	}
 	if p.Empty {

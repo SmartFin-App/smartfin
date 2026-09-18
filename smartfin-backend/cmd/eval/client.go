@@ -84,13 +84,12 @@ func (c *Client) Health(ctx context.Context) error {
 	return c.expectOK(ctx, http.MethodGet, "/health", nil)
 }
 
-func (c *Client) CreateUser(ctx context.Context, uid string, income, budget int64) error {
+func (c *Client) CreateUser(ctx context.Context, uid string, budget int64) error {
 	return c.expectOK(ctx, http.MethodPost, "/api/users", map[string]any{
-		"firebase_uid":   uid,
-		"name":           "Eval User",
-		"email":          uid + "@example.com",
-		"monthly_income": income,
-		"budget_limit":   budget,
+		"firebase_uid": uid,
+		"name":         "Eval User",
+		"email":        uid + "@example.com",
+		"budget_limit": budget,
 	})
 }
 

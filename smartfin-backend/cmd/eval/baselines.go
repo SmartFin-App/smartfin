@@ -19,13 +19,15 @@ const (
 // The persona and answer guidelines are copied from the coach's system prompt
 // (internal/agents/orchestrator.go) with the tool-orchestration steps removed, so
 // the three systems differ only in how they get the user's data.
-const personaHead = `You are SmartFin Coach, a friendly, highly intelligent AI financial coach for a Thai user.
+const personaHead = `You are Kwak, SmartFin's AI Coach — a friendly, highly intelligent AI financial coach for a Thai user. Your name comes from แมวกวัก, the Thai beckoning lucky cat.
+Use your name only when introducing yourself or when asked who you are, and call yourself the AI Coach otherwise; do not sign or open every reply with it.
 You speak in a warm, encouraging tone and occasionally use the paw print emoji 🐾.`
 
 const answerGuidelines = `Answer guidelines:
 - Format amounts in Thai Baht (฿) with no decimals.
 - All dates are Thai local time (UTC+07:00). Use the current date above when resolving "today", "this month" or "last week" — never guess it.
 - Keep answers concise (3-4 sentences) unless user asks for detailed analysis.
+- SmartFin tracks spending only: expenses and the monthly budget. It records no income and no savings goals, so never state what the user earned or saved. If asked, say the app tracks spending and budget, and answer with those instead.
 - Subscriptions and bills are tracked by the user in the app. If the user says they paid a bill, tell them to tap "Mark paid" in Subscriptions & Bills.
 - Gently redirect non-financial topics back to financial health.`
 
@@ -46,18 +48,17 @@ func NoRetrievalPrompt(now time.Time) string {
 func OneShotPrompt(d UserData, t Truth, now time.Time) string {
 	var b strings.Builder
 	b.WriteString(personaHead + "\n\n" + dateLine(now) + "\n\n")
-	fmt.Fprintf(&b, "Current User Profile:\n- Name: %s\n- Monthly Income: %s\n- Budget Limit: %s\n\n",
-		d.Name, baht(d.Income), baht(d.Budget))
-	b.WriteString("The user's complete financial records follow. Answer questions about their money only from these records.\n\n")
+	fmt.Fprintf(&b, "Current User Profile:\n- Name: %s\n- Monthly Budget Limit: %s\n\n",
+		d.Name, baht(d.Budget))
+	b.WriteString("The user's complete spending records follow. Answer questions about their money only from these records.\n\n")
 
-	b.WriteString("MONTHLY SUMMARIES (income = profile monthly income + one-time income that month)\n")
+	b.WriteString("MONTHLY SPENDING\n")
 	if len(t.Months) == 0 {
 		b.WriteString("- No months with records.\n")
 	}
 	for i := len(t.Months) - 1; i >= 0; i-- {
 		m := t.Months[i]
 		e := t.MonthExpense[m]
-		inc := t.Income + t.MonthOneTime[m]
 		label := m
 		if p, err := time.Parse("2006-01", m); err == nil {
 			label = fmt.Sprintf("%s (%s)", m, p.Format("January 2006"))
@@ -66,11 +67,11 @@ func OneShotPrompt(d UserData, t Truth, now time.Time) string {
 		if t.Budget > 0 {
 			pct = float64(e) / float64(t.Budget) * 100
 		}
-		fmt.Fprintf(&b, "- %s: income %s (one-time %s), expenses %s, available %s, budget used %.1f%%. Categories: %s\n",
-			label, baht(inc), baht(t.MonthOneTime[m]), baht(e), signedBaht(inc-e), pct, categoryList(t.CatMonth[m]))
+		fmt.Fprintf(&b, "- %s: expenses %s, budget used %.1f%%. Categories: %s\n",
+			label, baht(e), pct, categoryList(t.CatMonth[m]))
 	}
 
-	b.WriteString("\nTRANSACTIONS (newest first)\n")
+	b.WriteString("\nEXPENSES (newest first)\n")
 	if len(d.Txs) == 0 {
 		b.WriteString("- No transactions recorded.\n")
 	}

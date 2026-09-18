@@ -6,8 +6,6 @@ abstract class AuthRepository {
     required String name,
     required String email,
     required String photoURL,
-    required double monthlyIncome,
-    required String incomeBracket,
     required String currentStatus,
     required String financialHealth,
     required double budgetLimit,

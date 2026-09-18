@@ -67,7 +67,6 @@ func SetupRoutes(app *fiber.App) {
 	// Summary routes under /api/summary
 	summary := api.Group("/summary")
 	summary.Get("/:user_id/history", summaryHandler.GetSummaryHistory)
-	summary.Get("/:user_id/savings-goal", summaryHandler.GetSavingsProgress)
 	summary.Get("/:user_id", summaryHandler.GetMonthlySummary)
 
 	// Admin routes
@@ -91,7 +90,6 @@ func SetupRoutes(app *fiber.App) {
 			models.Transaction{ID: bson.NewObjectID(), UserID: userID, Merchant: "Starbucks Coffee", Amount: 280, Type: "expense", Category: "Food", Source: "manual", Date: time.Date(2025, 11, 18, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now(), UpdatedAt: time.Now()},
 			models.Transaction{ID: bson.NewObjectID(), UserID: userID, Merchant: "Bumrungrad Hospital", Amount: 1500, Type: "expense", Category: "Health", Source: "manual", Date: time.Date(2025, 11, 22, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now(), UpdatedAt: time.Now()},
 			models.Transaction{ID: bson.NewObjectID(), UserID: userID, Merchant: "Line MAN", Amount: 450, Type: "expense", Category: "Food", Source: "manual", Date: time.Date(2025, 11, 25, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now(), UpdatedAt: time.Now()},
-			models.Transaction{ID: bson.NewObjectID(), UserID: userID, Merchant: "Freelance Payment", Amount: 15000, Type: "income", Category: "Salary", Source: "manual", Date: time.Date(2025, 11, 28, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now(), UpdatedAt: time.Now()},
 			// December 2025
 			models.Transaction{ID: bson.NewObjectID(), UserID: userID, Merchant: "Lotus's", Amount: 3200, Type: "expense", Category: "Groceries", Source: "manual", Date: time.Date(2025, 12, 2, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now(), UpdatedAt: time.Now()},
 			models.Transaction{ID: bson.NewObjectID(), UserID: userID, Merchant: "Netflix", Amount: 419, Type: "expense", Category: "Entertainment", Source: "manual", Date: time.Date(2025, 12, 5, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now(), UpdatedAt: time.Now()},
@@ -100,7 +98,6 @@ func SetupRoutes(app *fiber.App) {
 			models.Transaction{ID: bson.NewObjectID(), UserID: userID, Merchant: "Yakiniku Like", Amount: 890, Type: "expense", Category: "Food", Source: "manual", Date: time.Date(2025, 12, 15, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now(), UpdatedAt: time.Now()},
 			models.Transaction{ID: bson.NewObjectID(), UserID: userID, Merchant: "Christmas Gift", Amount: 2500, Type: "expense", Category: "Shopping", Source: "manual", Date: time.Date(2025, 12, 20, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now(), UpdatedAt: time.Now()},
 			models.Transaction{ID: bson.NewObjectID(), UserID: userID, Merchant: "AIS Mobile", Amount: 799, Type: "expense", Category: "Bills", Source: "manual", Date: time.Date(2025, 12, 22, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now(), UpdatedAt: time.Now()},
-			models.Transaction{ID: bson.NewObjectID(), UserID: userID, Merchant: "Year End Bonus", Amount: 25000, Type: "income", Category: "Salary", Source: "manual", Date: time.Date(2025, 12, 28, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now(), UpdatedAt: time.Now()},
 			// January 2026
 			models.Transaction{ID: bson.NewObjectID(), UserID: userID, Merchant: "Big C Supermarket", Amount: 2600, Type: "expense", Category: "Groceries", Source: "manual", Date: time.Date(2026, 1, 3, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now(), UpdatedAt: time.Now()},
 			models.Transaction{ID: bson.NewObjectID(), UserID: userID, Merchant: "Starbucks Coffee", Amount: 320, Type: "expense", Category: "Food", Source: "manual", Date: time.Date(2026, 1, 6, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now(), UpdatedAt: time.Now()},
@@ -117,7 +114,6 @@ func SetupRoutes(app *fiber.App) {
 			models.Transaction{ID: bson.NewObjectID(), UserID: userID, Merchant: "Netflix", Amount: 419, Type: "expense", Category: "Entertainment", Source: "manual", Date: time.Date(2026, 2, 18, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now(), UpdatedAt: time.Now()},
 			models.Transaction{ID: bson.NewObjectID(), UserID: userID, Merchant: "Samitivej Hospital", Amount: 2800, Type: "expense", Category: "Health", Source: "manual", Date: time.Date(2026, 2, 20, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now(), UpdatedAt: time.Now()},
 			models.Transaction{ID: bson.NewObjectID(), UserID: userID, Merchant: "AIS Mobile", Amount: 799, Type: "expense", Category: "Bills", Source: "manual", Date: time.Date(2026, 2, 22, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now(), UpdatedAt: time.Now()},
-			models.Transaction{ID: bson.NewObjectID(), UserID: userID, Merchant: "Freelance Payment", Amount: 20000, Type: "income", Category: "Salary", Source: "manual", Date: time.Date(2026, 2, 25, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now(), UpdatedAt: time.Now()},
 			// March 2026
 			models.Transaction{ID: bson.NewObjectID(), UserID: userID, Merchant: "Big C Supermarket", Amount: 3100, Type: "expense", Category: "Groceries", Source: "manual", Date: time.Date(2026, 3, 3, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now(), UpdatedAt: time.Now()},
 			models.Transaction{ID: bson.NewObjectID(), UserID: userID, Merchant: "Starbucks Coffee", Amount: 350, Type: "expense", Category: "Food", Source: "manual", Date: time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now(), UpdatedAt: time.Now()},

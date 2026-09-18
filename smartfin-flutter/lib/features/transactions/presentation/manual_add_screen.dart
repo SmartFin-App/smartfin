@@ -7,16 +7,14 @@ import 'package:intl/intl.dart';
 import 'package:smart_fin/features/transactions/data/transaction_repository_impl.dart';
 
 class ManualAddScreen extends StatefulWidget {
-  final String? type;
 
-  const ManualAddScreen({super.key, this.type});
+  const ManualAddScreen({super.key});
 
   @override
   State<ManualAddScreen> createState() => _ManualAddScreenState();
 }
 
 class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderStateMixin {
-  late bool _isExpense;
   String? _selectedCategory;
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _merchantController = TextEditingController();
@@ -38,7 +36,6 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
   @override
   void initState() {
     super.initState();
-    _isExpense = widget.type != 'income';
     
     _merchantFocus.addListener(() {
       setState(() {
@@ -125,7 +122,7 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
         userID: uid,
         merchant: _merchantController.text.trim(),
         amount: amount,
-        type: _isExpense ? 'expense' : 'income',
+        type: 'expense',
         category: _selectedCategory!,
         source: 'manual',
         date: _selectedDate,
@@ -167,13 +164,6 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
     {'label': 'Other', 'icon': Icons.add_circle_outline, 'color': const Color(0xFF9E9E9E)},
   ];
 
-  final List<Map<String, dynamic>> _incomeCats = [
-    {'label': 'Salary', 'icon': Icons.account_balance_wallet_outlined, 'color': const Color(0xFFFF9F29)},
-    {'label': 'Gifts', 'icon': Icons.card_giftcard_outlined, 'color': const Color(0xFF4A90E2)},
-    {'label': 'Refunds', 'icon': Icons.local_offer_outlined, 'color': const Color(0xFF4CAF50)},
-    {'label': 'Other', 'icon': Icons.add_circle_outline, 'color': const Color(0xFF9E9E9E)},
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -186,134 +176,7 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
             physics: const ClampingScrollPhysics(),
             child: Column(
               children: [
-                // Toggle Expense / Income
-                Center(
-                  child: Container(
-                    width: 260,
-                    margin: EdgeInsets.only(bottom: _isExpense ? 48 : 16),
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: const Color.fromRGBO(240, 235, 225, 0.3),
-                      borderRadius: BorderRadius.circular(9999),
-                      border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.2)),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              if (!_isExpense) {
-                                setState(() {
-                                  _isExpense = true;
-                                  _selectedCategory = null;
-                                  _gridAnimController.forward(from: 0);
-                                });
-                              }
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: _isExpense ? Colors.white : Colors.transparent,
-                                borderRadius: BorderRadius.circular(9999),
-                                boxShadow: _isExpense ? [
-                                  const BoxShadow(
-                                    color: Color.fromRGBO(0, 0, 0, 0.05),
-                                    blurRadius: 8,
-                                    offset: Offset(0, 2),
-                                  )
-                                ] : [],
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                "EXPENSE",
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 10,
-                                  letterSpacing: 2.0,
-                                  color: _isExpense ? const Color(0xFF333333) : const Color(0xFF9E9E9E),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              if (_isExpense) {
-                                setState(() {
-                                  _isExpense = false;
-                                  _selectedCategory = null;
-                                  _gridAnimController.forward(from: 0);
-                                });
-                              }
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: !_isExpense ? Colors.white : Colors.transparent,
-                                borderRadius: BorderRadius.circular(9999),
-                                boxShadow: !_isExpense ? [
-                                  const BoxShadow(
-                                    color: Color.fromRGBO(0, 0, 0, 0.05),
-                                    blurRadius: 8,
-                                    offset: Offset(0, 2),
-                                  )
-                                ] : [],
-                              ),
-                              alignment: Alignment.center,
-                              // "Extra" because monthly salary is already counted from the
-                              // profile; logging it here would count it twice. scaleDown so
-                              // the longer label can never overflow its half of the pill.
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  "EXTRA INCOME",
-                                  maxLines: 1,
-                                  style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 10,
-                                    letterSpacing: 2.0,
-                                    color: !_isExpense ? const Color(0xFF333333) : const Color(0xFF9E9E9E),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Salary is already counted from the profile's monthly income, so
-                // say so right where the user would otherwise log it again.
-                if (!_isExpense)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(32, 0, 32, 32),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(top: 2),
-                          child: Icon(Icons.info_outline, size: 14, color: Color(0xFF9E9E9E)),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Your monthly salary is already counted from your profile. Log extras here — bonuses, freelance pay or gifts.',
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 12,
-                              height: 1.4,
-                              color: const Color(0xFF9E9E9E),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                const SizedBox(height: 24),
 
                 // Amount Input
                 FadeTransition(
@@ -546,9 +409,9 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
                               mainAxisSpacing: 12,
                               childAspectRatio: 2.4, // Width vs height tuning
                             ),
-                            itemCount: _isExpense ? _expenseCats.length : _incomeCats.length,
+                            itemCount: _expenseCats.length,
                             itemBuilder: (context, index) {
-                              final cat = _isExpense ? _expenseCats[index] : _incomeCats[index];
+                              final cat = _expenseCats[index];
                               final isSelected = _selectedCategory == cat['label'];
                               
                               return GestureDetector(

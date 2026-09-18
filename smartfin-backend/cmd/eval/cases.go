@@ -10,7 +10,7 @@ type Turn struct {
 // eval user's real records in MongoDB at run time, never hardcoded.
 type NumSpec struct {
 	Kind string // month_expense, month_category, month_diff, max_month_expense, over_budget,
-	//            month_savings, merchant_total, merchant_month, bill_amount, bills_monthly_total,
+	//            merchant_total, merchant_month, bill_amount, bills_monthly_total,
 	//            profile_budget, literal
 	Month  string
 	Month2 string
@@ -29,11 +29,8 @@ type TxExpect struct {
 
 // DBExpect is what an action case must have written, checked by reading MongoDB.
 type DBExpect struct {
-	BudgetLimit      int64
-	SavingsGoal      int64
-	GoalNameContains string
-	TargetContains   string
-	NewTx            *TxExpect
+	BudgetLimit int64
+	NewTx       *TxExpect
 }
 
 // Case is one scripted question.
@@ -116,10 +113,6 @@ var allCases = []Case{
 		AnyOf:      [][]string{{"over", "exceed", "above", "เกิน"}},
 		NoneOf:     negativeBudget,
 		ToolGroups: [][]string{readTools}, Months: []string{"2026-01"}},
-	{ID: "A5", Category: "aggregation", Scope: "shared",
-		Question:   "How much did I save in March 2026?",
-		Required:   []NumSpec{{Kind: "month_savings", Month: "2026-03"}},
-		ToolGroups: [][]string{readTools}, Months: []string{"2026-03"}},
 
 	// ── Bills (due dates are relative to the run day) ──────────────────────
 	{ID: "B1", Category: "bills", Scope: "shared",
@@ -142,10 +135,6 @@ var allCases = []Case{
 		Question:   "Please change my monthly budget limit to 18,000 baht.",
 		DB:         &DBExpect{BudgetLimit: 18000},
 		ToolGroups: [][]string{{"update_budget_limit"}}, Acceptable: []string{"get_budget_summary"}},
-	{ID: "W2", Category: "actions", Scope: "agentic_only",
-		Question:   "Set a savings goal of 60,000 baht for a Japan trip, with a target date of 2027-03-31.",
-		DB:         &DBExpect{SavingsGoal: 60000, GoalNameContains: "japan", TargetContains: "2027"},
-		ToolGroups: [][]string{{"set_savings_goal"}}, Acceptable: []string{"get_budget_summary"}},
 	{ID: "W3", Category: "actions", Scope: "agentic_only",
 		Question:   "I just spent 250 baht at Starbucks on coffee. Please log it as a Food expense for today.",
 		DB:         &DBExpect{NewTx: &TxExpect{Amount: 250, Type: "expense", MerchantContains: "starbucks", CategoryContains: "food"}},

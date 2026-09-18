@@ -12,7 +12,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
 	"github.com/SmartFin-App/smartfin-backend/config"
 	"github.com/SmartFin-App/smartfin-backend/internal/models"
@@ -35,25 +34,13 @@ func NewSummaryHandler() *SummaryHandler {
 	}
 }
 
-// maxInt64 returns the larger of two int64 values
-func maxInt64(a, b int64) int64 {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 // calculateMonthlySummary computes a fresh MonthlySummary from transactions
 func (h *SummaryHandler) calculateMonthlySummary(ctx context.Context, userID, month string) (*models.MonthlySummary, error) {
 	var user models.User
 	if err := h.usersCollection.FindOne(ctx, bson.M{"firebase_uid": userID}).Decode(&user); err != nil {
 		if err == mongo.ErrNoDocuments {
-			// New user without a profile yet - use defaults
-			user = models.User{
-				FirebaseUID:   userID,
-				BudgetLimit:   0,
-				MonthlyIncome: 0,
-			}
+			// New user without a profile yet: no budget to measure against.
+			user = models.User{FirebaseUID: userID}
 		} else {
 			return nil, fmt.Errorf("database error: %w", err)
 		}
@@ -65,9 +52,11 @@ func (h *SummaryHandler) calculateMonthlySummary(ctx context.Context, userID, mo
 		return nil, err
 	}
 
-	// Fetch all transactions for this user in this month
+	// Expenses only. Income transactions may still exist in the database from
+	// before SmartFin became spending-only; they no longer count toward anything.
 	filter := bson.M{
 		"user_id": userID,
+		"type":    "expense",
 		"date": bson.M{
 			"$gte": startDate,
 			"$lt":  endDate,
@@ -84,18 +73,13 @@ func (h *SummaryHandler) calculateMonthlySummary(ctx context.Context, userID, mo
 		return nil, fmt.Errorf("failed to decode transactions: %w", err)
 	}
 
-	// Calculate income / expense totals and category breakdown
-	var oneTimeIncome, totalExpenses int64
+	// Expense total and category breakdown
+	var totalExpenses int64
 	categoryMap := make(map[string]int64)
 
 	for _, t := range transactions {
-		switch t.Type {
-		case "income":
-			oneTimeIncome += t.Amount
-		case "expense":
-			totalExpenses += t.Amount
-			categoryMap[t.Category] += t.Amount
-		}
+		totalExpenses += t.Amount
+		categoryMap[t.Category] += t.Amount
 	}
 
 	// Build CategorySummary slice sorted by amount descending
@@ -130,42 +114,19 @@ func (h *SummaryHandler) calculateMonthlySummary(ctx context.Context, userID, mo
 		budgetPct = float64(totalExpenses) / float64(user.BudgetLimit) * 100
 	}
 
-	// Recurring income is an assumption taken from the profile, not a recorded
-	// transaction. Carrying it into a month that has already ended and holds no
-	// activity at all invents a salary out of nothing — and with no expenses to
-	// offset it, a brand-new user was congratulated for "saving" a full month's
-	// income in a month before they had even signed up.
-	//
-	// The test is "elapsed and empty", not "before signup": a past month that
-	// does contain transactions is evidence the user was active, so the standing
-	// income still applies. The current month always keeps it, since that figure
-	// is what the dashboard budgets against from day one.
-	recurringIncome := user.MonthlyIncome
-	if isFrozen && len(transactions) == 0 {
-		recurringIncome = 0
-	}
-
-	totalIncome := recurringIncome + oneTimeIncome
-	available := totalIncome - totalExpenses
-
 	summary := &models.MonthlySummary{
 		ID:                bson.NewObjectID(),
 		UserID:            userID,
 		Month:             month,
-		RecurringIncome:   recurringIncome,
-		OneTimeIncome:     oneTimeIncome,
-		TotalIncome:       totalIncome,
 		TotalExpenses:     totalExpenses,
-		Available:         available,
 		BudgetLimit:       user.BudgetLimit,
 		BudgetPercentage:  budgetPct,
-		Savings:           maxInt64(0, available),
 		ExpenseByCategory: categorySlice,
 		IsFrozen:          isFrozen,
 		CalculatedAt:      time.Now(),
 	}
 
-	log.Printf("Calculated summary for user %s month %s — income: ฿%d expense: ฿%d", userID, month, totalIncome, totalExpenses)
+	log.Printf("Calculated summary for user %s month %s — expense: ฿%d", userID, month, totalExpenses)
 	return summary, nil
 }
 
@@ -262,17 +223,10 @@ func (h *SummaryHandler) GetMonthlySummary(c *fiber.Ctx) error {
 		prevSummary = nil
 	}
 
-	// Build savings message
-	savingsMsg := ""
-	if prevSummary != nil && prevSummary.Savings > 0 {
-		savingsMsg = fmt.Sprintf("You saved ฿%s last month! 🐾", formatAmountCommas(prevSummary.Savings))
-	}
-
 	resp := models.MonthlySummaryResponse{
 		MonthlySummary: *summary,
 		FormattedMonth: formatMonth(month),
 		PreviousMonth:  prevSummary,
-		SavingsMessage: savingsMsg,
 	}
 
 	return c.JSON(resp)
@@ -308,159 +262,6 @@ func (h *SummaryHandler) GetSummaryHistory(c *fiber.Ctx) error {
 		"history": history,
 		"count":   len(history),
 	})
-}
-
-// maxSavingsMonths bounds the walk-back. Each month costs a summary lookup, and a
-// goal that counts more than two years of history stops meaning much anyway.
-const maxSavingsMonths = 24
-
-// GetSavingsProgress handles GET /api/summary/:user_id/savings-goal
-//
-// "Saved so far" is the sum of each COMPLETED month's savings (income minus
-// expenses, floored at zero) since the account was created. It is derived rather
-// than tracked separately, so there is no balance for the user to keep up to date
-// and no second source of truth to drift from the transactions.
-//
-// The current month is deliberately excluded and reported separately as
-// this_month_surplus. A month's income lands in the summary on day one, so folding
-// the live month in meant a ฿12,000 salary counted as ฿12,000 "saved" before any
-// of it had been lived through — a ฿5,000 goal read as reached on the 1st, then
-// un-reached as the user spent. Surplus only becomes savings once the month ends.
-func (h *SummaryHandler) GetSavingsProgress(c *fiber.Ctx) error {
-	userID := c.Params("user_id")
-	if userID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "user_id is required"})
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	var user models.User
-	if err := h.usersCollection.FindOne(ctx, bson.M{"firebase_uid": userID}).Decode(&user); err != nil {
-		if err == mongo.ErrNoDocuments {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
-		}
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch user"})
-	}
-
-	now := time.Now().In(summaries.Zone)
-	anchor := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, summaries.Zone)
-
-	// Count from whichever came first: the account being created, or the oldest
-	// transaction on record. Bounding on signup alone hid every backdated entry —
-	// a user who scans older slips (or a seeded demo account) has history that
-	// legitimately predates the profile document.
-	startAnchor := anchor
-	if !user.CreatedAt.IsZero() {
-		created := user.CreatedAt.In(summaries.Zone)
-		startAnchor = time.Date(created.Year(), created.Month(), 1, 0, 0, 0, 0, summaries.Zone)
-	}
-
-	var oldest models.Transaction
-	oldestOpts := options.FindOne().SetSort(bson.D{{Key: "date", Value: 1}})
-	if err := h.transactionsCollection.FindOne(ctx, bson.M{"user_id": userID}, oldestOpts).Decode(&oldest); err == nil {
-		t := oldest.Date.In(summaries.Zone)
-		txAnchor := time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, summaries.Zone)
-		if txAnchor.Before(startAnchor) {
-			startAnchor = txAnchor
-		}
-	}
-
-	months := (anchor.Year()-startAnchor.Year())*12 + int(anchor.Month()) - int(startAnchor.Month()) + 1
-	if months > maxSavingsMonths {
-		months = maxSavingsMonths
-	}
-	if months < 1 {
-		months = 1
-	}
-
-	var saved int64
-	var lastMonthSavings int64
-	var thisMonthSurplus int64
-	counted := 0
-
-	for i := 0; i < months; i++ {
-		month := summaries.StringOf(anchor.AddDate(0, -i, 0))
-		s, err := h.GetOrCreateSummary(ctx, userID, month)
-		if err != nil {
-			log.Printf("Warning: savings progress skipped %s/%s: %v", userID, month, err)
-			continue
-		}
-
-		if i == 0 {
-			// In progress: shown as context, never counted toward the goal.
-			thisMonthSurplus = s.Savings
-			continue
-		}
-
-		saved += s.Savings
-		if i == 1 {
-			lastMonthSavings = s.Savings
-		}
-		counted++
-	}
-
-	goal := user.SavingsGoal
-	percentage := float64(0)
-	var remaining int64
-	if goal > 0 {
-		remaining = maxInt64(0, goal-saved)
-		percentage = float64(saved) / float64(goal) * 100
-		if percentage > 100 {
-			percentage = 100
-		}
-	}
-
-	// Turn the goal into a plan the user can act on: what their own budget
-	// leaves each month, and whether that reaches the target date in time.
-	proj := summaries.ProjectGoal(remaining, user.MonthlyIncome, user.BudgetLimit, user.SavingsTargetDate, time.Now())
-
-	return c.JSON(fiber.Map{
-		"user_id":            userID,
-		"has_goal":           goal > 0,
-		"goal":               goal,
-		"goal_name":          user.SavingsGoalName,
-		"target_date":        user.SavingsTargetDate,
-		"saved":              saved,
-		"remaining":          remaining,
-		"percentage":         percentage,
-		"last_month_savings": lastMonthSavings,
-		"this_month_surplus": thisMonthSurplus,
-		// Completed months only — the in-progress one is not among them.
-		"months_counted": counted,
-		// Plan: income minus the chosen budget, and what it means for the goal.
-		"monthly_income":          user.MonthlyIncome,
-		"budget_limit":            user.BudgetLimit,
-		"budget_set":              proj.BudgetSet,
-		"planned_monthly_saving":  proj.PlannedMonthlySaving,
-		"months_to_goal":          proj.MonthsToGoal, // null when the budget saves nothing
-		"target_parsed":           proj.TargetParsed,
-		"target_passed":           proj.TargetPassed,
-		"months_until_target":     proj.MonthsUntilTarget,
-		"required_monthly_saving": proj.RequiredMonthlySaving,
-		"on_track":                proj.OnTrack,
-	})
-}
-
-// formatAmountCommas formats an int64 amount with comma thousands separators
-func formatAmountCommas(amount int64) string {
-	s := strconv.FormatInt(amount, 10)
-	n := len(s)
-	if n <= 3 {
-		return s
-	}
-	var result strings.Builder
-	rem := n % 3
-	if rem > 0 {
-		result.WriteString(s[:rem])
-	}
-	for i := rem; i < n; i += 3 {
-		if i > 0 || rem > 0 {
-			result.WriteString(",")
-		}
-		result.WriteString(s[i : i+3])
-	}
-	return result.String()
 }
 
 // ResetSummaries handles DELETE /admin/reset-summaries

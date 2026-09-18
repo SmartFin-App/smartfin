@@ -29,41 +29,6 @@ func NewActionAgent() *ActionAgent {
 	}
 }
 
-// SetSavingsGoal sets a savings goal on the user's profile
-func (a *ActionAgent) SetSavingsGoal(ctx context.Context, userID string, amount int64, goalName, targetDate string) (map[string]any, error) {
-	if amount <= 0 {
-		return nil, fmt.Errorf("savings goal amount must be greater than 0")
-	}
-	if goalName == "" {
-		goalName = "Savings Goal"
-	}
-
-	update := bson.M{
-		"$set": bson.M{
-			"savings_goal":        amount,
-			"savings_goal_name":   goalName,
-			"savings_target_date": targetDate,
-			"updated_at":          time.Now(),
-		},
-	}
-
-	res, err := a.usersCol.UpdateOne(ctx, bson.M{"firebase_uid": userID}, update)
-	if err != nil {
-		return nil, fmt.Errorf("failed to update savings goal: %w", err)
-	}
-
-	log.Printf("ActionAgent: SetSavingsGoal for user %s - ฿%d for '%s' (matched %d docs)", userID, amount, goalName, res.MatchedCount)
-
-	return map[string]any{
-		"status":      "success",
-		"action":      "set_savings_goal",
-		"goal_name":   goalName,
-		"goal_amount": amount,
-		"target_date": targetDate,
-		"message":     fmt.Sprintf("Successfully set savings goal for '%s' to ฿%d (Target: %s)", goalName, amount, targetDate),
-	}, nil
-}
-
 // UpdateBudgetLimit updates the monthly budget limit on the user's profile
 func (a *ActionAgent) UpdateBudgetLimit(ctx context.Context, userID string, budgetLimit int64) (map[string]any, error) {
 	if budgetLimit <= 0 {
@@ -97,25 +62,18 @@ func (a *ActionAgent) UpdateBudgetLimit(ctx context.Context, userID string, budg
 	}, nil
 }
 
-// AddTransaction creates a new transaction in MongoDB and marks summary dirty
-func (a *ActionAgent) AddTransaction(ctx context.Context, userID, merchant string, amount int64, txType, category, dateStr string) (map[string]any, error) {
+// AddTransaction records an expense in MongoDB and marks the month's summary
+// dirty. Expenses only: SmartFin tracks spending, and an income record would be
+// hidden everywhere the user could see it.
+func (a *ActionAgent) AddTransaction(ctx context.Context, userID, merchant string, amount int64, category, dateStr string) (map[string]any, error) {
 	if merchant == "" {
 		merchant = "Unknown Merchant"
 	}
 	if amount <= 0 {
 		return nil, fmt.Errorf("transaction amount must be greater than 0")
 	}
-	if txType != "income" && txType != "expense" {
-		// Surface the error to the model instead of silently recording a
-		// hallucinated type (e.g. "transfer") as spending.
-		return nil, fmt.Errorf("transaction type must be 'income' or 'expense', got %q", txType)
-	}
 	if category == "" {
-		if txType == "income" {
-			category = "Salary"
-		} else {
-			category = "General"
-		}
+		category = "General"
 	}
 
 	txDate := time.Now()
@@ -143,7 +101,7 @@ func (a *ActionAgent) AddTransaction(ctx context.Context, userID, merchant strin
 		UserID:    userID,
 		Merchant:  merchant,
 		Amount:    amount,
-		Type:      txType,
+		Type:      "expense",
 		Category:  category,
 		Source:    "coach_agent",
 		Date:      txDate,
@@ -161,7 +119,7 @@ func (a *ActionAgent) AddTransaction(ctx context.Context, userID, merchant strin
 	// used to stay invisible to every total while still showing in the list.
 	summaries.InvalidateFor(ctx, a.summariesCol, userID, txDate)
 
-	log.Printf("ActionAgent: AddTransaction for user %s: %s ฿%d (%s) on %s", userID, txType, amount, merchant, txDate.Format("2006-01-02"))
+	log.Printf("ActionAgent: AddTransaction for user %s: expense ฿%d (%s) on %s", userID, amount, merchant, txDate.Format("2006-01-02"))
 
 	return map[string]any{
 		"status":   "success",
@@ -169,9 +127,9 @@ func (a *ActionAgent) AddTransaction(ctx context.Context, userID, merchant strin
 		"id":       tx.ID.Hex(),
 		"merchant": merchant,
 		"amount":   amount,
-		"type":     txType,
+		"type":     "expense",
 		"category": category,
 		"date":     txDate.Format("2006-01-02"),
-		"message":  fmt.Sprintf("Successfully recorded %s of ฿%d at %s (%s)", txType, amount, merchant, category),
+		"message":  fmt.Sprintf("Successfully recorded an expense of ฿%d at %s (%s)", amount, merchant, category),
 	}, nil
 }

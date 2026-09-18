@@ -13,7 +13,7 @@ import (
 // fallbackReply is the coach's canned text when its loop ends without an answer.
 const fallbackReply = "I've checked your data and updated your records. How else can I help your finances today? 🐾"
 
-var writeTools = map[string]bool{"set_savings_goal": true, "update_budget_limit": true, "add_transaction": true}
+var writeTools = map[string]bool{"update_budget_limit": true, "add_transaction": true}
 
 var honestyKeywords = []string{
 	"no transaction", "no record", "no spending", "no expense", "no data", "no bills", "no subscriptions",
@@ -346,13 +346,6 @@ func checkDB(e *DBExpect, before, after *Snapshot) bool {
 	}
 	if e.BudgetLimit != 0 && after.BudgetLimit != e.BudgetLimit {
 		return false
-	}
-	if e.SavingsGoal != 0 {
-		if after.SavingsGoal != e.SavingsGoal ||
-			!strings.Contains(strings.ToLower(after.SavingsGoalName), e.GoalNameContains) ||
-			!strings.Contains(after.SavingsTargetDate, e.TargetContains) {
-			return false
-		}
 	}
 	if e.NewTx != nil {
 		if before == nil || after.TxCount != before.TxCount+1 {

@@ -175,10 +175,11 @@ func TestCheckDBNewTransaction(t *testing.T) {
 }
 
 func TestBuildTruthUsesThaiMonths(t *testing.T) {
-	d := UserData{Income: 35000, Budget: 15000, Txs: []TxRow{
+	d := UserData{Budget: 15000, Txs: []TxRow{
 		// 18:00 UTC on 28 Feb is 01:00 on 1 March in Thailand.
 		{Date: time.Date(2026, 2, 28, 18, 0, 0, 0, time.UTC), Merchant: "Night Market", Type: "expense", Category: "Food", Amount: 300},
 		{Date: time.Date(2026, 2, 10, 0, 0, 0, 0, time.UTC), Merchant: "Lotus's", Type: "expense", Category: "Groceries", Amount: 1000},
+		// Left over from before SmartFin became spending-only: must count for nothing.
 		{Date: time.Date(2026, 2, 25, 0, 0, 0, 0, time.UTC), Merchant: "Freelance", Type: "income", Category: "Salary", Amount: 5000},
 	}}
 	tr := BuildTruth(d)
@@ -191,14 +192,17 @@ func TestBuildTruthUsesThaiMonths(t *testing.T) {
 	}
 	check(NumSpec{Kind: "month_expense", Month: "2026-03"}, 300)
 	check(NumSpec{Kind: "month_expense", Month: "2026-02"}, 1000)
-	check(NumSpec{Kind: "month_savings", Month: "2026-02"}, 39000)
 	check(NumSpec{Kind: "month_diff", Month: "2026-02", Month2: "2026-03"}, 700)
 	if _, err := tr.Resolve(NumSpec{Kind: "over_budget", Month: "2026-02"}); err == nil {
 		t.Error("February is under budget; over_budget must refuse")
 	}
 
+	if got := tr.CatTotal["Salary"]; got != 0 {
+		t.Errorf("an income row must not become spending, got Salary = %d", got)
+	}
+
 	allowed := tr.AllowedBase(d.Txs)
-	for _, v := range []int64{39000, 700, 1300} {
+	for _, v := range []int64{700, 1300, 14000} {
 		if !supported(Num{Value: v}, allowed) {
 			t.Errorf("%d should be an allowed figure", v)
 		}
@@ -231,7 +235,9 @@ func TestCasesAreWellFormed(t *testing.T) {
 			t.Errorf("%s: a no-data case cannot require figures", c.ID)
 		}
 	}
-	if len(allCases) != 30 {
-		t.Errorf("want 30 cases, have %d", len(allCases))
+	// 28 since A5 ("how much did I save") and W2 ("set a savings goal") were
+	// retired with income and savings goals.
+	if len(allCases) != 28 {
+		t.Errorf("want 28 cases, have %d", len(allCases))
 	}
 }

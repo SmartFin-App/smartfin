@@ -136,9 +136,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/manual-add',
       name: 'manual-add',
-      builder: (context, state) => ManualAddScreen(
-        type: state.uri.queryParameters['type'],
-      ),
+      builder: (context, state) => const ManualAddScreen(),
     ),
     GoRoute(
       path: '/transaction/:id',

@@ -1,9 +1,11 @@
 package agents
 
 import (
-	"context"
+	"regexp"
+	"strings"
 	"testing"
-	"time"
+
+	"github.com/SmartFin-App/smartfin-backend/internal/models"
 )
 
 func TestFunctionDeclarations(t *testing.T) {
@@ -12,7 +14,6 @@ func TestFunctionDeclarations(t *testing.T) {
 
 	expectedTools := map[string]bool{
 		"web_search":               false,
-		"set_savings_goal":         false,
 		"update_budget_limit":      false,
 		"add_transaction":          false,
 		"get_budget_summary":       false,
@@ -35,30 +36,34 @@ func TestFunctionDeclarations(t *testing.T) {
 		}
 	}
 
-	if len(decls) != 8 {
-		t.Errorf("Expected 8 declared tools, got %d", len(decls))
+	if len(decls) != 7 {
+		t.Errorf("Expected 7 declared tools, got %d", len(decls))
 	}
 }
 
-func TestResearchAgentWebSearchFallback(t *testing.T) {
-	agent := NewResearchAgent()
-
+// When no search backend answers, the coach must get no figures at all: the old
+// canned fallback supplied a policy rate the model then presented as current.
+func TestSearchUnavailableCarriesNoFigures(t *testing.T) {
 	query := "What is the Bank of Thailand interest rate?"
-	fallback := agent.getFinancialFallback(query)
-	if fallback == "" {
-		t.Fatalf("Expected non-empty fallback for financial query")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
-	defer cancel()
-
-	res, err := agent.WebSearch(ctx, query)
-	if err != nil {
-		t.Fatalf("WebSearch returned unexpected error: %v", err)
-	}
+	res := searchUnavailable(query)
 
 	if res["query"] != query {
-		t.Errorf("Expected query to match in result, got %v", res["query"])
+		t.Errorf("query not echoed back: %v", res["query"])
+	}
+	if res["available"] != false {
+		t.Errorf("must be marked unavailable so the model can tell it from a result: %v", res["available"])
+	}
+	if results, _ := res["results"].([]any); len(results) != 0 {
+		t.Errorf("must return no results, got %v", results)
+	}
+
+	note, _ := res["note"].(string)
+	if note == "" {
+		t.Fatal("must tell the model what to do instead")
+	}
+	// Any percentage or amount would be a figure the model could repeat as fact.
+	if m := regexp.MustCompile(`\d+(\.\d+)?\s*%|\d{1,3}(,\d{3})+`).FindString(note); m != "" {
+		t.Errorf("note must not contain a figure, found %q", m)
 	}
 }
 
@@ -82,6 +87,40 @@ func TestLooksLikeStall(t *testing.T) {
 	for _, s := range answers {
 		if looksLikeStall(s) {
 			t.Errorf("a real answer must not be nudged: %q", s)
+		}
+	}
+}
+
+// A missing profile, or a missing value within one, must never be filled in: the
+// coach used to be told an unknown user earned ฿30,000 with a ฿15,000 budget.
+func TestDescribeProfileNeverInventsFigures(t *testing.T) {
+	missing := describeProfile(models.User{}, false)
+	if strings.Contains(missing, "฿") {
+		t.Errorf("a missing profile must carry no amounts: %q", missing)
+	}
+	if !strings.Contains(missing, "not set up") {
+		t.Errorf("a missing profile must say so: %q", missing)
+	}
+
+	// A real profile with no budget: zero is "not set", never ฿0.
+	empty := describeProfile(models.User{Name: "Ploy"}, true)
+	if strings.Contains(empty, "฿0") || !strings.Contains(empty, "Monthly Budget Limit: not set") {
+		t.Errorf("an unset budget must read as not set: %q", empty)
+	}
+
+	full := describeProfile(models.User{Name: "Ploy", BudgetLimit: 15000}, true)
+	if !strings.Contains(full, "Monthly Budget Limit: ฿15000") {
+		t.Errorf("want the budget in %q", full)
+	}
+}
+
+// SmartFin tracks spending only, so the coach must never be handed an income or a
+// savings figure to repeat.
+func TestDescribeProfileHasNoIncomeOrSavings(t *testing.T) {
+	p := strings.ToLower(describeProfile(models.User{Name: "Ploy", BudgetLimit: 15000}, true))
+	for _, word := range []string{"income", "saving"} {
+		if strings.Contains(p, word) {
+			t.Errorf("profile must not mention %q: %q", word, p)
 		}
 	}
 }

@@ -65,8 +65,6 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 		Name:            req.Name,
 		Email:           req.Email,
 		PhotoURL:        req.PhotoURL,
-		MonthlyIncome:   req.MonthlyIncome,
-		IncomeBracket:   req.IncomeBracket,
 		CurrentStatus:   req.CurrentStatus,
 		FinancialHealth: req.FinancialHealth,
 		BudgetLimit:     req.BudgetLimit,
@@ -125,7 +123,7 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 	}
 
 	// Amounts are Thai Baht and never negative.
-	for _, field := range []string{"monthly_income", "budget_limit", "savings_goal"} {
+	for _, field := range []string{"budget_limit"} {
 		if v, ok := updateData[field].(int64); ok && v < 0 {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": field + " must not be negative"})
 		}

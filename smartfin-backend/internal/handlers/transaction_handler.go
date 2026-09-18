@@ -112,12 +112,17 @@ func (h *TransactionHandler) CreateTransaction(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	if req.UserID == "" || req.Merchant == "" || req.Amount == 0 || req.Type == "" || req.Category == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "user_id, merchant, amount, type, and category must not be empty"})
+	// SmartFin records expenses only. An omitted type means expense; anything
+	// else is refused rather than stored somewhere the app can no longer show it.
+	if req.Type == "" {
+		req.Type = "expense"
+	}
+	if req.UserID == "" || req.Merchant == "" || req.Amount == 0 || req.Category == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "user_id, merchant, amount, and category must not be empty"})
 	}
 
-	if req.Type != "expense" && req.Type != "income" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Type must be 'expense' or 'income'"})
+	if req.Type != "expense" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "SmartFin records expenses only"})
 	}
 
 	if req.Amount <= 0 {
@@ -172,17 +177,15 @@ func (h *TransactionHandler) GetTransactions(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "user_id is required"})
 	}
 
-	tType := c.Query("type")
 	category := c.Query("category")
 	month := c.Query("month")
 	search := c.Query("search")
 	limit := c.QueryInt("limit", 50)
 	skip := c.QueryInt("skip", 0)
 
-	filter := bson.M{"user_id": userID}
-	if tType != "" {
-		filter["type"] = tType
-	}
+	// Expenses only. Income rows can still exist from before SmartFin became
+	// spending-only; they stay in the database but never appear.
+	filter := bson.M{"user_id": userID, "type": "expense"}
 	if category != "" {
 		filter["category"] = category
 	}
@@ -304,8 +307,8 @@ func (h *TransactionHandler) UpdateTransaction(c *fiber.Ctx) error {
 	if req.Amount != nil {
 		updateData["amount"] = *req.Amount
 	}
-	if req.Type != nil {
-		updateData["type"] = *req.Type
+	if req.Type != nil && *req.Type != "expense" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "SmartFin records expenses only"})
 	}
 	if req.Category != nil {
 		updateData["category"] = *req.Category
@@ -454,14 +457,12 @@ func (h *TransactionHandler) GetTransactionSummary(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to parse summary"})
 	}
 
-	var income, expense int64
+	var expense int64
 	cats := make([]map[string]interface{}, 0)
 
 	if len(results) > 0 {
 		for _, t := range results[0].Totals {
-			if t.ID == "income" {
-				income = t.Total
-			} else if t.ID == "expense" {
+			if t.ID == "expense" {
 				expense = t.Total
 			}
 		}
@@ -474,9 +475,7 @@ func (h *TransactionHandler) GetTransactionSummary(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"total_income":        income,
 		"total_expenses":      expense,
-		"available_to_spend":  income - expense,
 		"expense_by_category": cats,
 	})
 }

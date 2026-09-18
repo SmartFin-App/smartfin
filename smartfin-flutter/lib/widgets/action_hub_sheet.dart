@@ -238,22 +238,6 @@ class ActionHubSheet extends StatelessWidget {
             },
           ),
           
-          // Row 3 - Add Income
-          _buildActionRow(
-            context: context,
-            bgColor: Colors.white,
-            borderColor: const Color.fromRGBO(234, 226, 214, 0.6),
-            iconBgColor: const Color.fromRGBO(76, 175, 80, 0.05),
-            icon: Icons.account_balance_wallet_outlined,
-            iconColor: const Color(0xFF4CAF50),
-            title: "Add Extra Income",
-            subtitle: "Bonuses, freelance pay or gifts",
-            onTap: () {
-              Navigator.pop(context);
-              context.go('/manual-add?type=income');
-            },
-          ),
-          
           const SizedBox(height: 16),
           
           // Cancel Button

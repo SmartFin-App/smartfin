@@ -150,16 +150,8 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
                         color: const Color(0xFF333333))),
                 const SizedBox(height: 20),
 
-                _filterLabel('TYPE'),
-                Wrap(spacing: 8, runSpacing: 8, children: [
-                  _filterChip('All', type == null, () => setSheet(() => type = null)),
-                  _filterChip('Expense', type == 'expense',
-                      () => setSheet(() => type = 'expense')),
-                  _filterChip('Extra income', type == 'income',
-                      () => setSheet(() => type = 'income')),
-                ]),
-                const SizedBox(height: 20),
-
+                // No type filter: SmartFin records expenses only, so "All" and
+                // "Expense" would show the same list.
                 _filterLabel('MONTH'),
                 Wrap(spacing: 8, runSpacing: 8, children: [
                   _filterChip('Any', month == null, () => setSheet(() => month = null)),

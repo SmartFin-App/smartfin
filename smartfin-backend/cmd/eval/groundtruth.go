@@ -43,7 +43,6 @@ type BillRow struct {
 // UserData is everything an eval user owns.
 type UserData struct {
 	Name   string
-	Income int64
 	Budget int64
 	Txs    []TxRow
 	Bills  []BillRow
@@ -55,9 +54,10 @@ func LoadUserData(ctx context.Context, uid string, now time.Time) (UserData, err
 	if err := config.GetCollection("users").FindOne(ctx, bson.M{"firebase_uid": uid}).Decode(&u); err != nil {
 		return UserData{}, fmt.Errorf("load user %s: %w", uid, err)
 	}
-	d := UserData{Name: u.Name, Income: u.MonthlyIncome, Budget: u.BudgetLimit}
+	d := UserData{Name: u.Name, Budget: u.BudgetLimit}
 
-	cur, err := config.GetCollection("transactions").Find(ctx, bson.M{"user_id": uid},
+	// Expenses only, as the app and the coach see them.
+	cur, err := config.GetCollection("transactions").Find(ctx, bson.M{"user_id": uid, "type": "expense"},
 		options.Find().SetSort(bson.D{{Key: "date", Value: -1}}))
 	if err != nil {
 		return d, fmt.Errorf("load transactions: %w", err)
@@ -93,13 +93,10 @@ func LoadUserData(ctx context.Context, uid string, now time.Time) (UserData, err
 
 // Snapshot is the part of a user's state an answer must not change unless asked.
 type Snapshot struct {
-	BudgetLimit       int64   `json:"budget_limit"`
-	SavingsGoal       int64   `json:"savings_goal"`
-	SavingsGoalName   string  `json:"savings_goal_name"`
-	SavingsTargetDate string  `json:"savings_target_date"`
-	TxCount           int64   `json:"tx_count"`
-	SubCount          int64   `json:"sub_count"`
-	CoachTxs          []TxRow `json:"coach_txs,omitempty"`
+	BudgetLimit int64   `json:"budget_limit"`
+	TxCount     int64   `json:"tx_count"`
+	SubCount    int64   `json:"sub_count"`
+	CoachTxs    []TxRow `json:"coach_txs,omitempty"`
 }
 
 // TakeSnapshot reads the user's writable state from MongoDB.
@@ -110,8 +107,7 @@ func TakeSnapshot(ctx context.Context, uid string) (*Snapshot, error) {
 	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, err
 	}
-	s.BudgetLimit, s.SavingsGoal = u.BudgetLimit, u.SavingsGoal
-	s.SavingsGoalName, s.SavingsTargetDate = u.SavingsGoalName, u.SavingsTargetDate
+	s.BudgetLimit = u.BudgetLimit
 
 	txCol := config.GetCollection("transactions")
 	if s.TxCount, err = txCol.CountDocuments(ctx, bson.M{"user_id": uid}); err != nil {
@@ -136,20 +132,17 @@ func TakeSnapshot(ctx context.Context, uid string) (*Snapshot, error) {
 
 // Same reports whether nothing the coach can write has changed.
 func (s *Snapshot) Same(o *Snapshot) bool {
-	return s.BudgetLimit == o.BudgetLimit && s.SavingsGoal == o.SavingsGoal &&
-		s.SavingsGoalName == o.SavingsGoalName && s.SavingsTargetDate == o.SavingsTargetDate &&
+	return s.BudgetLimit == o.BudgetLimit &&
 		s.TxCount == o.TxCount && s.SubCount == o.SubCount && len(s.CoachTxs) == len(o.CoachTxs)
 }
 
-// Truth is the ground truth derived from a user's records. Month totals follow the
-// coach's own formula (get_budget_summary's computed path): income is the profile
-// income plus that month's one-time income.
+// Truth is the ground truth derived from a user's expense records, following
+// the coach's own formula (get_budget_summary's computed path). There is no
+// income: SmartFin tracks spending only.
 type Truth struct {
-	Income       int64
 	Budget       int64
 	Months       []string
 	MonthExpense map[string]int64
-	MonthOneTime map[string]int64
 	CatMonth     map[string]map[string]int64 // month → category → amount
 	CatTotal     map[string]int64
 	MerchMonth   map[string]map[string]int64 // lower-case merchant → month → amount
@@ -161,9 +154,9 @@ type Truth struct {
 // BuildTruth derives totals from the records. It is pure, so it is unit-tested.
 func BuildTruth(d UserData) Truth {
 	t := Truth{
-		Income: d.Income, Budget: d.Budget,
-		MonthExpense: map[string]int64{}, MonthOneTime: map[string]int64{},
-		CatMonth: map[string]map[string]int64{}, CatTotal: map[string]int64{},
+		Budget:       d.Budget,
+		MonthExpense: map[string]int64{},
+		CatMonth:     map[string]map[string]int64{}, CatTotal: map[string]int64{},
 		MerchMonth: map[string]map[string]int64{}, MerchTotal: map[string]int64{},
 		Bills: d.Bills,
 	}
@@ -174,27 +167,25 @@ func BuildTruth(d UserData) Truth {
 			seen[m] = true
 			t.Months = append(t.Months, m)
 		}
-		switch tx.Type {
-		case "expense":
-			t.MonthExpense[m] += tx.Amount
-			cat := tx.Category
-			if strings.TrimSpace(cat) == "" {
-				cat = "General"
-			}
-			if t.CatMonth[m] == nil {
-				t.CatMonth[m] = map[string]int64{}
-			}
-			t.CatMonth[m][cat] += tx.Amount
-			t.CatTotal[cat] += tx.Amount
-			key := strings.ToLower(tx.Merchant)
-			if t.MerchMonth[key] == nil {
-				t.MerchMonth[key] = map[string]int64{}
-			}
-			t.MerchMonth[key][m] += tx.Amount
-			t.MerchTotal[key] += tx.Amount
-		case "income":
-			t.MonthOneTime[m] += tx.Amount
+		if tx.Type != "expense" {
+			continue
 		}
+		t.MonthExpense[m] += tx.Amount
+		cat := tx.Category
+		if strings.TrimSpace(cat) == "" {
+			cat = "General"
+		}
+		if t.CatMonth[m] == nil {
+			t.CatMonth[m] = map[string]int64{}
+		}
+		t.CatMonth[m][cat] += tx.Amount
+		t.CatTotal[cat] += tx.Amount
+		key := strings.ToLower(tx.Merchant)
+		if t.MerchMonth[key] == nil {
+			t.MerchMonth[key] = map[string]int64{}
+		}
+		t.MerchMonth[key][m] += tx.Amount
+		t.MerchTotal[key] += tx.Amount
 	}
 	sort.Strings(t.Months)
 	for _, b := range d.Bills {
@@ -259,16 +250,6 @@ func (t Truth) Resolve(s NumSpec) (int64, error) {
 			return 0, fmt.Errorf("%s is not over budget", s.Month)
 		}
 		return e - t.Budget, nil
-	case "month_savings":
-		e, err := month(s.Month)
-		if err != nil {
-			return 0, err
-		}
-		v := t.Income + t.MonthOneTime[s.Month] - e
-		if v < 0 {
-			v = 0
-		}
-		return v, nil
 	case "merchant_total":
 		v, ok := t.MerchTotal[strings.ToLower(s.Name)]
 		if !ok {
@@ -299,32 +280,24 @@ func (t Truth) Resolve(s NumSpec) (int64, error) {
 }
 
 // AllowedBase is every figure an honest answer about this user could quote:
-// amounts, totals, differences and sums of the records, the profile and the bills.
+// amounts, totals, differences and sums of the records, the budget and the bills.
 // A number outside it (after the rounding allowance in score.go) is reported as an
 // unsupported figure. It is deliberately generous, so the metric is an upper bound
 // on invented numbers rather than a strict count.
 func (t Truth) AllowedBase(txs []TxRow) []int64 {
 	set := map[int64]bool{0: true}
 	add := func(v int64) { set[abs64(v)] = true }
-	add(t.Income)
 	add(t.Budget)
 	for _, tx := range txs {
 		add(tx.Amount)
 	}
 
-	var totalExp, totalOneTime int64
-	avail := map[string]int64{}
+	var totalExp int64
 	for _, m := range t.Months {
-		e, o := t.MonthExpense[m], t.MonthOneTime[m]
-		inc := t.Income + o
+		e := t.MonthExpense[m]
 		totalExp += e
-		totalOneTime += o
 		add(e)
-		add(o)
-		add(inc)
-		add(inc - e)
 		add(t.Budget - e)
-		avail[m] = inc - e
 		for _, v := range t.CatMonth[m] {
 			add(v)
 		}
@@ -341,8 +314,6 @@ func (t Truth) AllowedBase(txs []TxRow) []int64 {
 		add(v)
 	}
 	add(totalExp)
-	add(totalOneTime)
-	add(totalOneTime + t.Income*int64(len(t.Months)))
 	if n := len(t.Months); n > 0 {
 		add(int64(math.Round(float64(totalExp) / float64(n))))
 	}
@@ -355,7 +326,6 @@ func (t Truth) AllowedBase(txs []TxRow) []int64 {
 		for _, b := range t.Months[i+1:] {
 			add(t.MonthExpense[a] - t.MonthExpense[b])
 			add(t.MonthExpense[a] + t.MonthExpense[b])
-			add(avail[a] - avail[b])
 			for cat, v := range t.CatMonth[a] {
 				if w, ok := t.CatMonth[b][cat]; ok {
 					add(v - w)
@@ -381,7 +351,7 @@ func (t Truth) AllowedBase(txs []TxRow) []int64 {
 }
 
 // CaseAllowed extends the base set with the numbers the question and history
-// themselves contain, and their distance to the budget, income and each month's
+// themselves contain, and their distance to the budget and each month's
 // spending ("if I raised my limit to ฿25,000" makes ฿10,000 more a fair answer).
 func CaseAllowed(c Case, t Truth, base []int64) []int64 {
 	set := map[int64]bool{}
@@ -397,7 +367,6 @@ func CaseAllowed(c Case, t Truth, base []int64) []int64 {
 			q := n.Value
 			set[q] = true
 			set[abs64(q-t.Budget)] = true
-			set[abs64(q-t.Income)] = true
 			for _, m := range t.Months {
 				set[abs64(q-t.MonthExpense[m])] = true
 			}

@@ -86,7 +86,7 @@ class _CoachScreenState extends State<CoachScreen>
         'at': DateTime.now(),
         'time': _formatTime(DateTime.now()),
         'text':
-            'Hi $_userName! 🐾 I\'m your SmartFin Coach. Ask me anything about your spending!',
+            'Hi $_userName! 🐾 I\'m Kwak, your AI Coach. Ask me anything about your spending!',
         'chips': [
           'How much did I spend this month?',
           'Am I on budget?',

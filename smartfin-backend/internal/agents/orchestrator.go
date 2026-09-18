@@ -121,17 +121,7 @@ func (o *Orchestrator) ProcessQuery(ctx context.Context, input AskCoachInput) (*
 
 	// 1. Fetch user profile context for initial system prompt grounding
 	var user models.User
-	err = o.usersCol.FindOne(ctx, bson.M{"firebase_uid": input.UserID}).Decode(&user)
-	if err != nil {
-		user = models.User{
-			Name:            "SmartFin User",
-			MonthlyIncome:   30000,
-			IncomeBracket:   "Medium",
-			CurrentStatus:   "Balanced",
-			FinancialHealth: "Growth",
-			BudgetLimit:     15000,
-		}
-	}
+	hasProfile := o.usersCol.FindOne(ctx, bson.M{"firebase_uid": input.UserID}).Decode(&user) == nil
 
 	// The model has no clock of its own. Without this it cannot resolve "this
 	// month", "yesterday" or "last week", and it cannot place the timestamps that
@@ -139,13 +129,13 @@ func (o *Orchestrator) ProcessQuery(ctx context.Context, input AskCoachInput) (*
 	// from its training data.
 	now := time.Now().In(summaries.Zone)
 	userContext := fmt.Sprintf(
-		"Current date and time: %s (Thailand, UTC+07:00)\nCurrent month: %s\n\nCurrent User Profile:\n- Name: %s\n- Monthly Income: ฿%d\n- Income Bracket: %s\n- Budget Limit: ฿%d\n- Financial Goal: %s\n- Savings Goal: ฿%d (%s, target: %s)",
+		"Current date and time: %s (Thailand, UTC+07:00)\nCurrent month: %s\n\n%s",
 		now.Format("Monday, 2 January 2006, 15:04"), summaries.StringOf(now),
-		user.Name, user.MonthlyIncome, user.IncomeBracket, user.BudgetLimit, user.FinancialHealth,
-		user.SavingsGoal, user.SavingsGoalName, user.SavingsTargetDate,
+		describeProfile(user, hasProfile),
 	)
 
-	systemInstruction := fmt.Sprintf(`You are SmartFin Coach, a friendly, highly intelligent AI financial coach for a Thai user.
+	systemInstruction := fmt.Sprintf(`You are Kwak, SmartFin's AI Coach — a friendly, highly intelligent AI financial coach for a Thai user. Your name comes from แมวกวัก, the Thai beckoning lucky cat.
+Use your name only when introducing yourself or when asked who you are, and call yourself the AI Coach otherwise; do not sign or open every reply with it.
 You speak in a warm, encouraging tone and occasionally use the paw print emoji 🐾.
 You are equipped with specialized multi-agent tools to query data, execute financial actions, or search the web.
 
@@ -154,14 +144,16 @@ You are equipped with specialized multi-agent tools to query data, execute finan
 Follow this Reasoning Process:
 1. ORCHESTRATE: Analyze what information or action the user requires:
    - Need personal financial data? Call FinancialRetrievalAgent tools (get_budget_summary, get_transactions, get_subscriptions, get_recent_conversations).
-   - Need to perform a financial action? Call FinancialActionAgent tools (set_savings_goal, update_budget_limit, add_transaction).
+   - Need to perform a financial action? Call FinancialActionAgent tools (update_budget_limit, add_transaction).
    - Need external market/interest/tax/economic facts? Call FinancialResearchAgent (web_search).
 2. OBSERVE: Review the returned observations. If you still lack necessary details, invoke additional tools.
 3. GROUND & ANSWER: Once you have sufficient information, synthesize a clear, helpful, personalized answer.
    - Format amounts in Thai Baht (฿) with no decimals.
    - All dates and timestamps you receive are already Thai local time (UTC+07:00). Use the current date above when resolving "today", "this month" or "last week" — never guess it.
    - Keep answers concise (3-4 sentences) unless user asks for detailed analysis.
+   - SmartFin tracks spending only: expenses and the monthly budget. It records no income and no savings goals, so never state what the user earned or saved. If asked, say the app tracks spending and budget, and answer with those instead.
    - If an action was completed, confirm it clearly to the user.
+   - Current interest rates, prices, inflation figures and tax allowances change. State one only if it came from a web_search result in this conversation, and name its source. If web_search reports it is unavailable, say you could not check the latest figure and suggest where to confirm it — never supply a number from memory.
    - Subscriptions and bills are tracked by the user in the app. If the user says they paid a bill, tell them to tap "Mark paid" in Subscriptions & Bills rather than calling add_transaction — that logs the expense and also moves the next due date.
    - Gently redirect non-financial topics back to financial health.`, userContext)
 
@@ -341,9 +333,8 @@ func (o *Orchestrator) dispatchTool(ctx context.Context, userID, toolName string
 			limit = int(l)
 		}
 		category, _ := args["category"].(string)
-		txType, _ := args["type"].(string)
 		merchant, _ := args["merchant"].(string)
-		res, err := o.retrievalAgent.GetTransactions(ctx, userID, limit, category, txType, merchant)
+		res, err := o.retrievalAgent.GetTransactions(ctx, userID, limit, category, merchant)
 		return map[string]any{"transactions": res}, nil, err
 
 	case "get_recent_conversations":
@@ -365,16 +356,6 @@ func (o *Orchestrator) dispatchTool(ctx context.Context, userID, toolName string
 		return res, nil, err
 
 	// ── FinancialActionAgent Tools ──
-	case "set_savings_goal":
-		var amount int64
-		if a, ok := args["amount"].(float64); ok {
-			amount = int64(a)
-		}
-		goalName, _ := args["goal_name"].(string)
-		targetDate, _ := args["target_date"].(string)
-		res, err := o.actionAgent.SetSavingsGoal(ctx, userID, amount, goalName, targetDate)
-		return res, res, err
-
 	case "update_budget_limit":
 		var limit int64
 		if l, ok := args["budget_limit"].(float64); ok {
@@ -389,10 +370,9 @@ func (o *Orchestrator) dispatchTool(ctx context.Context, userID, toolName string
 		if a, ok := args["amount"].(float64); ok {
 			amount = int64(a)
 		}
-		txType, _ := args["type"].(string)
 		category, _ := args["category"].(string)
 		dateStr, _ := args["date"].(string)
-		res, err := o.actionAgent.AddTransaction(ctx, userID, merchant, amount, txType, category, dateStr)
+		res, err := o.actionAgent.AddTransaction(ctx, userID, merchant, amount, category, dateStr)
 		return res, res, err
 
 	// ── FinancialResearchAgent Tools ──
@@ -406,7 +386,7 @@ func (o *Orchestrator) dispatchTool(ctx context.Context, userID, toolName string
 	}
 }
 
-// getFunctionDeclarations defines the 8 agent tools
+// getFunctionDeclarations defines the 7 agent tools
 func (o *Orchestrator) getFunctionDeclarations() []*genai.FunctionDeclaration {
 	return []*genai.FunctionDeclaration{
 		// 1. web_search (FinancialResearchAgent)
@@ -425,31 +405,7 @@ func (o *Orchestrator) getFunctionDeclarations() []*genai.FunctionDeclaration {
 			},
 		},
 
-		// 2. set_savings_goal (FinancialActionAgent)
-		{
-			Name:        "set_savings_goal",
-			Description: "Set or update a specific savings goal for the user in the database.",
-			Parameters: &genai.Schema{
-				Type: genai.TypeObject,
-				Properties: map[string]*genai.Schema{
-					"amount": {
-						Type:        genai.TypeNumber,
-						Description: "The target savings amount in Baht (e.g. 50000).",
-					},
-					"goal_name": {
-						Type:        genai.TypeString,
-						Description: "Name or purpose of the savings goal (e.g. 'Japan Trip', 'Emergency Fund').",
-					},
-					"target_date": {
-						Type:        genai.TypeString,
-						Description: "Target target completion date (e.g. '2026-12-31' or 'in 6 months').",
-					},
-				},
-				Required: []string{"amount"},
-			},
-		},
-
-		// 3. update_budget_limit (FinancialActionAgent)
+		// 2. update_budget_limit (FinancialActionAgent)
 		{
 			Name:        "update_budget_limit",
 			Description: "Update the user's monthly budget limit in Thai Baht.",
@@ -465,43 +421,38 @@ func (o *Orchestrator) getFunctionDeclarations() []*genai.FunctionDeclaration {
 			},
 		},
 
-		// 4. add_transaction (FinancialActionAgent)
+		// 3. add_transaction (FinancialActionAgent)
 		{
 			Name:        "add_transaction",
-			Description: "Add a new income or expense transaction to the user's records in the database.",
+			Description: "Record a new expense in the user's records. SmartFin tracks spending only, so income cannot be recorded.",
 			Parameters: &genai.Schema{
 				Type: genai.TypeObject,
 				Properties: map[string]*genai.Schema{
 					"merchant": {
 						Type:        genai.TypeString,
-						Description: "Name of the merchant or source (e.g. 'Starbucks', 'Freelance client').",
+						Description: "Name of the merchant (e.g. 'Starbucks', '7-Eleven').",
 					},
 					"amount": {
 						Type:        genai.TypeNumber,
 						Description: "Transaction amount in Baht.",
 					},
-					"type": {
-						Type:        genai.TypeString,
-						Enum:        []string{"expense", "income"},
-						Description: "Whether this is an expense or income.",
-					},
 					"category": {
 						Type:        genai.TypeString,
-						Description: "Category (e.g. 'Food', 'Transport', 'Shopping', 'Bills', 'Salary').",
+						Description: "Category (e.g. 'Food', 'Transport', 'Shopping', 'Bills').",
 					},
 					"date": {
 						Type:        genai.TypeString,
 						Description: "Date of transaction in YYYY-MM-DD format (optional, defaults to today).",
 					},
 				},
-				Required: []string{"merchant", "amount", "type"},
+				Required: []string{"merchant", "amount"},
 			},
 		},
 
-		// 5. get_budget_summary (FinancialRetrievalAgent)
+		// 4. get_budget_summary (FinancialRetrievalAgent)
 		{
 			Name:        "get_budget_summary",
-			Description: "Retrieve the user's monthly financial summary including total income, total expenses, available budget, budget usage percentage, and category spending breakdown.",
+			Description: "Retrieve the user's spending for a month: total expenses, the monthly budget limit and how much of it is used, and the spending breakdown by category.",
 			Parameters: &genai.Schema{
 				Type: genai.TypeObject,
 				Properties: map[string]*genai.Schema{
@@ -513,10 +464,10 @@ func (o *Orchestrator) getFunctionDeclarations() []*genai.FunctionDeclaration {
 			},
 		},
 
-		// 6. get_transactions (FinancialRetrievalAgent)
+		// 5. get_transactions (FinancialRetrievalAgent)
 		{
 			Name:        "get_transactions",
-			Description: "Retrieve the user's transactions, newest first, with optional filtering by merchant, category or type. Use the merchant filter for questions about a specific shop, service or payee (e.g. 'how much have I spent at Netflix'), then add up the amounts.",
+			Description: "Retrieve the user's expenses, newest first, with optional filtering by merchant or category. Use the merchant filter for questions about a specific shop, service or payee (e.g. 'how much have I spent at Netflix'), then add up the amounts.",
 			Parameters: &genai.Schema{
 				Type: genai.TypeObject,
 				Properties: map[string]*genai.Schema{
@@ -530,18 +481,13 @@ func (o *Orchestrator) getFunctionDeclarations() []*genai.FunctionDeclaration {
 					},
 					"category": {
 						Type:        genai.TypeString,
-						Description: "Optional category filter. Categories are exactly: Food, Transport, Shopping, Bills, Groceries, Health, Entertainment, Salary, Gifts, Refunds, Other. Leave it empty when unsure.",
-					},
-					"type": {
-						Type:        genai.TypeString,
-						Enum:        []string{"expense", "income"},
-						Description: "Optional type filter.",
+						Description: "Optional category filter. Categories are exactly: Food, Transport, Shopping, Bills, Groceries, Health, Entertainment, Gifts, Other. Leave it empty when unsure.",
 					},
 				},
 			},
 		},
 
-		// 7. get_recent_conversations (FinancialRetrievalAgent)
+		// 6. get_recent_conversations (FinancialRetrievalAgent)
 		{
 			Name:        "get_recent_conversations",
 			Description: "Retrieve past chat conversations for context on prior user requests and recommendations.",
@@ -556,7 +502,7 @@ func (o *Orchestrator) getFunctionDeclarations() []*genai.FunctionDeclaration {
 			},
 		},
 
-		// 8. get_subscriptions (FinancialRetrievalAgent)
+		// 7. get_subscriptions (FinancialRetrievalAgent)
 		{
 			Name:        "get_subscriptions",
 			Description: "Retrieve the user's tracked recurring subscriptions and bills (e.g. Netflix, phone plan, rent): amounts, billing cycle, next due dates, which are overdue, and the monthly-equivalent total. Use for 'what bills are due', 'upcoming payments' or 'how much do I spend on subscriptions'. Read-only.",
@@ -587,4 +533,33 @@ func sanitizeForGemini(data map[string]any) map[string]any {
 		return data
 	}
 	return out
+}
+
+// describeProfile renders the user's profile for the system prompt, saying "not
+// set" wherever a value is missing rather than inventing one.
+//
+// A user without a profile document used to be described as earning ฿30,000
+// with a ฿15,000 budget, and the coach advised them on those invented figures.
+// A zero budget is likewise "not set" rather than ฿0, which reads as a real limit
+// the user has already blown. There is no income or savings goal to describe:
+// SmartFin tracks spending only.
+func describeProfile(u models.User, found bool) string {
+	if !found {
+		return "Current User Profile: not set up yet. Do not assume a budget. " +
+			"If a question depends on one, say it has not been set and suggest adding it in Profile."
+	}
+	text := func(v string) string {
+		if strings.TrimSpace(v) == "" {
+			return "not set"
+		}
+		return v
+	}
+	budget := "not set"
+	if u.BudgetLimit > 0 {
+		budget = fmt.Sprintf("฿%d", u.BudgetLimit)
+	}
+	return fmt.Sprintf(
+		"Current User Profile:\n- Name: %s\n- Monthly Budget Limit: %s\n- Financial Goal: %s",
+		text(u.Name), budget, text(u.FinancialHealth),
+	)
 }
