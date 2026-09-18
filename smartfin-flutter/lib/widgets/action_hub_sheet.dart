@@ -98,10 +98,10 @@ class ActionHubSheet extends StatelessWidget {
         // Most people keep slips in their banking app's own folder rather than
         // making one for us, so point at the picker instead of asking them to
         // reorganise their gallery.
-        return "We couldn't find your slip folder. Pick the one your bank saves slips to. 🐾";
+        return "We couldn't find your slip folder. Pick the one your bank saves slips to.";
       case SlipCheckStatus.none:
       case SlipCheckStatus.found:
-        return "No new slips found. You're all caught up! 🐾";
+        return "No new slips found. You're all caught up!";
     }
   }
 

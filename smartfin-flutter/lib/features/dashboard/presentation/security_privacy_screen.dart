@@ -194,7 +194,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
     setState(() => _isBusy = true);
     try {
       await _user!.updatePassword(newPassword);
-      _toast('Password updated 🐾');
+      _toast('Password updated');
     } on FirebaseAuthException catch (e) {
       _toast(_authMessage(e), error: true);
     } catch (e) {

@@ -30,12 +30,12 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
 
   static const Map<String, ({IconData icon, Color color})> _categoryStyle = {
     'Food':          (icon: Icons.restaurant_outlined,          color: Color(0xFFFF9F29)),
-    'Transport':     (icon: Icons.directions_car_outlined,      color: Color(0xFF4A90E2)),
-    'Entertainment': (icon: Icons.movie_outlined,               color: Color(0xFF9C27B0)),
-    'Shopping':      (icon: Icons.shopping_bag_outlined,        color: Color(0xFFE91E63)),
-    'Health':        (icon: Icons.favorite_outline,             color: Color(0xFFEF4444)),
-    'Groceries':     (icon: Icons.local_grocery_store_outlined, color: Color(0xFF4CAF50)),
-    'Bills':         (icon: Icons.receipt_outlined,             color: Color(0xFFFF9800)),
+    'Transport':     (icon: Icons.directions_car_outlined,      color: Color(0xFF2563EB)),
+    'Entertainment': (icon: Icons.movie_outlined,               color: Color(0xFF7C3AED)),
+    'Shopping':      (icon: Icons.shopping_bag_outlined,        color: Color(0xFFDB2777)),
+    'Health':        (icon: Icons.favorite_outline,             color: Color(0xFFDC2626)),
+    'Groceries':     (icon: Icons.local_grocery_store_outlined, color: Color(0xFF65A30D)),
+    'Bills':         (icon: Icons.receipt_outlined,             color: Color(0xFF0D9488)),
     'Other':         (icon: Icons.add_circle_outline,           color: Color(0xFF9E9E9E)),
   };
 
@@ -411,7 +411,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
 
     if (res.success) {
       _changed = true;
-      _toast(isEdit ? 'Bill updated 🐾' : '$name added 🐾');
+      _toast(isEdit ? 'Bill updated' : '$name added');
       await _load();
     } else {
       _toast(res.error ?? 'Could not save this bill', error: true);
@@ -510,7 +510,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       if (!mounted) return;
       if (res.success) {
         _changed = true;
-        _toast('${res.data?['message'] ?? 'Marked as paid'} 🐾');
+        _toast('${res.data?['message'] ?? 'Marked as paid'}');
       } else {
         _toast(res.error ?? 'Could not mark this bill as paid', error: true);
       }
@@ -585,7 +585,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
             _reminderOption(
               icon: Icons.notifications_active_outlined,
               title: 'Send a test reminder now',
-              onTap: () => run(ctx, () => service.showTestNow(sample), 'Test reminder sent 🐾'),
+              onTap: () => run(ctx, () => service.showTestNow(sample), 'Test reminder sent'),
             ),
             _reminderOption(
               icon: Icons.timer_outlined,
@@ -952,7 +952,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Add Netflix, your phone plan or rent and SmartFin will remind you before they\'re due 🐾',
+            'Add Netflix, your phone plan or rent and SmartFin will remind you before they\'re due',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 13, color: _muted),
           ),

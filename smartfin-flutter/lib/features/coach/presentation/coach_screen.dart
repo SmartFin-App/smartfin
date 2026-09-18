@@ -1,11 +1,11 @@
 import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_fin/constants/color_style.dart';
 import 'package:smart_fin/features/coach/data/coach_repository_impl.dart';
+import 'package:smart_fin/widgets/page_title_row.dart';
 import 'package:smart_fin/widgets/bottom_nav_bar.dart';
 
 class CoachScreen extends StatefulWidget {
@@ -508,49 +508,8 @@ class _CoachScreenState extends State<CoachScreen>
                   color: const Color.fromRGBO(255, 249, 240, 0.8),
                   padding: const EdgeInsets.only(
                       left: 24, right: 24, top: 48, bottom: 24),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      GestureDetector(
-                        onTap: () => context.go('/home'),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                                color: const Color.fromRGBO(
-                                    234, 226, 214, 0.6)),
-                            boxShadow: [
-                              BoxShadow(
-                                  color: Colors.black.withOpacity(0.02),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2))
-                            ],
-                          ),
-                          child: const Icon(Icons.chevron_left,
-                              size: 22,
-                              color: Color.fromRGBO(51, 51, 51, 0.7)),
-                        ),
-                      ),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'AI Coach',
-                            style: GoogleFonts.bricolageGrotesque(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 18,
-                              color: const Color(0xFF333333),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 40),
-                    ],
-                  ),
+                  alignment: Alignment.topCenter,
+                  child: const PageTitleRow(title: 'AI Coach'),
                 ),
               ),
             ),
@@ -620,7 +579,7 @@ class _CoachScreenState extends State<CoachScreen>
           ),
 
           // ── Bottom nav ─────────────────────────────────────────────────
-          const SmartFinBottomNav(currentIndex: 2, showFab: false),
+          const SmartFinBottomNav(currentIndex: 2),
         ],
       ),
     );

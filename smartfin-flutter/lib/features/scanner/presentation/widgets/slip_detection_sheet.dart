@@ -70,7 +70,7 @@ class SlipDetectionSheet extends StatelessWidget {
                       const Icon(Icons.auto_awesome, size: 14, color: AppColors.primary),
                       const SizedBox(width: 4),
                       Text(
-                        'AUTO-DETECT SLIP 🐾',
+                        'AUTO-DETECT SLIP',
                         style: GoogleFonts.inter(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,

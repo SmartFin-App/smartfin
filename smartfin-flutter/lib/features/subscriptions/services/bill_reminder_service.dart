@@ -149,7 +149,7 @@ class BillReminderService {
           id: idFor(id, 0),
           when: onTheDay.subtract(const Duration(days: 1)),
           title: '$name is due tomorrow',
-          body: '$amount — open SmartFin to see your upcoming bills 🐾',
+          body: '$amount — open SmartFin to see your upcoming bills',
           payload: '$_payloadPrefix$id',
           now: now,
         );
@@ -157,7 +157,7 @@ class BillReminderService {
           id: idFor(id, 1),
           when: onTheDay,
           title: '$name is due today',
-          body: '$amount — tap "Mark paid" once it\'s done 🐾',
+          body: '$amount — tap "Mark paid" once it\'s done',
           payload: '$_payloadPrefix$id',
           now: now,
         );
@@ -224,8 +224,8 @@ class BillReminderService {
         id: _testNowId,
         title: bill != null ? '${bill['name']} is due soon' : 'Bill reminders are on',
         body: bill != null
-            ? '${bill['formatted_amount'] ?? ''} — this is how SmartFin reminds you 🐾'
-            : 'SmartFin will remind you before a bill is due 🐾',
+            ? '${bill['formatted_amount'] ?? ''} — this is how SmartFin reminds you'
+            : 'SmartFin will remind you before a bill is due',
         notificationDetails: _details,
         payload: _testPayload,
       );
@@ -248,8 +248,8 @@ class BillReminderService {
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         title: bill != null ? '${bill['name']} is due tomorrow' : 'Scheduled test reminder',
         body: bill != null
-            ? '${bill['formatted_amount'] ?? ''} — a scheduled test from SmartFin 🐾'
-            : 'Scheduled reminders are working 🐾',
+            ? '${bill['formatted_amount'] ?? ''} — a scheduled test from SmartFin'
+            : 'Scheduled reminders are working',
         payload: _testPayload,
       );
       return true;

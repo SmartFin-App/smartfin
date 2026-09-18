@@ -54,10 +54,10 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
       case SlipCheckStatus.disabled:
         return "Auto-Detect is turned off. You can switch it back on in your profile.";
       case SlipCheckStatus.noAlbum:
-        return "No 'SmartFin Receipts' album yet. Save PromptPay slips to that album to auto-detect! 🐾";
+        return "No 'SmartFin Receipts' album yet. Save PromptPay slips to that album to auto-detect!";
       case SlipCheckStatus.none:
       case SlipCheckStatus.found:
-        return "No new slips found. You're all caught up! 🐾";
+        return "No new slips found. You're all caught up!";
     }
   }
 
@@ -177,7 +177,7 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
                             const Icon(Icons.photo_album_outlined, color: Color(0xFFFF9F29), size: 16),
                             const SizedBox(width: 6),
                             Text(
-                              "SLIPS ALBUM 🐾",
+                              "SLIPS ALBUM",
                               style: GoogleFonts.inter(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 10,

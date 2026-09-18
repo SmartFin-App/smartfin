@@ -132,7 +132,7 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
 
       if (result.success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Transaction saved! 🐾")),
+          const SnackBar(content: Text("Transaction saved!")),
         );
         context.go('/home');
       } else {
@@ -155,12 +155,12 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
 
   final List<Map<String, dynamic>> _expenseCats = [
     {'label': 'Food', 'icon': Icons.restaurant_outlined, 'color': const Color(0xFFFF9F29)},
-    {'label': 'Transport', 'icon': Icons.directions_car_outlined, 'color': const Color(0xFF4A90E2)},
-    {'label': 'Entertainment', 'icon': Icons.movie_outlined, 'color': const Color(0xFF9C27B0)},
-    {'label': 'Shopping', 'icon': Icons.shopping_bag_outlined, 'color': const Color(0xFFE91E63)},
-    {'label': 'Health', 'icon': Icons.favorite_outline, 'color': const Color(0xFFEF4444)},
-    {'label': 'Groceries', 'icon': Icons.local_grocery_store_outlined, 'color': const Color(0xFF4CAF50)},
-    {'label': 'Bills', 'icon': Icons.receipt_outlined, 'color': const Color(0xFFFF9800)},
+    {'label': 'Transport', 'icon': Icons.directions_car_outlined, 'color': const Color(0xFF2563EB)},
+    {'label': 'Entertainment', 'icon': Icons.movie_outlined, 'color': const Color(0xFF7C3AED)},
+    {'label': 'Shopping', 'icon': Icons.shopping_bag_outlined, 'color': const Color(0xFFDB2777)},
+    {'label': 'Health', 'icon': Icons.favorite_outline, 'color': const Color(0xFFDC2626)},
+    {'label': 'Groceries', 'icon': Icons.local_grocery_store_outlined, 'color': const Color(0xFF65A30D)},
+    {'label': 'Bills', 'icon': Icons.receipt_outlined, 'color': const Color(0xFF0D9488)},
     {'label': 'Other', 'icon': Icons.add_circle_outline, 'color': const Color(0xFF9E9E9E)},
   ];
 

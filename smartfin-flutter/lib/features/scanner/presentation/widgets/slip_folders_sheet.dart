@@ -97,7 +97,7 @@ class _SlipFoldersSheetState extends State<SlipFoldersSheet> {
             ),
             const SizedBox(height: 20),
             Text(
-              'Slip folders 🐾',
+              'Slip folders',
               style: GoogleFonts.bricolageGrotesque(
                 fontWeight: FontWeight.w800,
                 fontSize: 20,

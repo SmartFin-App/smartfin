@@ -159,7 +159,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       if (_health != null) await prefs.setString('user_health', _health!);
 
       if (!mounted) return;
-      _toast('Account updated! 🐾');
+      _toast('Account updated!');
       context.pop(true);
     } on DioException catch (e) {
       if (mounted) _toast('Failed to save: ${DioClient.handleError(e)}', error: true);

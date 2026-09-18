@@ -30,12 +30,12 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
   static const Map<String, ({IconData icon, Color color})> _categoryStyle = {
     'Food':          (icon: Icons.restaurant_outlined,          color: Color(0xFFFF9F29)),
-    'Transport':     (icon: Icons.directions_car_outlined,      color: Color(0xFF4A90E2)),
-    'Entertainment': (icon: Icons.movie_outlined,               color: Color(0xFF9C27B0)),
-    'Shopping':      (icon: Icons.shopping_bag_outlined,        color: Color(0xFFE91E63)),
-    'Health':        (icon: Icons.favorite_outline,             color: Color(0xFFEF4444)),
-    'Groceries':     (icon: Icons.local_grocery_store_outlined, color: Color(0xFF4CAF50)),
-    'Bills':         (icon: Icons.receipt_outlined,             color: Color(0xFFFF9800)),
+    'Transport':     (icon: Icons.directions_car_outlined,      color: Color(0xFF2563EB)),
+    'Entertainment': (icon: Icons.movie_outlined,               color: Color(0xFF7C3AED)),
+    'Shopping':      (icon: Icons.shopping_bag_outlined,        color: Color(0xFFDB2777)),
+    'Health':        (icon: Icons.favorite_outline,             color: Color(0xFFDC2626)),
+    'Groceries':     (icon: Icons.local_grocery_store_outlined, color: Color(0xFF65A30D)),
+    'Bills':         (icon: Icons.receipt_outlined,             color: Color(0xFF0D9488)),
     'Salary':        (icon: Icons.account_balance_wallet_outlined, color: Color(0xFFFF9F29)),
     'Gifts':         (icon: Icons.card_giftcard_outlined,       color: Color(0xFF4A90E2)),
     'Refunds':       (icon: Icons.local_offer_outlined,         color: Color(0xFF4CAF50)),
@@ -314,7 +314,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
     if (res.success) {
       _changed = true;
-      _toast('Transaction updated 🐾');
+      _toast('Transaction updated');
       await _load();
     } else {
       _toast(res.error ?? 'Could not save changes', error: true);
@@ -510,8 +510,8 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
               ),
               child: Column(
                 children: [
-                  _row('Type', isIncome ? 'Extra income' : 'Expense'),
-                  _divider(),
+                  // No Type row: SmartFin records expenses only, so it
+                  // could only ever say "Expense".
                   _row('Category', category),
                   _divider(),
                   _row(
@@ -599,8 +599,10 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                   color: const Color(0xFF9E9E9E))),
-          const Spacer(),
-          Flexible(
+          const SizedBox(width: 16),
+          // Expanded, not Spacer + Flexible: those split the spare width in
+          // half, so short values sat mid-row instead of at the right edge.
+          Expanded(
             child: Text(
               value,
               textAlign: TextAlign.right,

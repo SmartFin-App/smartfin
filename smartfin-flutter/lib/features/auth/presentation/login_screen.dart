@@ -166,14 +166,14 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       if (mounted) {
-        _showSnack('If that email has an account, a reset link is on its way. 🐾');
+        _showSnack('If that email has an account, a reset link is on its way.');
       }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       // user-not-found is deliberately reported as success above; anything else
       // is a real failure worth naming.
       if (e.code == 'user-not-found') {
-        _showSnack('If that email has an account, a reset link is on its way. 🐾');
+        _showSnack('If that email has an account, a reset link is on its way.');
       } else if (e.code == 'invalid-email') {
         _showSnack('Please enter a valid email address.');
       } else if (e.code == 'too-many-requests') {

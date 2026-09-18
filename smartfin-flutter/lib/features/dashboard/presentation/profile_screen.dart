@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:smart_fin/core/network/dio_client.dart';
 import 'package:smart_fin/features/scanner/services/gallery_watcher_service.dart';
 import 'package:smart_fin/features/subscriptions/services/bill_reminder_service.dart';
+import 'package:smart_fin/widgets/page_title_row.dart';
 import 'package:smart_fin/widgets/bottom_nav_bar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -190,7 +191,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _photoUrl = path;
         _photoVersion = DateTime.now().millisecondsSinceEpoch;
       });
-      _toast('Photo updated 🐾');
+      _toast('Photo updated');
     } on DioException catch (e) {
       if (mounted) _toast(DioClient.handleError(e), error: true);
     } catch (e) {
@@ -255,7 +256,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() => _budgetLimit = result);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(
-          'Budget updated! 🐾',
+          'Budget updated!',
           style: GoogleFonts.inter(fontWeight: FontWeight.w600),
         ),
         backgroundColor: const Color(0xFF4CAF50),
@@ -341,6 +342,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required String label,
     required Widget trailing,
     VoidCallback? onTap,
+    // Tints the icon tile and label, e.g. red for Log Out.
+    Color? accent,
   }) {
     return InkWell(
       onTap: onTap,
@@ -352,10 +355,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: const Color.fromRGBO(240, 235, 225, 0.3),
+                color: accent?.withOpacity(0.08) ??
+                    const Color.fromRGBO(240, 235, 225, 0.3),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, size: 20, color: const Color.fromRGBO(51, 51, 51, 0.6)),
+              child: Icon(icon,
+                  size: 20,
+                  color: accent ?? const Color.fromRGBO(51, 51, 51, 0.6)),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -364,7 +370,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: GoogleFonts.inter( // fallback to Inter for strong legibility
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
-                  color: const Color(0xFF333333),
+                  color: accent ?? const Color(0xFF333333),
                 ),
               ),
             ),
@@ -600,37 +606,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 const SizedBox(height: 32),
 
-                // Log Out Button
+                // Log Out — a row in its own card, styled like Preferences
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: GestureDetector(
-                    onTap: _showLogoutDialog,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color.fromRGBO(239, 68, 68, 0.1)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.logout, size: 18, color: Color(0xFFEF4444)),
-                          const SizedBox(width: 8),
-                          Text(
-                            "Log Out",
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                              color: const Color(0xFFEF4444),
-                            ),
-                          )
-                        ],
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.4)),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: _buildPreferencesRow(
+                        icon: Icons.logout,
+                        label: 'Log Out',
+                        trailing: const SizedBox.shrink(),
+                        onTap: _showLogoutDialog,
+                        accent: const Color(0xFFEF4444),
                       ),
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),
@@ -646,43 +642,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Container(
                   color: const Color.fromRGBO(255, 249, 240, 0.8),
                   padding: const EdgeInsets.only(left: 24, right: 24, top: 48, bottom: 24),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: () => context.go('/home'),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.6)),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))
-                            ],
-                          ),
-                          child: const Icon(Icons.chevron_left, size: 22, color: Color.fromRGBO(51, 51, 51, 0.7)),
-                        ),
-                      ),
-                      Text(
-                        "Profile",
-                        style: GoogleFonts.bricolageGrotesque(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 18,
-                          color: const Color(0xFF333333),
-                        ),
-                      ),
-                      const SizedBox(width: 40),
-                    ],
-                  ),
+                  child: const PageTitleRow(title: 'Profile'),
                 ),
               ),
             ),
           ),
 
           // Bottom Nav
-          const SmartFinBottomNav(currentIndex: 3, showFab: false),
+          const SmartFinBottomNav(currentIndex: 3),
         ],
       ),
     );

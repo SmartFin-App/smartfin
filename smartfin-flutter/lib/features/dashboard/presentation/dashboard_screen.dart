@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -35,12 +36,12 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
 
   static const Map<String, ({IconData icon, Color color})> _categoryStyle = {
     'Food':          (icon: Icons.restaurant_outlined,            color: Color(0xFFFF9F29)),
-    'Transport':     (icon: Icons.directions_car_outlined,        color: Color(0xFF4A90E2)),
-    'Entertainment': (icon: Icons.movie_outlined,                 color: Color(0xFF9C27B0)),
-    'Shopping':      (icon: Icons.shopping_bag_outlined,          color: Color(0xFFE91E63)),
-    'Health':        (icon: Icons.favorite_outline,               color: Color(0xFFEF4444)),
-    'Groceries':     (icon: Icons.local_grocery_store_outlined,   color: Color(0xFF4CAF50)),
-    'Bills':         (icon: Icons.receipt_outlined,               color: Color(0xFFFF9800)),
+    'Transport':     (icon: Icons.directions_car_outlined,        color: Color(0xFF2563EB)),
+    'Entertainment': (icon: Icons.movie_outlined,                 color: Color(0xFF7C3AED)),
+    'Shopping':      (icon: Icons.shopping_bag_outlined,          color: Color(0xFFDB2777)),
+    'Health':        (icon: Icons.favorite_outline,               color: Color(0xFFDC2626)),
+    'Groceries':     (icon: Icons.local_grocery_store_outlined,   color: Color(0xFF65A30D)),
+    'Bills':         (icon: Icons.receipt_outlined,               color: Color(0xFF0D9488)),
     'Salary':        (icon: Icons.account_balance_wallet_outlined, color: Color(0xFF4CAF50)),
     'Gifts':         (icon: Icons.card_giftcard_outlined,         color: Color(0xFF4A90E2)),
     'Refunds':       (icon: Icons.local_offer_outlined,           color: Color(0xFF4CAF50)),
@@ -93,7 +94,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text(
-                "We couldn't find your slip folder. Pick one so SmartFin can spot new slips. 🐾"),
+                "We couldn't find your slip folder. Pick one so SmartFin can spot new slips."),
             duration: const Duration(seconds: 8),
             action: SnackBarAction(
               label: 'Pick',
@@ -350,11 +351,14 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
-  // ── Top categories ────────────────────────────────────────────────────────
+  // ── Budget donut + top categories ─────────────────────────────────────────
   // Replaces the old budget card, whose headline ("available to spend") was
   // income − expenses. Income is an assumed profile figure credited in full on
   // day one, so that headline was a projection dressed as a balance. Every
-  // figure on this card is a recorded expense.
+  // figure on this card is a recorded expense or the user's own budget limit.
+
+  static const Color _ringTrack = Color.fromRGBO(240, 235, 225, 0.8);
+  static const Color _overBudget = Color(0xFFEF4444);
 
   /// Placeholder shaped like the loaded card, so the layout doesn't jump.
   Widget _buildTopCategoriesSkeleton() {
@@ -369,6 +373,10 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _shimmerBox(width: 110, height: 10),
+          const SizedBox(height: 20),
+          Center(child: _shimmerBox(width: 180, height: 180, radius: 90)),
+          const SizedBox(height: 28),
           _shimmerBox(width: 110, height: 10),
           for (var i = 0; i < 3; i++) ...[
             const SizedBox(height: 20),
@@ -385,12 +393,140 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     );
   }
 
+  Future<void> _openProfileForBudget() async {
+    await context.push('/profile');
+    if (mounted) _loadData();
+  }
+
+  /// Donut of this month's spending, one segment per category, filling up to
+  /// the budget limit. The unspent part of the budget is the grey track; once
+  /// spending passes the limit the ring is simply full and the centre says by
+  /// how much. With no budget set it is a plain category breakdown.
+  Widget _buildBudgetDonut(List<Map> allCategories) {
+    final spent = ((_monthlySummary?['total_expenses'] as num?) ?? 0).toInt();
+    final budget = ((_monthlySummary?['budget_limit'] as num?) ?? 0).toInt();
+    final hasBudget = budget > 0;
+    final over = hasBudget && spent > budget;
+
+    final sections = <PieChartSectionData>[
+      for (final c in allCategories)
+        if (((c['amount'] as num?) ?? 0) > 0)
+          PieChartSectionData(
+            value: ((c['amount'] as num?) ?? 0).toDouble(),
+            color: (_categoryStyle[(c['category'] as String?)?.trim()] ??
+                    _categoryStyle['Other']!)
+                .color,
+            radius: 22,
+            showTitle: false,
+          ),
+      if (hasBudget && spent < budget)
+        PieChartSectionData(
+          value: (budget - spent).toDouble(),
+          color: _ringTrack,
+          radius: 22,
+          showTitle: false,
+        ),
+    ];
+    // fl_chart draws nothing for an all-zero pie; keep the empty ring visible.
+    if (sections.isEmpty) {
+      sections.add(PieChartSectionData(
+          value: 1, color: _ringTrack, radius: 22, showTitle: false));
+    }
+
+    final String status;
+    final Color statusColor;
+    if (!hasBudget) {
+      status = 'No budget set';
+      statusColor = const Color(0xFF9E9E9E);
+    } else if (over) {
+      status = '${_baht(spent - budget)} over';
+      statusColor = _overBudget;
+    } else {
+      status = '${_baht(budget - spent)} left';
+      statusColor = const Color(0xFF4CAF50);
+    }
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 200,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              PieChart(
+                PieChartData(
+                  sections: sections,
+                  centerSpaceRadius: 72,
+                  sectionsSpace: sections.length > 1 ? 2 : 0,
+                  startDegreeOffset: -90,
+                  borderData: FlBorderData(show: false),
+                  pieTouchData: PieTouchData(enabled: false),
+                ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _baht(spent),
+                    style: GoogleFonts.bricolageGrotesque(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 28,
+                      color: over ? _overBudget : AppColors.textDark,
+                    ),
+                  ),
+                  if (hasBudget)
+                    Text(
+                      'of ${_baht(budget)}',
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        color: const Color(0xFF9E9E9E),
+                      ),
+                    ),
+                  const SizedBox(height: 6),
+                  Text(
+                    status,
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                      color: statusColor,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        if (!hasBudget) ...[
+          const SizedBox(height: 8),
+          GestureDetector(
+            // Opaque so this tap doesn't fall through to the card's History tap.
+            behavior: HitTestBehavior.opaque,
+            onTap: _openProfileForBudget,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Text(
+                'Set a monthly budget →',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                  color: const Color(0xFFFF9F29),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _buildTopCategoriesCard() {
     // Already sorted largest-first server-side, and [] rather than null when
     // there are no expenses — but guard the shape anyway.
     final raw = _monthlySummary?['expense_by_category'];
-    final categories =
-        (raw is List ? raw : const []).whereType<Map>().take(3).toList();
+    final allCategories =
+        (raw is List ? raw : const []).whereType<Map>().toList();
+    final categories = allCategories.take(3).toList();
 
     return GestureDetector(
       onTap: () => context.push('/history'),
@@ -413,6 +549,18 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
+              'MONTHLY BUDGET',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w800,
+                fontSize: 10,
+                letterSpacing: 2,
+                color: const Color(0xFF9E9E9E),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildBudgetDonut(allCategories),
+            const SizedBox(height: 24),
+            Text(
               'TOP CATEGORIES',
               style: GoogleFonts.inter(
                 fontWeight: FontWeight.w800,
@@ -424,7 +572,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             if (categories.isEmpty) ...[
               const SizedBox(height: 16),
               Text(
-                'No spending yet this month. Scan a slip or add an expense to see where your money goes 🐾',
+                'No spending yet this month. Scan a slip or add an expense to see where your money goes',
                 style: GoogleFonts.inter(
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
@@ -667,9 +815,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                                   border:
                                       Border.all(color: const Color(0xFFEAE2D6)),
                                 ),
-                                // The cat is the logo on the left now, so this
-                                // button uses a person icon rather than showing
-                                // the same image twice in one row.
+                                // A person icon: cat imagery belongs to the AI
+                                // Coach only.
                                 child: const Icon(
                                   Icons.person_outline,
                                   size: 20,
@@ -705,7 +852,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                       ),
                       const SizedBox(height: 12),
 
-                      // ── Top Categories ───────────────────────────────────
+                      // ── Budget donut + Top Categories ────────────────────
                       // A failed load must not render as a real ฿0 month.
                       _loadFailed && !_isLoading
                           ? Container(

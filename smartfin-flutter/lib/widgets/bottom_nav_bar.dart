@@ -7,12 +7,10 @@ import 'package:smart_fin/widgets/action_hub_sheet.dart';
 
 class SmartFinBottomNav extends StatelessWidget {
   final int currentIndex;
-  final bool showFab;
 
   const SmartFinBottomNav({
     super.key,
     required this.currentIndex,
-    this.showFab = true,
   });
 
   void _onTap(BuildContext context, int index) {
@@ -63,6 +61,37 @@ class SmartFinBottomNav extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Add sits inside the bar on every tab. It used to float 24px above the
+  /// bar, where it covered the coach's chat input, so Coach and Profile hid it
+  /// and left an empty gap. It stays a filled square rather than a labelled
+  /// tab because it opens the action hub; it is never the current page.
+  Widget _buildAddButton(BuildContext context) {
+    return Expanded(
+      child: Center(
+        child: GestureDetector(
+          onTap: () => ActionHubSheet.show(context),
+          child: Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF9F29),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFF9F29).withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Icon(Icons.add, color: Colors.white, size: 24),
+          ),
         ),
       ),
     );
@@ -120,8 +149,7 @@ class SmartFinBottomNav extends StatelessWidget {
                         isActive: currentIndex == 1,
                       ),
                       
-                      // Center space for FAB
-                      const SizedBox(width: 80), 
+                      _buildAddButton(context),
                       
                       _buildNavItem(
                         context: context,
@@ -142,41 +170,7 @@ class SmartFinBottomNav extends StatelessWidget {
                 ),
               ),
             ),
-            
-            // Floating Action Button
-            if (showFab)
-              Positioned(
-              top: -24, // Elevating it above the bar
-              child: GestureDetector(
-                onTap: () => ActionHubSheet.show(context),
-                child: Container(
-                  width: 64,
-                  height: 64,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFF9F29),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFFF9F29).withOpacity(0.3),
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Container(
-                    width: 24,
-                    height: 24,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: const Icon(Icons.add, color: Color(0xFFFF9F29), size: 18),
-                  ),
-                ),
-              ),
-            ),
+
           ],
         ),
       ),

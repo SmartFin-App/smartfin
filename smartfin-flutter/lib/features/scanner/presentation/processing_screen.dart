@@ -30,7 +30,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
   void initState() {
     super.initState();
 
-    // Bounce animation for lucky cat
+    // Bounce animation for the receipt icon
     _bounceController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -121,7 +121,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Lucky cat with bounce
+            // Receipt icon with bounce
             AnimatedBuilder(
               animation: _bounceAnimation,
               builder: (context, child) {
