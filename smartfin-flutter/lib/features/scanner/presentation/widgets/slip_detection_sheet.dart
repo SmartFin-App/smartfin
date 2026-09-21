@@ -53,7 +53,7 @@ class SlipDetectionSheet extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Header with paw badge
+            // Header with auto-detect badge
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

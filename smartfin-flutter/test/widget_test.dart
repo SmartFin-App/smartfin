@@ -1,23 +1,31 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-import 'package:smart_fin/main.dart';
+import 'package:smart_fin/features/auth/presentation/login_screen.dart';
 
+// Smoke test on the login screen rather than the whole app: SmartFinApp starts
+// at the splash screen, which needs Firebase initialised and then the backend,
+// and neither exists in a widget test. The login screen only touches Firebase
+// when a button is pressed.
 void main() {
-  testWidgets('SmartFin dashboard smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const SmartFinApp());
+  setUpAll(() {
+    // Tests have no network, so fonts fall back to the default instead of
+    // failing to download.
+    GoogleFonts.config.allowRuntimeFetching = false;
+  });
 
-    // Verify that our app bar title is 'SmartFin'.
-    expect(find.text('SmartFin'), findsOneWidget);
-    
-    // Verify that 'Welcome back' text is present.
-    expect(find.textContaining('Welcome back'), findsOneWidget);
+  testWidgets('login screen renders its form', (WidgetTester tester) async {
+    // The screen reads GoRouter from context for its links, so host it in one.
+    final router = GoRouter(
+      routes: [GoRoute(path: '/', builder: (_, _) => const LoginScreen())],
+    );
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+
+    expect(find.text('WELCOME BACK'), findsOneWidget);
+    expect(find.text('LOG IN'), findsOneWidget);
+    expect(find.text('Sign Up'), findsOneWidget);
+    expect(find.byType(TextField), findsNWidgets(2));
   });
 }

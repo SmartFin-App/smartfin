@@ -26,7 +26,6 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   static const List<String> _expenseCategories = [
     'Food', 'Transport', 'Shopping', 'Bills', 'Groceries', 'Health', 'Entertainment', 'Other',
   ];
-  static const List<String> _incomeCategories = ['Salary', 'Gifts', 'Refunds', 'Other'];
 
   static const Map<String, ({IconData icon, Color color})> _categoryStyle = {
     'Food':          (icon: Icons.restaurant_outlined,          color: Color(0xFFFF9F29)),
@@ -36,9 +35,6 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     'Health':        (icon: Icons.favorite_outline,             color: Color(0xFFDC2626)),
     'Groceries':     (icon: Icons.local_grocery_store_outlined, color: Color(0xFF65A30D)),
     'Bills':         (icon: Icons.receipt_outlined,             color: Color(0xFF0D9488)),
-    'Salary':        (icon: Icons.account_balance_wallet_outlined, color: Color(0xFFFF9F29)),
-    'Gifts':         (icon: Icons.card_giftcard_outlined,       color: Color(0xFF4A90E2)),
-    'Refunds':       (icon: Icons.local_offer_outlined,         color: Color(0xFF4CAF50)),
     'Other':         (icon: Icons.add_circle_outline,           color: Color(0xFF9E9E9E)),
   };
 
@@ -111,7 +107,6 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     final tx = _tx;
     if (tx == null || _isBusy) return;
 
-    final isIncome = (tx['type'] as String?) == 'income';
     final merchantController =
         TextEditingController(text: tx['merchant'] as String? ?? '');
     final amountController =
@@ -125,7 +120,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) {
-          final categories = isIncome ? _incomeCategories : _expenseCategories;
+          const categories = _expenseCategories;
           return Padding(
             padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
             child: Container(
@@ -451,7 +446,6 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
   Widget _buildContent() {
     final tx = _tx!;
-    final isIncome = (tx['type'] as String?) == 'income';
     final category = tx['category'] as String? ?? 'Other';
     final style = _categoryStyle[category] ?? _categoryStyle['Other']!;
     final amount = (tx['amount'] as num?) ?? 0;
@@ -481,12 +475,12 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '${isIncome ? '+' : '−'} ${_baht(amount)}',
+                    '− ${_baht(amount)}',
                     style: GoogleFonts.bricolageGrotesque(
                       fontWeight: FontWeight.w800,
                       fontSize: 38,
                       letterSpacing: -1,
-                      color: isIncome ? const Color(0xFF4CAF50) : AppColors.textDark,
+                      color: AppColors.textDark,
                     ),
                   ),
                   const SizedBox(height: 4),

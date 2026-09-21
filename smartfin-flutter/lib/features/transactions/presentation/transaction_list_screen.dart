@@ -438,10 +438,6 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
     'Health':        (icon: Icons.favorite_outline,           color: Color(0xFFDC2626)),
     'Groceries':     (icon: Icons.local_grocery_store_outlined, color: Color(0xFF65A30D)),
     'Bills':         (icon: Icons.receipt_outlined,           color: Color(0xFF0D9488)),
-    // Income categories
-    'Salary':        (icon: Icons.account_balance_wallet_outlined, color: Color(0xFFFF9F29)),
-    'Gifts':         (icon: Icons.card_giftcard_outlined,     color: Color(0xFF4A90E2)),
-    'Refunds':       (icon: Icons.local_offer_outlined,       color: Color(0xFF4CAF50)),
     // Fallback
     'Other':         (icon: Icons.add_circle_outline,         color: Color(0xFF9E9E9E)),
   };
@@ -480,16 +476,13 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
   }
 
   Widget _buildTransactionRow(Map<String, dynamic> tx) {
-    final bool isIncome = (tx['type'] as String?) == 'income';
     final String merchant = tx['merchant'] as String? ?? '-';
     final String formattedAmount = tx['formatted_amount'] as String? ?? '';
     final String category = tx['category'] as String? ?? '';
     final String formattedTime = tx['formatted_time'] as String? ?? '';
 
     final style = _categoryStyle[category] ??
-        (isIncome
-            ? (icon: Icons.account_balance_wallet_outlined, color: const Color(0xFFFF9F29))
-            : (icon: Icons.arrow_upward, color: const Color(0xFF9E9E9E)));
+        (icon: Icons.arrow_upward, color: const Color(0xFF9E9E9E));
 
     return GestureDetector(
       onTap: () => _openDetail(tx),
@@ -553,9 +546,7 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
               style: GoogleFonts.inter(
                 fontWeight: FontWeight.w700,
                 fontSize: 12,
-                color: isIncome
-                    ? const Color(0xFF4CAF50)
-                    : const Color(0xFFEF4444),
+                color: const Color(0xFFEF4444),
               ),
             ),
           ],

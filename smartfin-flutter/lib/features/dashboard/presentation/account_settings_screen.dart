@@ -9,9 +9,9 @@ import 'package:smart_fin/constants/color_style.dart';
 import 'package:smart_fin/core/network/dio_client.dart';
 
 /// Editor for the profile attributes captured once during onboarding and never
-/// editable afterwards. These are not cosmetic: the orchestrator injects income
-/// bracket, current status and financial health into the coach's system prompt, so
-/// a stale "Student / Paycheck to Paycheck" quietly skews every piece of advice.
+/// editable afterwards. These are not cosmetic: the orchestrator puts the name and
+/// financial health into the coach's system prompt, so a stale "Paycheck to
+/// Paycheck" quietly skews every piece of advice.
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key});
 
@@ -137,9 +137,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
     setState(() => _isSaving = true);
     try {
-      // No income bracket here: it is derived from the exact monthly income, which
-      // is edited in Profile. A separate picker let the two contradict each other
-      // ("Under 20k" beside an income of ฿80,000).
       await DioClient.dio.put('/api/users/$uid', data: {
         'name': name,
         if (_status != null) 'current_status': _status,

@@ -296,8 +296,8 @@ func (h *TransactionHandler) UpdateTransaction(c *fiber.Ctx) error {
 	if req.Amount != nil && *req.Amount <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Amount must be greater than 0"})
 	}
-	if req.Type != nil && *req.Type != "expense" && *req.Type != "income" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Type must be 'expense' or 'income'"})
+	if req.Type != nil && *req.Type != "expense" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "SmartFin records expenses only"})
 	}
 
 	updateData := bson.M{}
@@ -306,9 +306,6 @@ func (h *TransactionHandler) UpdateTransaction(c *fiber.Ctx) error {
 	}
 	if req.Amount != nil {
 		updateData["amount"] = *req.Amount
-	}
-	if req.Type != nil && *req.Type != "expense" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "SmartFin records expenses only"})
 	}
 	if req.Category != nil {
 		updateData["category"] = *req.Category

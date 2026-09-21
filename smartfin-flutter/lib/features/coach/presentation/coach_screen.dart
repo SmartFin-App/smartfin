@@ -264,7 +264,6 @@ class _CoachScreenState extends State<CoachScreen>
 
   Widget _buildMessage(Map<String, dynamic> msg) {
     final isUser = msg['isUser'] as bool;
-    final tags = (msg['tags'] as List<String>?) ?? [];
     final chips = (msg['chips'] as List<String>?) ?? [];
 
     return Padding(
@@ -352,44 +351,6 @@ class _CoachScreenState extends State<CoachScreen>
                                         fontWeight: FontWeight.w700,
                                         fontSize: 12,
                                         color: const Color(0xFFFF9F29),
-                                      ),
-                                    ),
-                                  ),
-                                ))
-                            .toList(),
-                      ),
-                    ),
-
-                  // Action tags
-                  if (tags.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: tags
-                            .map((t) => GestureDetector(
-                                  onTap: () => ScaffoldMessenger.of(context)
-                                      .showSnackBar(const SnackBar(
-                                          content:
-                                              Text('Coming soon'))),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius:
-                                          BorderRadius.circular(12),
-                                      border: Border.all(
-                                          color:
-                                              const Color(0xFFEAE2D6)),
-                                    ),
-                                    child: Text(
-                                      t,
-                                      style: GoogleFonts.inter(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 12,
-                                        color: const Color(0xFF333333),
                                       ),
                                     ),
                                   ),
