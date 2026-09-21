@@ -149,7 +149,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                         color: const Color(0xFFFF9F29),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFF9F29).withOpacity(_pulseController.value * 0.6),
+                            color: const Color(0xFFFF9F29).withValues(alpha: _pulseController.value * 0.6),
                             blurRadius: 10 * _pulseController.value,
                             spreadRadius: 4 * _pulseController.value,
                           ),

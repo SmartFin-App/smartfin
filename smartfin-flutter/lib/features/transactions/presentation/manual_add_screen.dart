@@ -350,7 +350,7 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
                             border: Border.all(color: const Color(0xFFEAE2D6)),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.02),
+                                color: Colors.black.withValues(alpha: 0.02),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
@@ -451,7 +451,7 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
                                               width: 44,
                                               height: 44,
                                               decoration: BoxDecoration(
-                                                color: (cat['color'] as Color).withOpacity(0.1),
+                                                color: (cat['color'] as Color).withValues(alpha: 0.1),
                                                 borderRadius: BorderRadius.circular(16),
                                               ),
                                               child: Icon(

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 
@@ -29,25 +30,26 @@ class ApiResponse<T> {
 class DioClient {
   static final Dio dio = _createDio();
 
-  /// Returns the correct base URL depending on platform and run mode.
-  /// Emulator:        flutter run --dart-define=IS_EMULATOR=true
-  /// Physical device: flutter run
-  /// Any target:      `flutter run --dart-define=API_BASE_URL=http://MAC_LAN_IP:3000`
+  /// The backend's address, set at build time with API_BASE_URL:
   ///
-  /// A physical iPhone must use the override: 'localhost' there means the phone
-  /// itself, not the Mac running the server.
+  ///   Deployed backend: `flutter build apk --dart-define=API_BASE_URL=https://api.example.com`
+  ///   Physical device:  `flutter run --dart-define=API_BASE_URL=http://MAC_LAN_IP:3000`
+  ///
+  /// Without it the app assumes a local backend on port 3000, which only an
+  /// emulator or simulator can reach. A real phone always needs the define:
+  /// 'localhost' there means the phone itself, and a LAN IP baked in here went
+  /// stale whenever the Mac's address changed.
   static String get baseUrl {
     const override = String.fromEnvironment('API_BASE_URL');
-    if (override.isNotEmpty) return override;
-
-    if (Platform.isAndroid) {
-      const bool isEmulator =
-          bool.fromEnvironment('IS_EMULATOR', defaultValue: true);
-      return isEmulator
-          ? 'http://10.0.2.2:3000'          // Android emulator → host loopback
-          : 'http://192.168.1.118:3000';    // Physical device → Mac's LAN IP
+    if (override.isNotEmpty) {
+      // Paths start with '/', so a trailing slash here would double it.
+      return override.endsWith('/')
+          ? override.substring(0, override.length - 1)
+          : override;
     }
-    return 'http://localhost:3000';          // iOS simulator / macOS
+    return Platform.isAndroid
+        ? 'http://10.0.2.2:3000' // Android emulator → the Mac's loopback
+        : 'http://localhost:3000'; // iOS simulator / macOS
   }
 
   static Dio _createDio() {
@@ -66,16 +68,16 @@ class DioClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          print("REQUEST: ${options.method} ${options.path}");
+          debugPrint("REQUEST: ${options.method} ${options.path}");
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          print("RESPONSE: ${response.statusCode} ${response.requestOptions.path}");
+          debugPrint("RESPONSE: ${response.statusCode} ${response.requestOptions.path}");
           return handler.next(response);
         },
         onError: (DioException e, handler) {
           final errorMessage = handleError(e);
-          print("ERROR: $errorMessage");
+          debugPrint("ERROR: $errorMessage");
           return handler.next(DioException(
             requestOptions: e.requestOptions,
             error: ApiException(

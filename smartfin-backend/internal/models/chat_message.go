@@ -13,5 +13,9 @@ type ChatMessage struct {
 	Role      string        `bson:"role" json:"role"` // "user", "model", "tool"
 	Content   string        `bson:"content" json:"content"`
 	ToolCalls []string      `bson:"tool_calls,omitempty" json:"tool_calls,omitempty"`
-	CreatedAt time.Time     `bson:"created_at" json:"created_at"`
+	// Actions are the writes the coach made while producing this reply (the
+	// same records as actions_taken), kept so the app can still show them after
+	// reloading the transcript.
+	Actions   []map[string]any `bson:"actions,omitempty" json:"actions,omitempty"`
+	CreatedAt time.Time        `bson:"created_at" json:"created_at"`
 }

@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_fin/constants/color_style.dart';
 import 'package:smart_fin/widgets/smartfin_logo.dart';
 
@@ -181,7 +180,7 @@ class _SignupScreenState extends State<SignupScreen> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
+                color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -313,7 +312,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       borderRadius: BorderRadius.circular(9999),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFFF9F29).withOpacity(0.3),
+                          color: const Color(0xFFFF9F29).withValues(alpha: 0.3),
                           blurRadius: 16,
                           offset: const Offset(0, 6),
                         ),
@@ -400,7 +399,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       borderRadius: BorderRadius.circular(9999),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.02),
+                          color: Colors.black.withValues(alpha: 0.02),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),

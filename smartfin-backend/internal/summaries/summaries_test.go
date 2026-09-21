@@ -90,3 +90,21 @@ func TestMonthAnchorWalkbackHasNoGapsOrDuplicates(t *testing.T) {
 		}
 	}
 }
+
+func TestBaht(t *testing.T) {
+	cases := map[int64]string{
+		0:       "฿0",
+		999:     "฿999",
+		1000:    "฿1,000",
+		15000:   "฿15,000",
+		1234567: "฿1,234,567",
+		-1500:   "-฿1,500",
+		-999:    "-฿999",
+		-100000: "-฿100,000",
+	}
+	for in, want := range cases {
+		if got := Baht(in); got != want {
+			t.Errorf("Baht(%d) = %q, want %q", in, got, want)
+		}
+	}
+}

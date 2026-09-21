@@ -14,7 +14,7 @@ class ActionHubSheet extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withOpacity(0.2),
+      barrierColor: Colors.black.withValues(alpha: 0.2),
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
         child: const ActionHubSheet(),
@@ -196,6 +196,7 @@ class ActionHubSheet extends StatelessWidget {
               final result =
                   await GalleryWatcherService().checkForNewSlipsDetailed();
               navigator.pop();
+              if (!rootContext.mounted) return;
 
               if (result.slip != null) {
                 SlipDetectionSheet.show(rootContext, result.slip!);

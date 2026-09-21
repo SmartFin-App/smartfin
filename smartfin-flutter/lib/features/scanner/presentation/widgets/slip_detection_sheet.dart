@@ -62,7 +62,7 @@ class SlipDetectionSheet extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.primarySoft,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -149,7 +149,7 @@ class SlipDetectionSheet extends StatelessWidget {
                             end: Alignment.bottomCenter,
                             colors: [
                               Colors.transparent,
-                              Colors.black.withOpacity(0.75),
+                              Colors.black.withValues(alpha: 0.75),
                             ],
                           ),
                         ),

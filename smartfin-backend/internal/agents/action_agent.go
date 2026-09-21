@@ -58,7 +58,9 @@ func (a *ActionAgent) UpdateBudgetLimit(ctx context.Context, userID string, budg
 		"status":       "success",
 		"action":       "update_budget_limit",
 		"budget_limit": budgetLimit,
-		"message":      fmt.Sprintf("Successfully updated monthly budget limit to ฿%d", budgetLimit),
+		// label is what the app shows on the reply's action chip.
+		"label":   "Budget set to " + summaries.Baht(budgetLimit),
+		"message": fmt.Sprintf("Successfully updated monthly budget limit to ฿%d", budgetLimit),
 	}, nil
 }
 
@@ -130,6 +132,7 @@ func (a *ActionAgent) AddTransaction(ctx context.Context, userID, merchant strin
 		"type":     "expense",
 		"category": category,
 		"date":     txDate.Format("2006-01-02"),
+		"label":    fmt.Sprintf("Added %s · %s", summaries.Baht(amount), merchant),
 		"message":  fmt.Sprintf("Successfully recorded an expense of ฿%d at %s (%s)", amount, merchant, category),
 	}, nil
 }

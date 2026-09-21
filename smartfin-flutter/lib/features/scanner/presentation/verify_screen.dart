@@ -342,7 +342,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? color.withOpacity(0.12)
+                                    ? color.withValues(alpha: 0.12)
                                     : Colors.white,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
@@ -420,7 +420,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                                         234, 226, 214, 0.6)),
                                 boxShadow: [
                                   BoxShadow(
-                                      color: Colors.black.withOpacity(0.02),
+                                      color: Colors.black.withValues(alpha: 0.02),
                                       blurRadius: 4,
                                       offset: const Offset(0, 2))
                                 ],
@@ -472,7 +472,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                     borderRadius: BorderRadius.circular(9999),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFFF9F29).withOpacity(0.3),
+                        color: const Color(0xFFFF9F29).withValues(alpha: 0.3),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),

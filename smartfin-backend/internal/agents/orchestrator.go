@@ -303,6 +303,7 @@ Follow this Reasoning Process:
 			Role:      "model",
 			Content:   finalResponse,
 			ToolCalls: toolsUsed,
+			Actions:   actionsTaken,
 			// 10ms apart so the created_at sort always yields user-then-model.
 			CreatedAt: persistedAt.Add(time.Millisecond * 10),
 		},

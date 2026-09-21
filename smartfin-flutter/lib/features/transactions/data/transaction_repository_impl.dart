@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:smart_fin/core/network/dio_client.dart';
 import 'package:smart_fin/features/transactions/data/transaction_repository.dart';
@@ -31,9 +32,9 @@ class TransactionRepositoryImpl implements TransactionRepository {
       }
       return ApiResponse.success(response.data);
     } on DioException catch (e) {
-      print('CreateTransaction Error Status: ${e.response?.statusCode}');
-      print('CreateTransaction Error Data: ${e.response?.data}');
-      print('CreateTransaction Request Data: ${e.requestOptions.data}');
+      debugPrint('CreateTransaction Error Status: ${e.response?.statusCode}');
+      debugPrint('CreateTransaction Error Data: ${e.response?.data}');
+      debugPrint('CreateTransaction Request Data: ${e.requestOptions.data}');
       return ApiResponse.error(DioClient.handleError(e));
     }
   }
@@ -52,9 +53,9 @@ class TransactionRepositoryImpl implements TransactionRepository {
       final queryParams = <String, dynamic>{
         'limit': limit,
         'skip': skip,
-        if (type != null) 'type': type,
-        if (category != null) 'category': category,
-        if (month != null) 'month': month,
+        'type': ?type,
+        'category': ?category,
+        'month': ?month,
         if (search != null && search.isNotEmpty) 'search': search,
       };
       final response = await DioClient.dio.get(
@@ -77,7 +78,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
   }) async {
     try {
       final queryParams = <String, dynamic>{
-        if (month != null) 'month': month,
+        'month': ?month,
       };
       final response = await DioClient.dio.get(
         '/api/transactions/summary/$userID',
@@ -125,10 +126,10 @@ class TransactionRepositoryImpl implements TransactionRepository {
         // without it rather than trusting the id alone.
         data: {
           'user_id': userID,
-          if (merchant != null) 'merchant': merchant,
-          if (amount != null) 'amount': amount,
-          if (type != null) 'type': type,
-          if (category != null) 'category': category,
+          'merchant': ?merchant,
+          'amount': ?amount,
+          'type': ?type,
+          'category': ?category,
           if (date != null)
             'date':
                 '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',

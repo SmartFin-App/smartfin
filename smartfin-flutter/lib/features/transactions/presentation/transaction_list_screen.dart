@@ -501,9 +501,9 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: style.color.withOpacity(0.1),
+                color: style.color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: style.color.withOpacity(0.2)),
+                border: Border.all(color: style.color.withValues(alpha: 0.2)),
               ),
               child: Icon(
                 style.icon,

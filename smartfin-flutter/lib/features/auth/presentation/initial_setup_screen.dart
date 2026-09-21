@@ -222,7 +222,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
                   ]
                 : [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
+                      color: Colors.black.withValues(alpha: 0.02),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -319,7 +319,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
                             border: Border.all(color: const Color(0xFFEAE2D6)),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.02),
+                                color: Colors.black.withValues(alpha: 0.02),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
@@ -484,7 +484,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
                               borderRadius: BorderRadius.circular(9999), // full circle
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.02),
+                                  color: Colors.black.withValues(alpha: 0.02),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -541,7 +541,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
                         borderRadius: BorderRadius.circular(9999),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFF9F29).withOpacity(0.3),
+                            color: const Color(0xFFFF9F29).withValues(alpha: 0.3),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),

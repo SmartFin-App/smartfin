@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_fin/constants/color_style.dart';
@@ -71,6 +72,7 @@ class _CoachScreenState extends State<CoachScreen>
               'at': at,
               'time': _formatTime(at),
               'text': m['content'] as String? ?? '',
+              'actions': CoachAction.listFrom(m['actions']),
             };
           }).toList();
         });
@@ -145,14 +147,67 @@ class _CoachScreenState extends State<CoachScreen>
         'at': DateTime.now(),
         'time': _formatTime(DateTime.now()),
         'text': result.success
-            ? (result.data ?? 'Sorry, I had trouble responding 🐾')
+            ? (result.data?.text ?? 'Sorry, I had trouble responding 🐾')
             : 'Sorry, I couldn\'t connect. Please try again. 🐾',
+        'actions': result.data?.actions ?? const <CoachAction>[],
       });
     });
     _scrollToBottom();
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
+
+  /// A chip for one write the coach made. Tapping it opens what changed: the
+  /// new transaction, or Profile for the budget.
+  Widget _buildActionChip(CoachAction a) {
+    final isExpense = a.action == 'add_transaction';
+    final VoidCallback? onTap = isExpense
+        ? (a.id == null ? null : () => context.push('/transaction/${a.id}'))
+        : a.action == 'update_budget_limit'
+            ? () => context.push('/profile')
+            : null;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFEAE2D6)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isExpense
+                  ? Icons.receipt_long_outlined
+                  : Icons.account_balance_wallet_outlined,
+              size: 14,
+              color: const Color(0xFFFF9F29),
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                a.label,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                  color: const Color(0xFF333333),
+                ),
+              ),
+            ),
+            if (onTap != null) ...[
+              const SizedBox(width: 2),
+              const Icon(Icons.chevron_right,
+                  size: 16, color: Color(0xFF9E9E9E)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -265,6 +320,7 @@ class _CoachScreenState extends State<CoachScreen>
   Widget _buildMessage(Map<String, dynamic> msg) {
     final isUser = msg['isUser'] as bool;
     final chips = (msg['chips'] as List<String>?) ?? [];
+    final actions = (msg['actions'] as List<CoachAction>?) ?? const [];
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 32),
@@ -338,12 +394,12 @@ class _CoachScreenState extends State<CoachScreen>
                                         horizontal: 14, vertical: 9),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFFF9F29)
-                                          .withOpacity(0.08),
+                                          .withValues(alpha: 0.08),
                                       borderRadius:
                                           BorderRadius.circular(12),
                                       border: Border.all(
                                           color: const Color(0xFFFF9F29)
-                                              .withOpacity(0.4)),
+                                              .withValues(alpha: 0.4)),
                                     ),
                                     child: Text(
                                       chip,
@@ -356,6 +412,17 @@ class _CoachScreenState extends State<CoachScreen>
                                   ),
                                 ))
                             .toList(),
+                      ),
+                    ),
+
+                  // What the coach changed while answering
+                  if (actions.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: actions.map(_buildActionChip).toList(),
                       ),
                     ),
 

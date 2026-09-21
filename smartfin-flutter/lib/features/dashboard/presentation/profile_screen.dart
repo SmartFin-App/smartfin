@@ -85,7 +85,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _slipWatcherEnabled = watcher);
   }
 
-  /// Resolves the avatar. `photo_url` is stored relative ("/api/users/<uid>/photo")
+  /// Resolves the avatar. `photo_url` is stored relative (`/api/users/<uid>/photo`)
   /// so it survives the API host changing between emulator, LAN device and
   /// deployment; a Google account's absolute URL is used as-is.
   /// Null when the user has no picture, so the caller draws a person icon —
@@ -301,6 +301,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           TextButton(
             onPressed: () async {
+              // Taken before the awaits below, which can outlive this screen.
+              final router = GoRouter.of(context);
               Navigator.pop(ctx);
               // Don't remind the next person on this device about these bills.
               await BillReminderService().cancelAll();
@@ -322,7 +324,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ]) {
                 await prefs.remove(key);
               }
-              if (context.mounted) context.go('/login');
+              router.go('/login');
             },
             child: Text(
               "Log Out",
@@ -355,7 +357,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: accent?.withOpacity(0.08) ??
+                color: accent?.withValues(alpha: 0.08) ??
                     const Color.fromRGBO(240, 235, 225, 0.3),
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -408,7 +410,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.5), width: 1),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
+                                    color: Colors.black.withValues(alpha: 0.04),
                                     blurRadius: 10,
                                     offset: const Offset(0, 4),
                                   )
@@ -588,7 +590,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 label: 'Auto-Detect Slips',
                                 trailing: Switch(
                                   value: _slipWatcherEnabled,
-                                  activeColor: const Color(0xFFFF9F29),
+                                  activeThumbColor: const Color(0xFFFF9F29),
                                   onChanged: (val) async {
                                     setState(() => _slipWatcherEnabled = val);
                                     await GalleryWatcherService()
@@ -854,7 +856,7 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet>
                         borderRadius: BorderRadius.circular(9999),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFF9F29).withOpacity(0.3),
+                            color: const Color(0xFFFF9F29).withValues(alpha: 0.3),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),

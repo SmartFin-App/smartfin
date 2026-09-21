@@ -71,3 +71,24 @@ func InvalidateFor(ctx context.Context, col *mongo.Collection, userID string, da
 		}
 	}
 }
+
+// Baht formats a whole-baht amount for display, e.g. 15000 → "฿15,000". Clients
+// render these strings as-is rather than formatting money themselves.
+func Baht(amount int64) string {
+	s := strconv.FormatInt(amount, 10)
+	neg := amount < 0
+	if neg {
+		s = s[1:]
+	}
+	var b []byte
+	for i := range len(s) {
+		if i > 0 && (len(s)-i)%3 == 0 {
+			b = append(b, ',')
+		}
+		b = append(b, s[i])
+	}
+	if neg {
+		return "-฿" + string(b)
+	}
+	return "฿" + string(b)
+}

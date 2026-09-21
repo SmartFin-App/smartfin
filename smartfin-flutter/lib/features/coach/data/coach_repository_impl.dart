@@ -1,5 +1,33 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:smart_fin/core/network/dio_client.dart';
+
+/// A write the coach made while answering: an expense it recorded or a budget
+/// it set. [label] is preformatted by the backend ("Added ฿120 · 7-Eleven").
+class CoachAction {
+  final String action;
+  final String label;
+
+  /// The new transaction's id, for `add_transaction` only.
+  final String? id;
+
+  const CoachAction({required this.action, required this.label, this.id});
+
+  /// Reads `actions_taken` from a reply or `actions` from a stored message.
+  /// Records without a label are skipped rather than shown blank.
+  static List<CoachAction> listFrom(dynamic raw) {
+    if (raw is! List) return const [];
+    return [
+      for (final e in raw)
+        if (e is Map && e['label'] is String && (e['label'] as String).isNotEmpty)
+          CoachAction(
+            action: e['action'] as String? ?? '',
+            label: e['label'] as String,
+            id: e['id'] as String?,
+          ),
+    ];
+  }
+}
 
 class CoachRepositoryImpl {
   /// Loads the stored conversation. The screen is disposed whenever the user
@@ -24,7 +52,7 @@ class CoachRepositoryImpl {
     }
   }
 
-  Future<ApiResponse<String>> askCoach({
+  Future<ApiResponse<({String text, List<CoachAction> actions})>> askCoach({
     required String userID,
     required String message,
     required List<Map<String, String>> history,
@@ -35,9 +63,13 @@ class CoachRepositoryImpl {
         'message': message,
         'history': history,
       });
-      return ApiResponse.success(response.data['response'] as String);
+      final data = response.data as Map<String, dynamic>;
+      return ApiResponse.success((
+        text: data['response'] as String,
+        actions: CoachAction.listFrom(data['actions_taken']),
+      ));
     } on DioException catch (e) {
-      print('CoachError: ${e.response?.data}');
+      debugPrint('CoachError: ${e.response?.data}');
       return ApiResponse.error(DioClient.handleError(e));
     }
   }

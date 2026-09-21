@@ -77,6 +77,7 @@ dependencies:
   intl: ^0.19.0
   uuid: ^4.5.1
   google_sign_in: ^6.2.1
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:

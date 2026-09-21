@@ -10,8 +10,9 @@ Dart SDK ^3.11.1. Run these from `smartfin-flutter/`.
 
 ```bash
 flutter pub get
-flutter run                                     # iOS sim / macOS / physical Android device
-flutter run --dart-define=IS_EMULATOR=true      # Android emulator (see base-URL note below)
+flutter run                                     # Android emulator / iOS sim / macOS
+flutter run --dart-define=API_BASE_URL=http://MAC_LAN_IP:3000   # physical phone
+flutter build apk --dart-define=API_BASE_URL=https://…          # release against a deployed backend
 flutter analyze                                 # lint — flutter_lints, no custom rules enabled
 flutter test
 flutter test test/widget_test.dart -n 'name'    # single test
@@ -54,17 +55,16 @@ Routing is one top-level `GoRouter` in `lib/core/router/app_router.dart`; every 
 
 **DI is declared but unused.** `lib/core/di/injection_container.dart` registers `FirebaseAuth` with `get_it`, and `main.dart` awaits `di.init()`, but nothing ever resolves `sl<…>()`. Repositories are constructed directly at their call sites. Follow the surrounding pattern rather than half-migrating to `get_it`.
 
-## Backend base URL is hardcoded per platform
+## Backend base URL comes from `API_BASE_URL`
 
-`lib/core/network/dio_client.dart` picks the URL at runtime:
+`lib/core/network/dio_client.dart` uses `--dart-define=API_BASE_URL=…` when given (a trailing slash is dropped). Without it, it falls back to a local backend:
 
 | Target | URL |
 | --- | --- |
 | Android emulator | `http://10.0.2.2:3000` (host loopback) |
-| Physical Android device | `http://192.168.1.118:3000` — **hardcoded LAN IP**, goes stale when the host Mac's address changes |
 | iOS simulator / macOS | `http://localhost:3000` |
 
-`IS_EMULATOR` defaults to **`true`** on Android, so physical-device runs need `--dart-define=IS_EMULATOR=false`.
+Anything running on a **real phone needs the define**: a LAN IP (`http://192.168.x.x:3000`) for local development, or the deployed backend's URL for a release build. A release built without it silently points at the emulator address and every request fails.
 
 Dio timeouts are 10s connect / **60s receive**. The receive value must stay above the backend's own 45s coach budget — both clocks start together, so an equal value aborts requests the server has just finished. Never lower it below 45s. A single `InterceptorsWrapper` logs every request and rewraps `DioException` into `ApiException` with a human-readable message.
 

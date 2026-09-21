@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:smart_fin/constants/color_style.dart';
 import 'package:smart_fin/widgets/action_hub_sheet.dart';
 
 class SmartFinBottomNav extends StatelessWidget {
@@ -84,7 +83,7 @@ class SmartFinBottomNav extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFFF9F29).withOpacity(0.3),
+                  color: const Color(0xFFFF9F29).withValues(alpha: 0.3),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -125,7 +124,7 @@ class SmartFinBottomNav extends StatelessWidget {
                     border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.6)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
+                        color: Colors.black.withValues(alpha: 0.03),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),

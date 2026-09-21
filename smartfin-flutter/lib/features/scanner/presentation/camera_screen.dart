@@ -241,7 +241,7 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
                                 source: ImageSource.gallery,
                                 imageQuality: 85,
                               );
-                              if (xFile != null && mounted) {
+                              if (xFile != null && context.mounted) {
                                 context.go('/processing', extra: File(xFile.path));
                               }
                             },
@@ -281,7 +281,7 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
                             onTap: () async {
                               try {
                                 final file = await _getReceiptFile();
-                                if (mounted) {
+                                if (context.mounted) {
                                   context.go('/processing', extra: file);
                                 }
                               } catch (e) {

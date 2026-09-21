@@ -1,8 +1,6 @@
 import 'dart:io';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:smart_fin/core/di/injection_container.dart';
 import 'package:smart_fin/features/transactions/presentation/transaction_list_screen.dart';
 import 'package:smart_fin/features/scanner/presentation/camera_screen.dart';
 import 'package:smart_fin/features/scanner/presentation/processing_screen.dart';
@@ -19,7 +17,6 @@ import 'package:smart_fin/features/splash/presentation/views/splash_view.dart';
 import 'package:smart_fin/features/transactions/presentation/manual_add_screen.dart';
 import 'package:smart_fin/features/transactions/presentation/transaction_detail_screen.dart';
 import 'package:smart_fin/features/subscriptions/presentation/subscriptions_screen.dart';
-import 'package:smart_fin/widgets/bottom_nav_bar.dart';
 
 // ---------------------------------------------------------------------------
 // Protected routes — redirect to /login when not authenticated

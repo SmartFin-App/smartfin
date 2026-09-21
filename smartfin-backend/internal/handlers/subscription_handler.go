@@ -39,7 +39,7 @@ func NewSubscriptionHandler() *SubscriptionHandler {
 }
 
 func formatBaht(amount int64) string {
-	return "฿" + addCommas(fmt.Sprintf("%d", amount))
+	return summaries.Baht(amount)
 }
 
 // toSubscriptionResponse adds the derived display fields. Everything date-related

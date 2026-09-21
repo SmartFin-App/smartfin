@@ -25,7 +25,6 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingObserver {
   Map<String, dynamic>? _monthlySummary;
-  Map<String, dynamic>? _previousSummary;
   List<Map<String, dynamic>> _recentTransactions = [];
   bool _isLoading = true;
   bool _loadFailed = false;
@@ -275,7 +274,6 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
           if (mounted) {
             setState(() {
               _monthlySummary = res.data as Map<String, dynamic>;
-              _previousSummary = _monthlySummary?['previous_month'] as Map<String, dynamic>?;
             });
           }
         }),
@@ -536,7 +534,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
           border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.4)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.02),
+              color: Colors.black.withValues(alpha: 0.02),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -621,7 +619,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: style.color.withOpacity(0.1),
+                color: style.color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(style.icon, size: 18, color: style.color),
@@ -715,7 +713,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.02),
+                  color: Colors.black.withValues(alpha: 0.02),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),

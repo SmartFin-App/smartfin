@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:smart_fin/core/network/dio_client.dart';
 import 'package:smart_fin/features/auth/data/auth_repository.dart';
@@ -32,9 +33,9 @@ class AuthRepositoryImpl implements AuthRepository {
       }
       return ApiResponse.success(response.data);
     } on DioException catch (e) {
-      print('CreateUser Error Status: ${e.response?.statusCode}');
-      print('CreateUser Error Data: ${e.response?.data}');
-      print('CreateUser Request Data: ${e.requestOptions.data}');
+      debugPrint('CreateUser Error Status: ${e.response?.statusCode}');
+      debugPrint('CreateUser Error Data: ${e.response?.data}');
+      debugPrint('CreateUser Request Data: ${e.requestOptions.data}');
       return ApiResponse.error(DioClient.handleError(e));
     }
   }
