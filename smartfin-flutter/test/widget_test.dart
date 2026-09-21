@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:smart_fin/constants/app_theme.dart';
 import 'package:smart_fin/features/auth/presentation/login_screen.dart';
 
 // Smoke test on the login screen rather than the whole app: SmartFinApp starts
@@ -21,11 +22,14 @@ void main() {
     final router = GoRouter(
       routes: [GoRoute(path: '/', builder: (_, _) => const LoginScreen())],
     );
-    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpWidget(
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+    );
+    expect(tester.takeException(), isNull);
 
-    expect(find.text('WELCOME BACK'), findsOneWidget);
-    expect(find.text('LOG IN'), findsOneWidget);
-    expect(find.text('Sign Up'), findsOneWidget);
+    expect(find.text('Welcome back'), findsOneWidget);
+    expect(find.text('Log in'), findsOneWidget);
+    expect(find.text('Sign up'), findsOneWidget);
     expect(find.byType(TextField), findsNWidgets(2));
   });
 }

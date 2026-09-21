@@ -29,7 +29,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       // Ensure we extract the Map<String, dynamic>
       if (response.data is Map) {
-         return ApiResponse.success(Map<String, dynamic>.from(response.data));
+        return ApiResponse.success(Map<String, dynamic>.from(response.data));
       }
       return ApiResponse.success(response.data);
     } on DioException catch (e) {
@@ -41,11 +41,13 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<ApiResponse<Map<String, dynamic>>> getUserByFirebaseUID(String firebaseUID) async {
+  Future<ApiResponse<Map<String, dynamic>>> getUserByFirebaseUID(
+    String firebaseUID,
+  ) async {
     try {
       final response = await DioClient.dio.get('/api/users/$firebaseUID');
       if (response.data is Map) {
-         return ApiResponse.success(Map<String, dynamic>.from(response.data));
+        return ApiResponse.success(Map<String, dynamic>.from(response.data));
       }
       return ApiResponse.success(response.data);
     } on DioException catch (e) {
@@ -57,12 +59,12 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<ApiResponse<bool>> updateUser(String firebaseUID, Map<String, dynamic> data) async {
+  Future<ApiResponse<bool>> updateUser(
+    String firebaseUID,
+    Map<String, dynamic> data,
+  ) async {
     try {
-      await DioClient.dio.put(
-        '/api/users/$firebaseUID',
-        data: data,
-      );
+      await DioClient.dio.put('/api/users/$firebaseUID', data: data);
       return ApiResponse.success(true);
     } on DioException catch (e) {
       return ApiResponse.error(DioClient.handleError(e));

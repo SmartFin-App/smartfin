@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:smart_fin/constants/color_style.dart';
 
 /// The SmartFin wordmark: the name itself, set as the logo.
 ///
@@ -19,8 +20,8 @@ class SmartFinLogo extends StatelessWidget {
   const SmartFinLogo({
     super.key,
     this.fontSize = 24,
-    this.textColor = const Color(0xFF333333),
-    this.accentColor = const Color(0xFFFF9F29),
+    this.textColor = AppColors.textDark,
+    this.accentColor = AppColors.primary,
     this.letterSpacing = -0.5,
   });
 

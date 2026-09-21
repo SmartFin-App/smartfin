@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:smart_fin/features/scanner/data/scanner_repository_impl.dart';
+import 'package:smart_fin/widgets/ui/ui.dart';
 
 class ProcessingScreen extends StatefulWidget {
   final File? imageFile;
@@ -20,7 +20,7 @@ class ProcessingScreen extends StatefulWidget {
 
 class _ProcessingScreenState extends State<ProcessingScreen>
     with TickerProviderStateMixin {
-  String _statusMessage = 'Scanning your receipt...';
+  String _statusMessage = 'Scanning your receipt';
 
   late AnimationController _bounceController;
   late Animation<double> _bounceAnimation;
@@ -64,9 +64,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
 
   Future<void> _handleNoImage() async {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('No image selected')),
-    );
+    showAppToast(context, 'No image selected', error: true);
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) context.go('/scanner');
   }
@@ -74,40 +72,45 @@ class _ProcessingScreenState extends State<ProcessingScreen>
   Future<void> _processReceipt() async {
     if (widget.imageFile == null) return;
 
-    setState(() => _statusMessage = 'Reading receipt data...');
+    setState(() => _statusMessage = 'Reading your receipt');
 
     // Any throw here (a missing temp file, an unexpected response) would otherwise
     // leave this screen spinning forever with no way back.
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-      final result = await ScannerRepositoryImpl()
-          .processReceipt(widget.imageFile!, uid);
+      final result = await ScannerRepositoryImpl().processReceipt(
+        widget.imageFile!,
+        uid,
+      );
 
       if (!mounted) return;
 
       if (result.success) {
         setState(() {
-          _statusMessage = 'Almost done...';
+          _statusMessage = 'Almost done';
         });
         await Future.delayed(const Duration(milliseconds: 500));
         if (mounted) {
-          context.go('/verify', extra: {
-            ...?result.data,
-            if (widget.slipAssetId != null) 'asset_id': widget.slipAssetId,
-          });
+          context.go(
+            '/verify',
+            extra: {
+              ...?result.data,
+              if (widget.slipAssetId != null) 'asset_id': widget.slipAssetId,
+            },
+          );
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.error ?? 'Failed to process receipt')),
+        showAppToast(
+          context,
+          result.error ?? 'Could not read that receipt',
+          error: true,
         );
         await Future.delayed(const Duration(milliseconds: 1500));
         if (mounted) context.go('/scanner');
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not read that receipt: $e')),
-      );
+      showAppToast(context, 'Could not read that receipt: $e', error: true);
       await Future.delayed(const Duration(milliseconds: 1500));
       if (mounted) context.go('/scanner');
     }
@@ -116,57 +119,83 @@ class _ProcessingScreenState extends State<ProcessingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF9F0),
+      backgroundColor: AppColors.cream,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Receipt icon with bounce
-            AnimatedBuilder(
-              animation: _bounceAnimation,
-              builder: (context, child) {
-                return Transform.translate(
-                  offset: Offset(0, _bounceAnimation.value),
-                  child: child,
-                );
-              },
-              child: const Icon(
-                Icons.receipt_long_outlined,
-                size: 96,
-                color: Color(0xFFFF9F29),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Receipt icon with bounce, on a soft ring that spins while
+              // the slip is read.
+              SizedBox(
+                width: 132,
+                height: 132,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    const SizedBox.expand(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        backgroundColor: AppColors.surfaceMuted,
+                      ),
+                    ),
+                    AnimatedBuilder(
+                      animation: _bounceAnimation,
+                      builder: (context, child) => Transform.translate(
+                        offset: Offset(0, _bounceAnimation.value / 2),
+                        child: child,
+                      ),
+                      child: Container(
+                        width: 96,
+                        height: 96,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.14),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.receipt_long_rounded,
+                          size: 44,
+                          color: AppColors.primaryText,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.xxl),
 
-            // Spinner
-            const SizedBox(
-              width: 32,
-              height: 32,
-              child: CircularProgressIndicator(
-                color: Color(0xFFFF9F29),
-                strokeWidth: 2.5,
+              // Status message + animated dots. The dots sit in a fixed-width
+              // box so the text does not shift as they change.
+              AnimatedBuilder(
+                animation: _dotsController,
+                builder: (context, _) {
+                  final dotCount = (_dotsController.value * 3).floor() + 1;
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(_statusMessage, style: AppTextStyles.heading),
+                      SizedBox(
+                        width: 24,
+                        child: Text(
+                          '.' * dotCount,
+                          style: AppTextStyles.heading,
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
-            ),
-            const SizedBox(height: 24),
-
-            // Status message + animated dots
-            AnimatedBuilder(
-              animation: _dotsController,
-              builder: (context, _) {
-                final dotCount = (_dotsController.value * 3).floor() + 1;
-                final dots = '.' * dotCount;
-                return Text(
-                  '${_statusMessage.toUpperCase()}$dots',
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11,
-                    letterSpacing: 2,
-                    color: const Color(0xFF9E9E9E),
-                  ),
-                );
-              },
-            ),
-          ],
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'AI is reading the amount, merchant and date. This takes a few seconds.',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,26 +1,23 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:smart_fin/features/transactions/data/transaction_repository_impl.dart';
+import 'package:smart_fin/widgets/ui/ui.dart';
 
 class ManualAddScreen extends StatefulWidget {
-
   const ManualAddScreen({super.key});
 
   @override
   State<ManualAddScreen> createState() => _ManualAddScreenState();
 }
 
-class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderStateMixin {
+class _ManualAddScreenState extends State<ManualAddScreen>
+    with TickerProviderStateMixin {
   String? _selectedCategory;
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _merchantController = TextEditingController();
-  final FocusNode _merchantFocus = FocusNode();
-  bool _merchantIsFocused = false;
-  bool _isSavePressed = false;
   bool _isLoading = false;
   DateTime _selectedDate = DateTime.now();
 
@@ -28,7 +25,7 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
   late AnimationController _amountAnimController;
   late Animation<double> _amountScale;
   late Animation<double> _amountFade;
-  
+
   late AnimationController _gridAnimController;
   late Animation<Offset> _gridSlide;
   late Animation<double> _gridFade;
@@ -36,39 +33,47 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
   @override
   void initState() {
     super.initState();
-    
-    _merchantFocus.addListener(() {
-      setState(() {
-        _merchantIsFocused = _merchantFocus.hasFocus;
-      });
-    });
 
     // Amount Load Animation
     _amountAnimController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 500));
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
     _amountScale = Tween<double>(begin: 0.8, end: 1.0).animate(
-        CurvedAnimation(parent: _amountAnimController, curve: Curves.easeOutBack));
+      CurvedAnimation(parent: _amountAnimController, curve: Curves.easeOutBack),
+    );
     _amountFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(parent: _amountAnimController, curve: Curves.easeOut));
-    
+      CurvedAnimation(parent: _amountAnimController, curve: Curves.easeOut),
+    );
+
     _amountAnimController.forward();
 
     // Grid Slide Animation
     _gridAnimController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 700));
-    _gridSlide = Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(
-        CurvedAnimation(parent: _gridAnimController, curve: Curves.easeOutCubic));
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _gridSlide = Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _gridAnimController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
     _gridFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(parent: _gridAnimController, curve: Curves.easeOut));
-        
-    Future.delayed(const Duration(milliseconds: 100), () => _gridAnimController.forward());
+      CurvedAnimation(parent: _gridAnimController, curve: Curves.easeOut),
+    );
+
+    Future.delayed(
+      const Duration(milliseconds: 100),
+      () => _gridAnimController.forward(),
+    );
   }
 
   @override
   void dispose() {
     _amountController.dispose();
     _merchantController.dispose();
-    _merchantFocus.dispose();
     _amountAnimController.dispose();
     _gridAnimController.dispose();
     super.dispose();
@@ -85,32 +90,30 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
     return DateFormat('MMM d, yyyy').format(date);
   }
 
+  void _toast(String message, {bool error = false}) =>
+      showAppToast(context, message, error: error);
+
   Future<void> _saveTransaction() async {
-    // The spinner only swaps the label; the gesture detector underneath stays live,
-    // and the backend has no idempotency key, so a second tap books a second charge.
+    // The button is disabled while saving, and the backend has no idempotency
+    // key, so this guard is what stops a second tap booking a second charge.
     if (_isLoading) return;
 
-    final amountText = _amountController.text.trim().replaceAll(',', '');
-    final amount = int.tryParse(amountText) ?? (double.tryParse(amountText)?.toInt());
+    final amount = int.tryParse(
+      _amountController.text.trim().replaceAll(',', ''),
+    );
 
     if (amount == null || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter an amount")),
-      );
+      _toast('Please enter an amount', error: true);
       return;
     }
 
     if (_merchantController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a source or merchant")),
-      );
+      _toast('Please enter where you spent it', error: true);
       return;
     }
 
     if (_selectedCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select a category")),
-      );
+      _toast('Please pick a category', error: true);
       return;
     }
 
@@ -131,485 +134,264 @@ class _ManualAddScreenState extends State<ManualAddScreen> with TickerProviderSt
       if (!mounted) return;
 
       if (result.success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Transaction saved!")),
-        );
+        _toast('Expense saved');
         context.go('/home');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.error ?? 'Failed to save transaction.')),
-        );
+        _toast(result.error ?? 'Could not save the expense', error: true);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
+      if (mounted) _toast('Error: $e', error: true);
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  final List<Map<String, dynamic>> _expenseCats = [
-    {'label': 'Food', 'icon': Icons.restaurant_outlined, 'color': const Color(0xFFFF9F29)},
-    {'label': 'Transport', 'icon': Icons.directions_car_outlined, 'color': const Color(0xFF2563EB)},
-    {'label': 'Entertainment', 'icon': Icons.movie_outlined, 'color': const Color(0xFF7C3AED)},
-    {'label': 'Shopping', 'icon': Icons.shopping_bag_outlined, 'color': const Color(0xFFDB2777)},
-    {'label': 'Health', 'icon': Icons.favorite_outline, 'color': const Color(0xFFDC2626)},
-    {'label': 'Groceries', 'icon': Icons.local_grocery_store_outlined, 'color': const Color(0xFF65A30D)},
-    {'label': 'Bills', 'icon': Icons.receipt_outlined, 'color': const Color(0xFF0D9488)},
-    {'label': 'Other', 'icon': Icons.add_circle_outline, 'color': const Color(0xFF9E9E9E)},
+  static const List<({String label, IconData icon, Color color})>
+  _expenseCats = [
+    (label: 'Food', icon: Icons.restaurant_outlined, color: Color(0xFFFF9F29)),
+    (
+      label: 'Transport',
+      icon: Icons.directions_car_outlined,
+      color: Color(0xFF2563EB),
+    ),
+    (
+      label: 'Entertainment',
+      icon: Icons.movie_outlined,
+      color: Color(0xFF7C3AED),
+    ),
+    (
+      label: 'Shopping',
+      icon: Icons.shopping_bag_outlined,
+      color: Color(0xFFDB2777),
+    ),
+    (label: 'Health', icon: Icons.favorite_outline, color: Color(0xFFDC2626)),
+    (
+      label: 'Groceries',
+      icon: Icons.local_grocery_store_outlined,
+      color: Color(0xFF65A30D),
+    ),
+    (label: 'Bills', icon: Icons.receipt_outlined, color: Color(0xFF0D9488)),
+    (label: 'Other', icon: Icons.add_circle_outline, color: Color(0xFF9E9E9E)),
   ];
+
+  Widget _fieldLabel(String text) => Padding(
+    padding: const EdgeInsets.only(left: AppSpacing.xs, bottom: AppSpacing.sm),
+    child: Text(
+      text,
+      style: AppTextStyles.label.copyWith(color: AppColors.textSecondary),
+    ),
+  );
+
+  Widget _categoryTile(({String label, IconData icon, Color color}) cat) =>
+      CategoryTile(
+        label: cat.label,
+        icon: cat.icon,
+        color: cat.color,
+        selected: _selectedCategory == cat.label,
+        onTap: () => setState(() => _selectedCategory = cat.label),
+      );
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF9F0),
+      backgroundColor: AppColors.cream,
+      // Expand, so what is pinned to the bottom stays there when the content
+      // is shorter than the screen.
       body: Stack(
+        fit: StackFit.expand,
         children: [
-          // Main Scrollable Area
           SingleChildScrollView(
-            padding: const EdgeInsets.only(top: 104, bottom: 120),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.screen,
+              SubpageHeader.contentTop,
+              AppSpacing.screen,
+              140,
+            ),
             physics: const ClampingScrollPhysics(),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 24),
-
-                // Amount Input
+                // ── Amount ─────────────────────────────────────────────
                 FadeTransition(
                   opacity: _amountFade,
                   child: ScaleTransition(
                     scale: _amountScale,
                     child: Padding(
-                      padding: const EdgeInsets.only(bottom: 48),
+                      padding: const EdgeInsets.only(
+                        top: AppSpacing.lg,
+                        bottom: AppSpacing.xxl,
+                      ),
                       child: Column(
                         children: [
-                          Text(
-                            "Transaction Amount",
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 10,
-                              letterSpacing: 2,
-                              color: const Color(0xFF9E9E9E),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
+                          Text('Amount', style: AppTextStyles.caption),
+                          const SizedBox(height: AppSpacing.sm),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                "฿",
-                                style: GoogleFonts.bricolageGrotesque(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 36,
-                                  color: const Color(0xFFFF9F29),
+                                '฿',
+                                style: AppTextStyles.display.copyWith(
+                                  fontSize: 40,
+                                  color: AppColors.primaryText,
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              SizedBox(
-                                width: 224,
-                                child: TextField(
-                                  controller: _amountController,
-                                  autofocus: true,
-                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.bricolageGrotesque(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 60,
-                                    letterSpacing: -2.0,
-                                    color: const Color(0xFF333333),
-                                    height: 1.1,
+                              const SizedBox(width: AppSpacing.sm),
+                              IntrinsicWidth(
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    minWidth: 60,
                                   ),
-                                  decoration: InputDecoration(
-                                    border: InputBorder.none,
-                                    hintText: "0",
-                                    hintStyle: GoogleFonts.bricolageGrotesque(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 60,
-                                      color: const Color.fromRGBO(51, 51, 51, 0.1),
+                                  child: TextField(
+                                    controller: _amountController,
+                                    autofocus: true,
+                                    // Whole baht only: money is integer ฿.
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                    ],
+                                    textAlign: TextAlign.center,
+                                    style: AppTextStyles.display.copyWith(
+                                      fontSize: 56,
+                                    ),
+                                    decoration: InputDecoration(
+                                      filled: false,
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      isCollapsed: true,
+                                      hintText: '0',
+                                      hintStyle: AppTextStyles.display.copyWith(
+                                        fontSize: 56,
+                                        color: AppColors.border,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ],
-                          )
+                          ),
                         ],
                       ),
                     ),
                   ),
                 ),
 
-                // Source / Merchant
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Source / Merchant",
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 10,
-                          letterSpacing: 2,
-                          color: const Color(0xFF9E9E9E),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        margin: const EdgeInsets.only(bottom: 40),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: _merchantIsFocused ? const Color(0xFFFF9F29) : const Color(0xFFEAE2D6),
-                            width: _merchantIsFocused ? 2 : 1,
-                          ),
-                          boxShadow: _merchantIsFocused ? [
-                            const BoxShadow(
-                              color: Color.fromRGBO(255, 159, 41, 0.05),
-                              blurRadius: 10,
-                              spreadRadius: 4,
-                            )
-                          ] : [],
-                        ),
-                        child: TextField(
-                          controller: _merchantController,
-                          focusNode: _merchantFocus,
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                            color: const Color(0xFF333333),
-                          ),
-                          decoration: InputDecoration(
-                            hintText: "Where did it come from?",
-                            hintStyle: GoogleFonts.inter(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                              color: const Color.fromRGBO(158, 158, 158, 0.3),
-                            ),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                          ),
-                        ),
-                      ),
-                    ],
+                // ── Merchant ───────────────────────────────────────────
+                _fieldLabel('Merchant'),
+                TextField(
+                  controller: _merchantController,
+                  textCapitalization: TextCapitalization.words,
+                  style: AppTextStyles.body,
+                  decoration: const InputDecoration(
+                    hintText: 'Where did you spend it?',
+                    prefixIcon: Icon(
+                      Icons.storefront_outlined,
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
+                const SizedBox(height: AppSpacing.xl),
 
-                // Date Picker
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Date",
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 10,
-                          letterSpacing: 2,
-                          color: const Color(0xFF9E9E9E),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: _selectedDate,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime.now(),
-                            builder: (context, child) {
-                              return Theme(
-                                data: Theme.of(context).copyWith(
-                                  colorScheme: const ColorScheme.light(
-                                    primary: Color(0xFFFF9F29),
-                                    onPrimary: Colors.white,
-                                    surface: Color(0xFFFFF9F0),
-                                    onSurface: Color(0xFF333333),
-                                  ),
-                                ),
-                                child: child!,
-                              );
-                            },
-                          );
-                          if (picked != null) {
-                            setState(() => _selectedDate = picked);
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                          margin: const EdgeInsets.only(bottom: 40),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFEAE2D6)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.02),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.calendar_today_outlined,
-                                size: 18,
-                                color: Color(0xFF9E9E9E),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                _formatDate(_selectedDate),
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 14,
-                                  color: const Color(0xFF333333),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                // ── Date ───────────────────────────────────────────────
+                _fieldLabel('Date'),
+                AppCard(
+                  flat: true,
+                  padding: EdgeInsets.zero,
+                  child: ListRow(
+                    leading: const Icon(
+                      Icons.calendar_today_rounded,
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    ),
+                    title: _formatDate(_selectedDate),
+                    trailing: const Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.textMuted,
+                    ),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now(),
+                      );
+                      if (picked != null) {
+                        setState(() => _selectedDate = picked);
+                      }
+                    },
                   ),
                 ),
+                const SizedBox(height: AppSpacing.xl),
 
-                // Categories Grid
+                // ── Category ───────────────────────────────────────────
                 FadeTransition(
                   opacity: _gridFade,
                   child: SlideTransition(
                     position: _gridSlide,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Category",
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 10,
-                              letterSpacing: 2,
-                              color: const Color(0xFF9E9E9E),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          GridView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                              childAspectRatio: 2.4, // Width vs height tuning
-                            ),
-                            itemCount: _expenseCats.length,
-                            itemBuilder: (context, index) {
-                              final cat = _expenseCats[index];
-                              final isSelected = _selectedCategory == cat['label'];
-                              
-                              return GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedCategory = cat['label'] as String;
-                                  });
-                                },
-                                child: TweenAnimationBuilder<double>(
-                                  tween: Tween(begin: 1.0, end: isSelected ? 0.98 : 1.0),
-                                  duration: const Duration(milliseconds: 100),
-                                  builder: (context, scale, child) {
-                                    return Transform.scale(
-                                      scale: scale,
-                                      child: AnimatedContainer(
-                                        duration: const Duration(milliseconds: 200),
-                                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                                        alignment: Alignment.centerLeft,
-                                        decoration: BoxDecoration(
-                                          color: isSelected ? const Color.fromRGBO(255, 159, 41, 0.05) : Colors.white,
-                                          borderRadius: BorderRadius.circular(32),
-                                          border: Border.all(
-                                            color: isSelected ? const Color(0xFFFF9F29) : const Color(0xFFEAE2D6),
-                                            width: isSelected ? 2 : 1,
-                                          ),
-                                          boxShadow: const [
-                                            BoxShadow(
-                                              color: Color.fromRGBO(0, 0, 0, 0.02),
-                                              blurRadius: 8,
-                                              offset: Offset(0, 4),
-                                            )
-                                          ],
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              width: 44,
-                                              height: 44,
-                                              decoration: BoxDecoration(
-                                                color: (cat['color'] as Color).withValues(alpha: 0.1),
-                                                borderRadius: BorderRadius.circular(16),
-                                              ),
-                                              child: Icon(
-                                                cat['icon'] as IconData,
-                                                color: cat['color'] as Color,
-                                                size: 20,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Text(
-                                                (cat['label'] as String).toUpperCase(),
-                                                style: GoogleFonts.inter(
-                                                  fontWeight: FontWeight.w800,
-                                                  fontSize: 12,
-                                                  letterSpacing: 1.5,
-                                                  color: const Color(0xFF333333),
-                                                  height: 1.0,
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _fieldLabel('Category'),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          padding: EdgeInsets.zero,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: AppSpacing.md,
+                                mainAxisSpacing: AppSpacing.md,
+                                mainAxisExtent: 60,
+                              ),
+                          itemCount: _expenseCats.length,
+                          itemBuilder: (context, index) =>
+                              _categoryTile(_expenseCats[index]),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          
-          // Sticky Top Header
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: ClipRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                child: Container(
-                  color: const Color.fromRGBO(255, 249, 240, 0.8),
-                  padding: const EdgeInsets.only(top: 48, bottom: 24, left: 24, right: 24),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: () => context.go('/home'),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.6)),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color.fromRGBO(234, 226, 214, 0.5),
-                                blurRadius: 10,
-                                offset: Offset(0, 4),
-                              )
-                            ],
-                          ),
-                          child: const Icon(Icons.chevron_left, color: Color.fromRGBO(51, 51, 51, 0.7), size: 22),
-                        ),
-                      ),
-                      Text(
-                        "Add Transaction",
-                        style: GoogleFonts.bricolageGrotesque(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 18,
-                          letterSpacing: -0.5,
-                          color: const Color(0xFF333333),
-                        ),
-                      ),
-                      const SizedBox(width: 40), // spacer completely bounds perfectly
-                    ],
-                  ),
-                ),
-              ),
-            ),
+
+          SubpageHeader(
+            title: 'Add expense',
+            onBack: () => context.go('/home'),
           ),
-          
-          // Fixed Bottom Button
+
+          // ── Save ─────────────────────────────────────────────────────
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
             child: Container(
-              height: 120,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Color(0xFFFFF9F0)],
+                  colors: [
+                    AppColors.cream.withValues(alpha: 0),
+                    AppColors.cream,
+                  ],
+                  stops: const [0, 0.35],
                 ),
               ),
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 32, left: 32, right: 32),
-                  child: GestureDetector(
-                    onTapDown: (_) => setState(() => _isSavePressed = true),
-                    onTapUp: (_) {
-                      setState(() => _isSavePressed = false);
-                      if (!_isLoading) _saveTransaction();
-                    },
-                    onTapCancel: () => setState(() => _isSavePressed = false),
-                    child: AnimatedScale(
-                      scale: _isSavePressed ? 0.98 : 1.0,
-                      duration: const Duration(milliseconds: 100),
-                      child: Container(
-                        height: 58,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFF9F29),
-                          borderRadius: BorderRadius.circular(9999),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color.fromRGBO(255, 159, 41, 0.4),
-                              blurRadius: 20,
-                              offset: Offset(0, 8),
-                            )
-                          ],
-                        ),
-                        alignment: Alignment.center,
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(
-                                "SAVE TRANSACTION",
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 12,
-                                  letterSpacing: 2,
-                                  color: Colors.white,
-                                ),
-                              ),
-                      ),
-                    ),
-                  ),
-                ),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screen,
+                AppSpacing.xxl,
+                AppSpacing.screen,
+                32,
+              ),
+              child: AppButton(
+                label: 'Save expense',
+                expand: true,
+                loading: _isLoading,
+                onPressed: _saveTransaction,
               ),
             ),
-          )
+          ),
         ],
       ),
     );

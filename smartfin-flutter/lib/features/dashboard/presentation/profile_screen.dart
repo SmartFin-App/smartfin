@@ -3,9 +3,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:smart_fin/constants/color_style.dart';
+import 'package:smart_fin/widgets/ui/ui.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:smart_fin/core/network/dio_client.dart';
@@ -62,7 +61,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       final prefs = await SharedPreferences.getInstance();
       if (budget > 0) await prefs.setInt('user_budget_limit', budget);
-      if (name != null && name.isNotEmpty) await prefs.setString('user_name', name);
+      if (name != null && name.isNotEmpty) {
+        await prefs.setString('user_name', name);
+      }
 
       if (!mounted) return;
       setState(() {
@@ -104,49 +105,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final choice = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
+      showDragHandle: true,
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEAE2D6),
-                borderRadius: BorderRadius.circular(2),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListRow(
+                leading: const IconTile(
+                  icon: Icons.photo_library_outlined,
+                  color: AppColors.primary,
+                ),
+                title: 'Choose from gallery',
+                onTap: () => Navigator.pop(ctx, 'gallery'),
               ),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined,
-                  color: Color(0xFFFF9F29)),
-              title: Text('Choose from gallery',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-              onTap: () => Navigator.pop(ctx, 'gallery'),
-            ),
-            ListTile(
-              leading:
-                  const Icon(Icons.photo_camera_outlined, color: Color(0xFFFF9F29)),
-              title: Text('Take a photo',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-              onTap: () => Navigator.pop(ctx, 'camera'),
-            ),
-            if (_photoUrl != null && _photoUrl!.isNotEmpty)
-              ListTile(
-                leading: const Icon(Icons.delete_outline, color: Color(0xFFEF4444)),
-                title: Text('Remove photo',
-                    style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFFEF4444))),
-                onTap: () => Navigator.pop(ctx, 'remove'),
+              ListRow(
+                leading: const IconTile(
+                  icon: Icons.photo_camera_outlined,
+                  color: AppColors.primary,
+                ),
+                title: 'Take a photo',
+                onTap: () => Navigator.pop(ctx, 'camera'),
               ),
-            const SizedBox(height: 12),
-          ],
+              if (_photoUrl != null && _photoUrl!.isNotEmpty)
+                ListRow(
+                  leading: const IconTile(
+                    icon: Icons.delete_outline_rounded,
+                    color: AppColors.danger,
+                  ),
+                  title: 'Remove photo',
+                  titleColor: AppColors.danger,
+                  onTap: () => Navigator.pop(ctx, 'remove'),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -157,7 +150,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
     await _uploadPhoto(
-        choice == 'camera' ? ImageSource.camera : ImageSource.gallery);
+      choice == 'camera' ? ImageSource.camera : ImageSource.gallery,
+    );
   }
 
   Future<void> _uploadPhoto(ImageSource source) async {
@@ -183,7 +177,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           filename: picked.path.split('/').last,
         ),
       });
-      final res = await DioClient.dio.post('/api/users/$uid/photo', data: formData);
+      final res = await DioClient.dio.post(
+        '/api/users/$uid/photo',
+        data: formData,
+      );
       final path = (res.data as Map<String, dynamic>)['photo_url'] as String?;
 
       if (!mounted) return;
@@ -222,16 +219,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _toast(String message, {bool error = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-      backgroundColor: error ? const Color(0xFFEF4444) : const Color(0xFF4CAF50),
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
+    showAppToast(context, message, error: error);
   }
 
   String _memberSinceLabel() {
-    final joined = _memberSince ?? FirebaseAuth.instance.currentUser?.metadata.creationTime;
+    final joined =
+        _memberSince ??
+        FirebaseAuth.instance.currentUser?.metadata.creationTime;
     if (joined == null) return 'SmartFin Member';
     return 'SmartFin Member since ${DateFormat('MMM yyyy').format(joined.toLocal())}';
   }
@@ -246,7 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final result = await showModalBottomSheet<int>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      showDragHandle: true,
       builder: (_) => _BudgetEditorSheet(
         currentBudget: _budgetLimit,
         scaffoldContext: context,
@@ -254,15 +248,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     if (result != null && mounted) {
       setState(() => _budgetLimit = result);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(
-          'Budget updated!',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: const Color(0xFF4CAF50),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ));
+      _toast('Budget updated');
     }
   }
 
@@ -270,36 +256,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          "Log Out",
-          style: GoogleFonts.bricolageGrotesque(
-            fontWeight: FontWeight.w800,
-            fontSize: 20,
-            color: const Color(0xFF333333),
-          ),
-        ),
-        content: Text(
-          "Are you sure you want to log out?",
-          style: GoogleFonts.inter(
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-            color: const Color(0xFF9E9E9E),
-          ),
+        title: const Text('Log out?'),
+        content: const Text(
+          "You'll need to sign in again to see your spending.",
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              "Cancel",
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF9E9E9E),
-              ),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
             ),
+            child: const Text('Cancel'),
           ),
           TextButton(
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
             onPressed: () async {
               // Taken before the awaits below, which can outlive this screen.
               final router = GoRouter.of(context);
@@ -326,57 +296,120 @@ class _ProfileScreenState extends State<ProfileScreen> {
               }
               router.go('/login');
             },
-            child: Text(
-              "Log Out",
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFFEF4444),
-              ),
-            ),
+            child: const Text('Log out'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPreferencesRow({
+  String get _budgetLabel => _budgetLimit > 0
+      ? '฿${_budgetLimit.toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (m) => "${m[1]},")}'
+      : 'Not set';
+
+  static const Widget _chevron = Icon(
+    Icons.chevron_right_rounded,
+    color: AppColors.textMuted,
+  );
+
+  /// A settings row: neutral icon tile, label, and what is on the right.
+  Widget _settingsRow({
     required IconData icon,
     required String label,
-    required Widget trailing,
+    String? subtitle,
+    Widget trailing = _chevron,
     VoidCallback? onTap,
-    // Tints the icon tile and label, e.g. red for Log Out.
-    Color? accent,
   }) {
-    return InkWell(
+    return ListRow(
+      leading: IconTile(icon: icon, color: AppColors.textSecondary),
+      title: label,
+      subtitle: subtitle,
+      trailing: trailing,
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Row(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: 14,
+      ),
+    );
+  }
+
+  Widget _groupLabel(String text) => Padding(
+    padding: const EdgeInsets.only(left: AppSpacing.xs, bottom: AppSpacing.sm),
+    child: Text(
+      text,
+      style: AppTextStyles.label.copyWith(color: AppColors.textSecondary),
+    ),
+  );
+
+  Widget _buildAvatar() {
+    final avatar = _avatarImage();
+    return Semantics(
+      button: true,
+      label: 'Change profile photo',
+      child: GestureDetector(
+        onTap: _changePhoto,
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 96,
+              height: 96,
               decoration: BoxDecoration(
-                color: accent?.withValues(alpha: 0.08) ??
-                    const Color.fromRGBO(240, 235, 225, 0.3),
-                borderRadius: BorderRadius.circular(12),
+                shape: BoxShape.circle,
+                color: AppColors.surfaceMuted,
+                border: Border.all(color: AppColors.white, width: 4),
+                boxShadow: AppShadows.card,
+                image: avatar == null
+                    ? null
+                    : DecorationImage(
+                        image: avatar,
+                        fit: BoxFit.cover,
+                        filterQuality: FilterQuality.medium,
+                      ),
               ),
-              child: Icon(icon,
-                  size: 20,
-                  color: accent ?? const Color.fromRGBO(51, 51, 51, 0.6)),
+              child: _isUploadingPhoto
+                  ? const DecoratedBox(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color.fromRGBO(0, 0, 0, 0.35),
+                      ),
+                      child: Center(
+                        child: SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      ),
+                    )
+                  : (avatar == null
+                        ? const Icon(
+                            Icons.person_outline_rounded,
+                            size: 44,
+                            color: AppColors.textSecondary,
+                          )
+                        : null),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                label,
-                style: GoogleFonts.inter( // fallback to Inter for strong legibility
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: accent ?? const Color(0xFF333333),
+            // Affordance: without it the avatar reads as decoration.
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.cream, width: 3),
+                ),
+                child: const Icon(
+                  Icons.photo_camera_rounded,
+                  size: 14,
+                  color: AppColors.onPrimary,
                 ),
               ),
             ),
-            trailing,
           ],
         ),
       ),
@@ -387,245 +420,152 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.cream,
+      // Expand, so what is pinned to the bottom stays there when the content
+      // is shorter than the screen.
       body: Stack(
+        fit: StackFit.expand,
         children: [
           SingleChildScrollView(
             physics: const ClampingScrollPhysics(),
-            padding: const EdgeInsets.only(top: 130, bottom: 120),
+            // Header content ends at 48 + 40; the list starts 16 below it.
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.screen,
+              104,
+              AppSpacing.screen,
+              120,
+            ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Section 1 - User Info
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
+                // ── Who ─────────────────────────────────────────────────
+                Center(child: _buildAvatar()),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  _displayName ??
+                      FirebaseAuth.instance.currentUser?.displayName ??
+                      'User',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.title.copyWith(fontSize: 22),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _memberSinceLabel(),
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.caption,
+                ),
+
+                const SizedBox(height: AppSpacing.xxl),
+
+                // ── Money ───────────────────────────────────────────────
+                _groupLabel('Money'),
+                AppCard(
+                  padding: EdgeInsets.zero,
                   child: Column(
                     children: [
-                      Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          GestureDetector(
-                            onTap: _changePhoto,
-                            child: Container(
+                      _settingsRow(
+                        icon: Icons.account_balance_wallet_outlined,
+                        label: 'Monthly budget',
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.5), width: 1),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.04),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  )
-                                ],
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.12,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.pill,
+                                ),
                               ),
-                              child: Builder(builder: (context) {
-                                final avatar = _avatarImage();
-                                return Container(
-                                width: 96,
-                                height: 96,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(24),
-                                  color: const Color(0xFFF0EBE1),
-                                  border: Border.all(color: Colors.white, width: 4),
-                                  image: avatar == null
-                                      ? null
-                                      : DecorationImage(
-                                          image: avatar,
-                                          fit: BoxFit.cover,
-                                          filterQuality: FilterQuality.medium,
-                                        ),
+                              child: Text(
+                                _budgetLabel,
+                                style: AppTextStyles.label.copyWith(
+                                  color: AppColors.primaryText,
                                 ),
-                                child: _isUploadingPhoto
-                                    ? Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(20),
-                                          color: const Color.fromRGBO(0, 0, 0, 0.35),
-                                        ),
-                                        child: const Center(
-                                          child: SizedBox(
-                                            width: 22,
-                                            height: 22,
-                                            child: CircularProgressIndicator(
-                                              color: Colors.white,
-                                              strokeWidth: 2,
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                    : (avatar == null
-                                        ? const Icon(Icons.person_outline,
-                                            size: 40, color: Color(0xFF9E9E9E))
-                                        : null),
-                              );
-                              }),
-                            ),
-                          ),
-                          // Affordance: without it the avatar reads as decoration.
-                          Positioned(
-                            bottom: -4,
-                            right: -4,
-                            child: GestureDetector(
-                              onTap: _changePhoto,
-                              child: Container(
-                                padding: const EdgeInsets.all(7),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFF9F29),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2.5),
-                                ),
-                                child: const Icon(Icons.photo_camera_outlined,
-                                    size: 14, color: Colors.white),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _displayName ??
-                            FirebaseAuth.instance.currentUser?.displayName ??
-                            'User',
-                        style: GoogleFonts.bricolageGrotesque(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 20,
-                          color: const Color(0xFF333333),
+                            const SizedBox(width: AppSpacing.xs),
+                            _chevron,
+                          ],
                         ),
+                        onTap: _showBudgetEditor,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _memberSinceLabel(),
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 12,
-                          color: const Color(0xFF9E9E9E),
+                      ListRow.divider(),
+                      _settingsRow(
+                        icon: Icons.event_repeat_outlined,
+                        label: 'Subscriptions & bills',
+                        // push, not go: a subscreen, so back returns here.
+                        onTap: () => context.push<bool>('/subscriptions'),
+                      ),
+                      ListRow.divider(),
+                      _settingsRow(
+                        icon: Icons.document_scanner_outlined,
+                        label: 'Auto-Detect slips',
+                        subtitle: 'Spot new slips in your photos',
+                        trailing: Switch(
+                          value: _slipWatcherEnabled,
+                          onChanged: (val) async {
+                            setState(() => _slipWatcherEnabled = val);
+                            await GalleryWatcherService().setWatcherEnabled(
+                              val,
+                            );
+                          },
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: AppSpacing.xl),
 
-                // Section 3 - Preferences
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                // ── Account ─────────────────────────────────────────────
+                _groupLabel('Account'),
+                AppCard(
+                  padding: EdgeInsets.zero,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(
-                          "PREFERENCES",
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 10,
-                            letterSpacing: 2,
-                            color: const Color(0xFF9E9E9E),
-                          ),
-                        ),
+                      _settingsRow(
+                        icon: Icons.person_outline_rounded,
+                        label: 'Account settings',
+                        onTap: () async {
+                          // push, not go: this is a subscreen, so back must
+                          // return here rather than exiting the app.
+                          final changed = await context.push<bool>(
+                            '/account-settings',
+                          );
+                          if (changed == true) await _init();
+                        },
                       ),
-                      const SizedBox(height: 12),
-                       Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.4)),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(24),
-                          child: Column(
-                            children: [
-                              _buildPreferencesRow(
-                                icon: Icons.person_outline,
-                                label: 'Account Settings',
-                                trailing: const Icon(Icons.chevron_right, size: 18, color: Color.fromRGBO(158, 158, 158, 0.5)),
-                                onTap: () async {
-                                  // push, not go: this is a subscreen, so back must
-                                  // return here rather than exiting the app.
-                                  final changed =
-                                      await context.push<bool>('/account-settings');
-                                  if (changed == true) await _init();
-                                },
-                              ),
-                              Divider(height: 1, thickness: 1, color: const Color.fromRGBO(234, 226, 214, 0.3)),
-                              _buildPreferencesRow(
-                                icon: Icons.account_balance_outlined,
-                                label: 'Monthly Budget',
-                                trailing: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: const Color.fromRGBO(255, 159, 41, 0.1),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    _budgetLimit > 0
-                                        ? '฿${_budgetLimit.toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (m) => "${m[1]},")}'
-                                        : 'Not set',
-                                    style: GoogleFonts.inter(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 11,
-                                      color: const Color(0xFFFF9F29),
-                                    ),
-                                  ),
-                                ),
-                                onTap: _showBudgetEditor,
-                              ),
-                              Divider(height: 1, thickness: 1, color: const Color.fromRGBO(234, 226, 214, 0.3)),
-                              _buildPreferencesRow(
-                                icon: Icons.event_repeat_outlined,
-                                label: 'Subscriptions & Bills',
-                                trailing: const Icon(Icons.chevron_right, size: 18, color: Color.fromRGBO(158, 158, 158, 0.5)),
-                                // push, not go: a subscreen, so back returns here.
-                                onTap: () => context.push<bool>('/subscriptions'),
-                              ),
-                              Divider(height: 1, thickness: 1, color: const Color.fromRGBO(234, 226, 214, 0.3)),
-                              _buildPreferencesRow(
-                                icon: Icons.shield_outlined,
-                                label: 'Security & Privacy',
-                                trailing: const Icon(Icons.chevron_right, size: 18, color: Color.fromRGBO(158, 158, 158, 0.5)),
-                                onTap: () => context.push('/security-privacy'),
-                              ),
-                              Divider(height: 1, thickness: 1, color: const Color.fromRGBO(234, 226, 214, 0.3)),
-                              _buildPreferencesRow(
-                                icon: Icons.receipt_long_outlined,
-                                label: 'Auto-Detect Slips',
-                                trailing: Switch(
-                                  value: _slipWatcherEnabled,
-                                  activeThumbColor: const Color(0xFFFF9F29),
-                                  onChanged: (val) async {
-                                    setState(() => _slipWatcherEnabled = val);
-                                    await GalleryWatcherService()
-                                        .setWatcherEnabled(val);
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      ListRow.divider(),
+                      _settingsRow(
+                        icon: Icons.shield_outlined,
+                        label: 'Security & privacy',
+                        onTap: () => context.push('/security-privacy'),
                       ),
                     ],
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: AppSpacing.xl),
 
-                // Log Out — a row in its own card, styled like Preferences
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.4)),
+                AppCard(
+                  padding: EdgeInsets.zero,
+                  flat: true,
+                  child: ListRow(
+                    leading: const IconTile(
+                      icon: Icons.logout_rounded,
+                      color: AppColors.danger,
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
-                      child: _buildPreferencesRow(
-                        icon: Icons.logout,
-                        label: 'Log Out',
-                        trailing: const SizedBox.shrink(),
-                        onTap: _showLogoutDialog,
-                        accent: const Color(0xFFEF4444),
-                      ),
+                    title: 'Log out',
+                    titleColor: AppColors.danger,
+                    onTap: _showLogoutDialog,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                      vertical: 14,
                     ),
                   ),
                 ),
@@ -633,17 +573,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
 
-          // Sticky Header Layers
+          // Sticky header
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: ClipRect(
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
+                filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
                 child: Container(
-                  color: const Color.fromRGBO(255, 249, 240, 0.8),
-                  padding: const EdgeInsets.only(left: 24, right: 24, top: 48, bottom: 24),
+                  color: AppColors.cream.withValues(alpha: 0.85),
+                  padding: const EdgeInsets.only(
+                    left: AppSpacing.screen,
+                    right: AppSpacing.screen,
+                    top: 48,
+                    bottom: AppSpacing.sm,
+                  ),
                   child: const PageTitleRow(title: 'Profile'),
                 ),
               ),
@@ -710,17 +655,13 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet>
     final clean = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
     if (clean.isEmpty) return '0';
     return clean.replaceAllMapped(
-        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (m) => '${m[1]},',
+    );
   }
 
-  void _showError(String msg) {
-    ScaffoldMessenger.of(widget.scaffoldContext).showSnackBar(SnackBar(
-      content: Text(msg, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-      backgroundColor: const Color(0xFFEF4444),
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
-  }
+  void _showError(String msg) =>
+      showAppToast(widget.scaffoldContext, msg, error: true);
 
   Future<void> _saveBudget() async {
     final raw = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
@@ -734,7 +675,10 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet>
     setState(() => _isSaving = true);
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-      await DioClient.dio.put('/api/users/$uid', data: {'budget_limit': amount});
+      await DioClient.dio.put(
+        '/api/users/$uid',
+        data: {'budget_limit': amount},
+      );
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('user_budget_limit', amount);
@@ -750,162 +694,104 @@ class _BudgetEditorSheetState extends State<_BudgetEditorSheet>
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.topCenter,
-        children: [
-          // Sheet card
-          Container(
-            margin: const EdgeInsets.only(top: 40),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
-            ),
-            padding: const EdgeInsets.fromLTRB(32, 56, 32, 40),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Set Monthly Budget',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.bricolageGrotesque(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 22,
-                    color: const Color(0xFF333333),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Set how much you want to allow yourself to spend each month.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 13,
-                    height: 1.5,
-                    color: const Color(0xFF9E9E9E),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                const SizedBox(height: 8),
-
-                // Amount display with blinking cursor
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          '฿ ',
-                          style: GoogleFonts.bricolageGrotesque(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 36,
-                            color: const Color(0xFFFF9F29),
-                          ),
-                        ),
-                        Text(
-                          _formattedAmount,
-                          style: GoogleFonts.bricolageGrotesque(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 36,
-                            color: const Color(0xFF333333),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        FadeTransition(
-                          opacity: _cursorController,
-                          child: Container(
-                            width: 2,
-                            height: 36,
-                            color: const Color(0xFFFF9F29),
-                          ),
-                        ),
-                      ],
-                    ),
-                    // Hidden auto-focused TextField
-                    Positioned.fill(
-                      child: TextField(
-                        controller: _amountController,
-                        focusNode: _focusNode,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        showCursor: false,
-                        style: const TextStyle(color: Colors.transparent, fontSize: 1),
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 40),
-
-                // Save button
-                SizedBox(
-                  width: double.infinity,
-                  child: GestureDetector(
-                    onTap: _isSaving ? null : _saveBudget,
-                    child: Container(
-                      height: 58,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF9F29),
-                        borderRadius: BorderRadius.circular(9999),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFFF9F29).withValues(alpha: 0.3),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: _isSaving
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Text(
-                              'SAVE BUDGET',
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 12,
-                                letterSpacing: 2,
-                                color: Colors.white,
-                              ),
-                            ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Maybe Later
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      'MAYBE LATER',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 10,
-                        letterSpacing: 2,
-                        color: const Color(0xFF9E9E9E),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xl,
+            0,
+            AppSpacing.xl,
+            AppSpacing.lg,
           ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Monthly budget',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.title,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'How much you want to allow yourself to spend each month.',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xxl),
 
-        ],
+              // Amount display with blinking cursor
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '฿',
+                        style: AppTextStyles.display.copyWith(
+                          fontSize: 40,
+                          color: AppColors.primaryText,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _formattedAmount,
+                        style: AppTextStyles.display.copyWith(fontSize: 40),
+                      ),
+                      const SizedBox(width: 4),
+                      FadeTransition(
+                        opacity: _cursorController,
+                        child: Container(
+                          width: 2,
+                          height: 40,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Hidden auto-focused TextField
+                  Positioned.fill(
+                    child: TextField(
+                      controller: _amountController,
+                      focusNode: _focusNode,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      showCursor: false,
+                      style: const TextStyle(
+                        color: Colors.transparent,
+                        fontSize: 1,
+                      ),
+                      decoration: const InputDecoration(
+                        filled: false,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+
+              AppButton(
+                label: 'Save budget',
+                expand: true,
+                loading: _isSaving,
+                onPressed: _saveBudget,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              AppButton.text(
+                label: 'Maybe later',
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

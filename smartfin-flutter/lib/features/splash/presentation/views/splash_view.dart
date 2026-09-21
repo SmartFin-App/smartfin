@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-// SharedPreferences no longer needed for onboarding check
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:smart_fin/constants/color_style.dart';
+import 'package:smart_fin/widgets/ui/ui.dart';
 import 'package:smart_fin/widgets/smartfin_logo.dart';
 
 class SplashView extends StatefulWidget {
@@ -22,20 +20,17 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _pulseController = AnimationController(
-        vsync: this,
-        duration: const Duration(seconds: 1),
+      vsync: this,
+      duration: const Duration(seconds: 1),
     )..repeat(reverse: true);
 
     _bounceController = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 1200),
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
 
     _bounceAnimation = Tween<double>(begin: 0, end: -15).animate(
-      CurvedAnimation(
-        parent: _bounceController,
-        curve: Curves.easeInOutSine,
-      ),
+      CurvedAnimation(parent: _bounceController, curve: Curves.easeInOutSine),
     );
 
     _routeWhenAuthResolved();
@@ -50,17 +45,18 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
   Future<void> _routeWhenAuthResolved() async {
     // Keep the splash on screen long enough to read, but run the auth wait
     // alongside it rather than after it.
-    final minimumDisplay = Future<void>.delayed(const Duration(milliseconds: 1800));
+    final minimumDisplay = Future<void>.delayed(
+      const Duration(milliseconds: 1800),
+    );
 
     User? user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       try {
         // authStateChanges emits the restored user, or null once Firebase has
         // settled on "nobody is signed in".
-        user = await FirebaseAuth.instance
-            .authStateChanges()
-            .first
-            .timeout(const Duration(seconds: 5));
+        user = await FirebaseAuth.instance.authStateChanges().first.timeout(
+          const Duration(seconds: 5),
+        );
       } catch (_) {
         // Timed out or errored: fall through to the signed-out route rather
         // than leaving the user stuck on the splash screen.
@@ -108,20 +104,18 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                   child: const SmartFinLogo(fontSize: 60, letterSpacing: -3),
                 ),
                 const SizedBox(height: 8),
-                // Tagline
-                // Four characters longer than the old tagline, so the tracking
-                // is tightened to keep it on one line on a 360dp screen.
+                // Tagline. Sentence case rather than tracked capitals, and
+                // scaled down rather than wrapped on a narrow screen.
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
-                      'AUTOMATIC EXPENSE TRACKING',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                        letterSpacing: 3,
-                        color: const Color(0xFFFF9F29),
+                      'Automatic expense tracking',
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textSecondary,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -146,10 +140,12 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                       height: 6,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color(0xFFFF9F29),
+                        color: AppColors.primary,
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFF9F29).withValues(alpha: _pulseController.value * 0.6),
+                            color: AppColors.primary.withValues(
+                              alpha: _pulseController.value * 0.6,
+                            ),
                             blurRadius: 10 * _pulseController.value,
                             spreadRadius: 4 * _pulseController.value,
                           ),
@@ -159,15 +155,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                   },
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  'BOOTING UP...',
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 10,
-                    letterSpacing: 2.5,
-                    color: const Color(0xFF9E9E9E),
-                  ),
-                ),
+                Text('Loading', style: AppTextStyles.caption),
               ],
             ),
           ),

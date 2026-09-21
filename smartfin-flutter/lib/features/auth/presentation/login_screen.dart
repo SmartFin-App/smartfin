@@ -1,10 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:smart_fin/constants/color_style.dart';
+import 'package:smart_fin/widgets/ui/ui.dart';
 import 'package:smart_fin/widgets/smartfin_logo.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -59,7 +57,10 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: password);
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
       if (mounted) {
         context.go('/home');
       }
@@ -74,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        _showSnack(message, error: true);
       }
     } finally {
       if (mounted) {
@@ -90,45 +91,31 @@ class _LoginScreenState extends State<LoginScreen> {
   /// telling a stranger which emails are registered is a disclosure we do not
   /// need to make.
   Future<void> _sendPasswordReset() async {
-    final controller = TextEditingController(text: _emailController.text.trim());
+    final controller = TextEditingController(
+      text: _emailController.text.trim(),
+    );
 
     final email = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Reset your password',
-          style: GoogleFonts.bricolageGrotesque(
-            fontWeight: FontWeight.w800,
-            fontSize: 19,
-            color: const Color(0xFF333333),
-          ),
-        ),
+        title: const Text('Reset your password'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'We will email you a link to choose a new password.',
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w500,
-                fontSize: 13,
-                color: const Color(0xFF9E9E9E),
-              ),
-            ),
-            const SizedBox(height: 16),
+            const Text('We will email you a link to choose a new password.'),
+            const SizedBox(height: AppSpacing.lg),
             TextField(
               controller: controller,
               keyboardType: TextInputType.emailAddress,
               autofocus: true,
-              decoration: InputDecoration(
+              style: AppTextStyles.body,
+              decoration: const InputDecoration(
                 hintText: 'you@example.com',
-                filled: true,
-                fillColor: const Color.fromRGBO(240, 235, 225, 0.35),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
+                prefixIcon: Icon(
+                  Icons.mail_outline_rounded,
+                  size: 20,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ),
@@ -137,17 +124,14 @@ class _LoginScreenState extends State<LoginScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: const Color(0xFF9E9E9E)),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
             ),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: Text(
-              'Send link',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: const Color(0xFFFF9F29)),
-            ),
+            child: const Text('Send link'),
           ),
         ],
       ),
@@ -157,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final emailRegex = RegExp(r'^[\w.+-]+@([\w-]+\.)+[A-Za-z]{2,}$');
     if (!emailRegex.hasMatch(email)) {
-      _showSnack('Please enter a valid email address.');
+      _showSnack('Please enter a valid email address.', error: true);
       return;
     }
 
@@ -174,22 +158,27 @@ class _LoginScreenState extends State<LoginScreen> {
       if (e.code == 'user-not-found') {
         _showSnack('If that email has an account, a reset link is on its way.');
       } else if (e.code == 'invalid-email') {
-        _showSnack('Please enter a valid email address.');
+        _showSnack('Please enter a valid email address.', error: true);
       } else if (e.code == 'too-many-requests') {
-        _showSnack('Too many attempts. Please try again in a few minutes.');
+        _showSnack(
+          'Too many attempts. Please try again in a few minutes.',
+          error: true,
+        );
       } else {
-        _showSnack(e.message ?? 'Could not send the reset email.');
+        _showSnack(e.message ?? 'Could not send the reset email.', error: true);
       }
     } catch (e) {
-      if (mounted) _showSnack('Could not send the reset email: $e');
+      if (mounted) {
+        _showSnack('Could not send the reset email: $e', error: true);
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _showSnack(String message) {
+  void _showSnack(String message, {bool error = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    showAppToast(context, message, error: error);
   }
 
   Future<void> _handleGoogleSignIn() async {
@@ -201,13 +190,16 @@ class _LoginScreenState extends State<LoginScreen> {
         return; // User canceled
       }
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(
+        credential,
+      );
 
       if (mounted) {
         if (userCredential.additionalUserInfo?.isNewUser ?? false) {
@@ -218,15 +210,14 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message ?? "An error occurred with Google Sign-In.")),
+        _showSnack(
+          e.message ?? 'An error occurred with Google sign-in.',
+          error: true,
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Failed to sign in: $e")));
+        _showSnack('Failed to sign in: $e', error: true);
       }
     } finally {
       if (mounted) {
@@ -235,339 +226,200 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Widget _buildFieldLabel(String label) {
-    return Container(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        label,
-        style: GoogleFonts.inter(
-          fontWeight: FontWeight.w800,
-          fontSize: 9,
-          letterSpacing: 2,
-          color: const Color(0xFF9E9E9E),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    bool isPassword = false,
-    String? errorText,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          height: 48,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: errorText != null ? Colors.red : const Color(0xFFEAE2D6)),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: TextField(
-            controller: controller,
-            obscureText: isPassword ? _obscurePassword : false,
-            style: GoogleFonts.inter(
-              fontWeight: FontWeight.w400,
-              fontSize: 14,
-              color: const Color(0xFF333333),
-            ),
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              suffixIcon: isPassword
-                  ? GestureDetector(
-                      onTap: () => setState(() => _obscurePassword = !_obscurePassword),
-                      child: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                        color: const Color(0xFF9E9E9E),
-                      ),
-                    )
-                  : null,
-            ),
-          ),
-        ),
-        if (errorText != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            errorText,
-            style: GoogleFonts.inter(
-              fontWeight: FontWeight.w500,
-              fontSize: 11,
-              color: const Color(0xFFEF4444),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
+  Widget _fieldLabel(String label) => Padding(
+    padding: const EdgeInsets.only(left: AppSpacing.xs, bottom: AppSpacing.sm),
+    child: Text(
+      label,
+      style: AppTextStyles.label.copyWith(color: AppColors.textSecondary),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.cream,
-      body: Stack(
-        children: [
-          // Scrollable Content
-          SingleChildScrollView(
-            padding: const EdgeInsets.only(top: 112, bottom: 48, left: 24, right: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Cat
-                TweenAnimationBuilder<double>(
-                  duration: const Duration(milliseconds: 700),
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  builder: (context, value, child) {
-                    return Opacity(
-                      opacity: value,
-                      child: Transform.scale(scale: 0.8 + (0.2 * value), child: child),
-                    );
-                  },
-                  child: const SmartFinLogo(fontSize: 28),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'WELCOME BACK',
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12,
-                    letterSpacing: 1.2,
-                    color: const Color(0xFF9E9E9E),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                72,
+                AppSpacing.xl,
+                AppSpacing.xxl,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 700),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      return Opacity(
+                        opacity: value,
+                        child: Transform.scale(
+                          scale: 0.8 + (0.2 * value),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: const Center(child: SmartFinLogo(fontSize: 32)),
                   ),
-                ),
-                const SizedBox(height: 32),
+                  const SizedBox(height: AppSpacing.xl),
+                  Text(
+                    'Welcome back',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.title,
+                  ),
+                  const SizedBox(height: AppSpacing.xxl),
 
-                // Email Field
-                _buildFieldLabel('EMAIL ADDRESS'),
-                const SizedBox(height: 8),
-                _buildTextField(controller: _emailController, errorText: _emailError),
-                const SizedBox(height: 24),
-
-                // Password Field
-                _buildFieldLabel('PASSWORD'),
-                const SizedBox(height: 8),
-                _buildTextField(
-                  controller: _passwordController,
-                  isPassword: true,
-                  errorText: _passwordError,
-                ),
-
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: GestureDetector(
-                    onTap: _isLoading ? null : _sendPasswordReset,
-                    child: Text(
-                      'Forgot Password?',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12,
-                        color: const Color(0xFFFF9F29),
+                  _fieldLabel('Email'),
+                  TextField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.email],
+                    textInputAction: TextInputAction.next,
+                    style: AppTextStyles.body,
+                    decoration: InputDecoration(
+                      hintText: 'you@example.com',
+                      errorText: _emailError,
+                      prefixIcon: const Icon(
+                        Icons.mail_outline_rounded,
+                        size: 20,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ),
-                ),
+                  const SizedBox(height: AppSpacing.lg),
 
-                const SizedBox(height: 32),
-
-                // Log In Button
-                GestureDetector(
-                  onTap: _isLoading ? null : _validateAndSubmit,
-                  child: Container(
-                    width: double.infinity,
-                    height: 48,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFF9F29),
-                      borderRadius: BorderRadius.circular(9999),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFFF9F29).withValues(alpha: 0.3),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
+                  _fieldLabel('Password'),
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    autofillHints: const [AutofillHints.password],
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) {
+                      if (!_isLoading) _validateAndSubmit();
+                    },
+                    style: AppTextStyles.body,
+                    decoration: InputDecoration(
+                      hintText: 'Your password',
+                      errorText: _passwordError,
+                      prefixIcon: const Icon(
+                        Icons.lock_outline_rounded,
+                        size: 20,
+                        color: AppColors.textSecondary,
+                      ),
+                      suffixIcon: IconButton(
+                        onPressed: () => setState(
+                          () => _obscurePassword = !_obscurePassword,
                         ),
-                      ],
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                          )
-                        : Text(
-                            'LOG IN',
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 11,
-                              letterSpacing: 2.4,
-                              color: Colors.white,
-                            ),
-                          ),
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                // Divider
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(height: 1, color: const Color.fromRGBO(234, 226, 214, 0.4)),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Text(
-                        'QUICK CONNECT',
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 10,
-                          letterSpacing: 2,
-                          color: const Color(0xFF9E9E9E),
+                        color: AppColors.textSecondary,
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          size: 20,
+                          semanticLabel: _obscurePassword
+                              ? 'Show password'
+                              : 'Hide password',
                         ),
                       ),
                     ),
-                    Expanded(
-                      child: Container(height: 1, color: const Color.fromRGBO(234, 226, 214, 0.4)),
+                  ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: AppButton.text(
+                      label: 'Forgot password?',
+                      onPressed: _isLoading ? null : _sendPasswordReset,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
 
-                const SizedBox(height: 16),
+                  AppButton(
+                    label: 'Log in',
+                    expand: true,
+                    loading: _isLoading,
+                    onPressed: _validateAndSubmit,
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
 
-                // Google Button
-                GestureDetector(
-                  onTap: _isGoogleLoading ? null : _handleGoogleSignIn,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: const Color(0xFFEAE2D6)),
-                      borderRadius: BorderRadius.circular(9999),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                  Row(
+                    children: [
+                      const Expanded(child: Divider()),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
                         ),
-                      ],
-                    ),
-                    child: _isGoogleLoading
-                        ? const Center(
-                            child: SizedBox(
+                        child: Text('or', style: AppTextStyles.caption),
+                      ),
+                      const Expanded(child: Divider()),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: _isGoogleLoading ? null : _handleGoogleSignIn,
+                      child: _isGoogleLoading
+                          ? const SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
-                                color: Color(0xFF333333),
-                                strokeWidth: 2,
+                                strokeWidth: 2.2,
                               ),
-                            ),
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Image.asset('assets/images/google_logo.png', width: 16, height: 16),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Google',
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
-                                  color: const Color(0xFF333333),
+                            )
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Image.asset(
+                                  'assets/images/google_logo.png',
+                                  width: 18,
+                                  height: 18,
                                 ),
-                              ),
-                            ],
-                          ),
-                  ),
-                ),
-
-                const SizedBox(height: 48),
-
-                // Bottom Nav
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'New to SmartFin?',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                        color: const Color(0xFF333333),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    GestureDetector(
-                      onTap: () => context.push('/signup'),
-                      child: Text(
-                        'Sign Up',
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                          color: const Color(0xFFFF9F29),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Header
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: ClipRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
-                child: Container(
-                  height: 92,
-                  color: const Color.fromRGBO(255, 249, 240, 0.8),
-                  child: Stack(
-                    children: [
-                      // Login is where the splash lands a signed-out user, so there
-                      // is usually nothing behind it; the arrow only shows when it
-                      // was pushed from somewhere, such as the signup screen.
-                      if (context.canPop())
-                        Positioned(
-                          left: 24,
-                          top: 40,
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () => context.pop(),
-                            child: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.6)),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.chevron_left,
-                                color: Color(0xFF333333),
-                                size: 20,
-                              ),
+                                const SizedBox(width: AppSpacing.md),
+                                const Text('Continue with Google'),
+                              ],
                             ),
-                          ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxl),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'New to SmartFin?',
+                        style: AppTextStyles.body.copyWith(
+                          color: AppColors.textSecondary,
                         ),
+                      ),
+                      AppButton.text(
+                        label: 'Sign up',
+                        onPressed: () => context.push('/signup'),
+                      ),
                     ],
                   ),
-                ),
+                ],
               ),
             ),
-          ),
-        ],
+
+            // Login is where the splash lands a signed-out user, so there is
+            // usually nothing behind it; the arrow only shows when it was
+            // pushed from somewhere, such as the signup screen.
+            if (context.canPop())
+              Positioned(
+                left: AppSpacing.screen,
+                top: AppSpacing.sm,
+                child: AppIconButton(
+                  icon: Icons.arrow_back_rounded,
+                  semanticLabel: 'Back',
+                  onPressed: () => context.pop(),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -2,9 +2,8 @@ import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:smart_fin/constants/color_style.dart';
+import 'package:smart_fin/widgets/ui/ui.dart';
 import 'package:smart_fin/features/coach/data/coach_repository_impl.dart';
 import 'package:smart_fin/widgets/page_title_row.dart';
 import 'package:smart_fin/widgets/bottom_nav_bar.dart';
@@ -49,7 +48,8 @@ class _CoachScreenState extends State<CoachScreen>
 
   Future<void> _loadUserAndWelcome() async {
     final prefs = await SharedPreferences.getInstance();
-    final name = prefs.getString('user_name') ??
+    final name =
+        prefs.getString('user_name') ??
         FirebaseAuth.instance.currentUser?.displayName?.split(' ').first ??
         'there';
     if (!mounted) return;
@@ -114,10 +114,12 @@ class _CoachScreenState extends State<CoachScreen>
     final history = _messages
         .where((m) => m['text'] != null && m['text'].toString().isNotEmpty)
         .where((m) => m['text'] != userMessage)
-        .map((m) => {
-              'role': m['isUser'] == true ? 'user' : 'model',
-              'content': m['text'].toString(),
-            })
+        .map(
+          (m) => {
+            'role': m['isUser'] == true ? 'user' : 'model',
+            'content': m['text'].toString(),
+          },
+        )
         .toList();
 
     setState(() {
@@ -164,48 +166,15 @@ class _CoachScreenState extends State<CoachScreen>
     final VoidCallback? onTap = isExpense
         ? (a.id == null ? null : () => context.push('/transaction/${a.id}'))
         : a.action == 'update_budget_limit'
-            ? () => context.push('/profile')
-            : null;
+        ? () => context.push('/profile')
+        : null;
 
-    return GestureDetector(
+    return AppChip(
+      label: a.label,
+      icon: isExpense
+          ? Icons.receipt_long_outlined
+          : Icons.account_balance_wallet_outlined,
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFEAE2D6)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isExpense
-                  ? Icons.receipt_long_outlined
-                  : Icons.account_balance_wallet_outlined,
-              size: 14,
-              color: const Color(0xFFFF9F29),
-            ),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                a.label,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                  color: const Color(0xFF333333),
-                ),
-              ),
-            ),
-            if (onTap != null) ...[
-              const SizedBox(width: 2),
-              const Icon(Icons.chevron_right,
-                  size: 16, color: Color(0xFF9E9E9E)),
-            ],
-          ],
-        ),
-      ),
     );
   }
 
@@ -234,16 +203,26 @@ class _CoachScreenState extends State<CoachScreen>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
   static const _months = [
-    'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-    'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
-  /// "TODAY", "YESTERDAY", or "12 SEP 2026" for anything older.
+  /// "Today", "Yesterday", or "12 Sep 2026" for anything older.
   String _dayLabel(DateTime date) {
     final now = DateTime.now();
-    if (_sameDay(date, now)) return 'TODAY';
+    if (_sameDay(date, now)) return 'Today';
     if (_sameDay(date, now.subtract(const Duration(days: 1)))) {
-      return 'YESTERDAY';
+      return 'Yesterday';
     }
     return '${date.day} ${_months[date.month - 1]} ${date.year}';
   }
@@ -255,16 +234,83 @@ class _CoachScreenState extends State<CoachScreen>
 
   // ── Widget builders ───────────────────────────────────────────────────────
 
+  static const _bubbleRadius = Radius.circular(AppRadius.lg);
+  // The corner nearest the speaker is tighter, which reads as a speech tail.
+  static const _tailRadius = Radius.circular(6);
+
+  static BoxDecoration _bubble({required bool isUser}) => BoxDecoration(
+    color: isUser ? AppColors.primary.withValues(alpha: 0.16) : AppColors.white,
+    borderRadius: BorderRadius.only(
+      topLeft: isUser ? _bubbleRadius : _tailRadius,
+      topRight: isUser ? _tailRadius : _bubbleRadius,
+      bottomLeft: _bubbleRadius,
+      bottomRight: _bubbleRadius,
+    ),
+    border: isUser
+        ? null
+        : Border.all(color: AppColors.border.withValues(alpha: 0.7)),
+    boxShadow: isUser ? null : AppShadows.card,
+  );
+
+  /// Renders the little Markdown the coach writes: `**bold**` and bullet
+  /// lines starting with `*` or `-`. Shown raw, the asterisks read as noise.
   Widget _buildRichText(String text) {
-    return Text(
-      text,
-      style: GoogleFonts.inter(
-        fontWeight: FontWeight.w400,
-        fontSize: 14,
-        height: 1.5,
-        color: const Color.fromRGBO(51, 51, 51, 0.9),
-      ),
+    final lines = text.trim().split('\n');
+    final children = <Widget>[];
+    for (final raw in lines) {
+      final bullet = RegExp(r'^\s*[*-]\s+').firstMatch(raw);
+      final line = bullet == null ? raw : raw.substring(bullet.end);
+      if (line.trim().isEmpty) {
+        children.add(const SizedBox(height: AppSpacing.sm));
+        continue;
+      }
+      final spans = _boldSpans(line);
+      children.add(
+        bullet == null
+            ? Text.rich(TextSpan(children: spans), style: AppTextStyles.body)
+            : Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '•  ',
+                      style: AppTextStyles.body.copyWith(
+                        color: AppColors.primaryText,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(children: spans),
+                        style: AppTextStyles.body,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
     );
+  }
+
+  /// Splits a line on `**`: every odd piece was inside a pair, so it is bold.
+  /// An unpaired `**` stays as written.
+  static List<InlineSpan> _boldSpans(String line) {
+    final parts = line.split('**');
+    if (parts.length.isEven) return [TextSpan(text: line)];
+    return [
+      for (var i = 0; i < parts.length; i++)
+        if (parts[i].isNotEmpty)
+          TextSpan(
+            text: parts[i],
+            style: i.isOdd
+                ? const TextStyle(fontWeight: FontWeight.w600)
+                : null,
+          ),
+    ];
   }
 
   Widget _buildTypingIndicator() {
@@ -272,45 +318,39 @@ class _CoachScreenState extends State<CoachScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _CoachAvatar(),
-        const SizedBox(width: 12),
+        const SizedBox(width: AppSpacing.sm),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(0),
-              topRight: Radius.circular(16),
-              bottomLeft: Radius.circular(16),
-              bottomRight: Radius.circular(16),
-            ),
-            border:
-                Border.all(color: const Color.fromRGBO(234, 226, 214, 0.4)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(3, (index) {
-              return AnimatedBuilder(
-                animation: _typingAnimCtrl,
-                builder: (context, child) {
-                  final offset = (index * 0.2);
-                  final value = (_typingAnimCtrl.value - offset) % 1.0;
-                  final sineValue =
-                      (value < 0 || value > 0.5) ? 0.0 : (1.0 - (value * 2));
-                  return Transform.translate(
-                    offset: Offset(0, -5 * _easeBounce(sineValue)),
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 2),
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF9E9E9E),
-                        shape: BoxShape.circle,
+          decoration: _bubble(isUser: false),
+          child: Semantics(
+            label: 'AI Coach is typing',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(3, (index) {
+                return AnimatedBuilder(
+                  animation: _typingAnimCtrl,
+                  builder: (context, child) {
+                    final offset = (index * 0.2);
+                    final value = (_typingAnimCtrl.value - offset) % 1.0;
+                    final sineValue = (value < 0 || value > 0.5)
+                        ? 0.0
+                        : (1.0 - (value * 2));
+                    return Transform.translate(
+                      offset: Offset(0, -5 * _easeBounce(sineValue)),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(
+                          color: AppColors.textMuted,
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                    ),
-                  );
-                },
-              );
-            }),
+                    );
+                  },
+                );
+              }),
+            ),
           ),
         ),
       ],
@@ -323,21 +363,21 @@ class _CoachScreenState extends State<CoachScreen>
     final actions = (msg['actions'] as List<CoachAction>?) ?? const [];
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 32),
+      padding: const EdgeInsets.only(bottom: AppSpacing.xl),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment:
-            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         children: [
           if (!isUser) ...[
             const _CoachAvatar(),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.sm),
           ],
           Flexible(
             child: FractionallySizedBox(
-              widthFactor: 0.8,
-              alignment:
-                  isUser ? Alignment.centerRight : Alignment.centerLeft,
+              widthFactor: isUser ? 0.8 : 0.9,
+              alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
               child: Column(
                 crossAxisAlignment: isUser
                     ? CrossAxisAlignment.end
@@ -345,72 +385,30 @@ class _CoachScreenState extends State<CoachScreen>
                 children: [
                   // Chat bubble
                   Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isUser
-                          ? const Color(0xFFFF9F29)
-                          : Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: isUser
-                            ? const Radius.circular(16)
-                            : const Radius.circular(0),
-                        topRight: isUser
-                            ? const Radius.circular(0)
-                            : const Radius.circular(16),
-                        bottomLeft: const Radius.circular(16),
-                        bottomRight: const Radius.circular(16),
-                      ),
-                      border: isUser
-                          ? Border.all(color: const Color(0xFFFF9F29))
-                          : Border.all(
-                              color:
-                                  const Color.fromRGBO(234, 226, 214, 0.4)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
                     ),
+                    decoration: _bubble(isUser: isUser),
                     child: isUser
-                        ? Text(
-                            msg['text'] as String,
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 14,
-                              height: 1.5,
-                              color: Colors.white,
-                            ),
-                          )
+                        ? Text(msg['text'] as String, style: AppTextStyles.body)
                         : _buildRichText(msg['text'] as String),
                   ),
 
                   // Suggestion chips (welcome message only)
                   if (chips.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(top: 12),
+                      padding: const EdgeInsets.only(top: AppSpacing.md),
                       child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
                         children: chips
-                            .map((chip) => GestureDetector(
-                                  onTap: () => _sendMessage(chip),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 14, vertical: 9),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFFF9F29)
-                                          .withValues(alpha: 0.08),
-                                      borderRadius:
-                                          BorderRadius.circular(12),
-                                      border: Border.all(
-                                          color: const Color(0xFFFF9F29)
-                                              .withValues(alpha: 0.4)),
-                                    ),
-                                    child: Text(
-                                      chip,
-                                      style: GoogleFonts.inter(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 12,
-                                        color: const Color(0xFFFF9F29),
-                                      ),
-                                    ),
-                                  ),
-                                ))
+                            .map(
+                              (chip) => AppChip(
+                                label: chip,
+                                onTap: () => _sendMessage(chip),
+                              ),
+                            )
                             .toList(),
                       ),
                     ),
@@ -418,24 +416,24 @@ class _CoachScreenState extends State<CoachScreen>
                   // What the coach changed while answering
                   if (actions.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(top: 12),
+                      padding: const EdgeInsets.only(top: AppSpacing.md),
                       child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
                         children: actions.map(_buildActionChip).toList(),
                       ),
                     ),
 
                   // Timestamp
                   Padding(
-                    padding: const EdgeInsets.only(top: 8, left: 4),
+                    padding: const EdgeInsets.only(
+                      top: AppSpacing.xs + 2,
+                      left: 4,
+                      right: 4,
+                    ),
                     child: Text(
                       msg['time'] as String,
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 9,
-                        color: const Color(0xFF9E9E9E),
-                      ),
+                      style: AppTextStyles.caption.copyWith(fontSize: 12),
                     ),
                   ),
                 ],
@@ -458,19 +456,23 @@ class _CoachScreenState extends State<CoachScreen>
           // ── Chat list ──────────────────────────────────────────────────
           Column(
             children: [
-              const SizedBox(height: 124),
+              // Header content ends at 48 + 40, plus 8 below it.
+              const SizedBox(height: 96),
               Expanded(
                 child: ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 24)
-                      .copyWith(bottom: 156),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.screen,
+                    AppSpacing.lg,
+                    AppSpacing.screen,
+                    172,
+                  ),
                   itemCount: _messages.length + (_isTyping ? 1 : 0),
                   itemBuilder: (context, index) {
                     // Typing indicator
                     if (index == _messages.length) {
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 32),
+                        padding: const EdgeInsets.only(bottom: AppSpacing.xl),
                         child: _buildTypingIndicator(),
                       );
                     }
@@ -483,9 +485,11 @@ class _CoachScreenState extends State<CoachScreen>
                     // so a single pill at the top once labelled every old message
                     // "TODAY".
                     final at = message['at'] as DateTime?;
-                    final previous =
-                        index == 0 ? null : _messages[index - 1]['at'] as DateTime?;
-                    if (at == null || (previous != null && _sameDay(at, previous))) {
+                    final previous = index == 0
+                        ? null
+                        : _messages[index - 1]['at'] as DateTime?;
+                    if (at == null ||
+                        (previous != null && _sameDay(at, previous))) {
                       return bubble;
                     }
 
@@ -493,22 +497,24 @@ class _CoachScreenState extends State<CoachScreen>
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 32),
+                          padding: const EdgeInsets.only(bottom: AppSpacing.xl),
                           child: Center(
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 4),
+                                horizontal: 12,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
-                                color: const Color.fromRGBO(240, 235, 225, 0.6),
-                                borderRadius: BorderRadius.circular(9999),
+                                color: AppColors.surfaceMuted,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.pill,
+                                ),
                               ),
                               child: Text(
                                 _dayLabel(at),
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 9,
-                                  letterSpacing: 1.5,
-                                  color: const Color(0xFF9E9E9E),
+                                style: AppTextStyles.label.copyWith(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
                                 ),
                               ),
                             ),
@@ -530,13 +536,15 @@ class _CoachScreenState extends State<CoachScreen>
             right: 0,
             child: ClipRect(
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
+                filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
                 child: Container(
-                  height: 124,
-                  color: const Color.fromRGBO(255, 249, 240, 0.8),
+                  color: AppColors.cream.withValues(alpha: 0.85),
                   padding: const EdgeInsets.only(
-                      left: 24, right: 24, top: 48, bottom: 24),
-                  alignment: Alignment.topCenter,
+                    left: AppSpacing.screen,
+                    right: AppSpacing.screen,
+                    top: 48,
+                    bottom: AppSpacing.sm,
+                  ),
                   child: const PageTitleRow(title: 'AI Coach'),
                 ),
               ),
@@ -549,58 +557,64 @@ class _CoachScreenState extends State<CoachScreen>
             left: 0,
             right: 0,
             child: Container(
-              color: const Color(0xFFFFF9F0),
-              padding: const EdgeInsets.only(
-                  left: 24, right: 24, top: 16, bottom: 104),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                      color: const Color.fromRGBO(234, 226, 214, 0.6)),
-                ),
-                padding: const EdgeInsets.only(
-                    left: 20, right: 6, top: 6, bottom: 6),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _inputController,
-                        onSubmitted: (value) => _sendMessage(value),
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
-                          color: const Color(0xFF333333),
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Ask anything...',
-                          hintStyle: GoogleFonts.inter(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 14,
-                            color:
-                                const Color.fromRGBO(158, 158, 158, 0.5),
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () =>
-                          _sendMessage(_inputController.text),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFF9F29),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.arrow_upward,
-                            color: Colors.white, size: 20),
-                      ),
-                    ),
+              // Fades the chat out under the input instead of cutting it.
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppColors.cream.withValues(alpha: 0),
+                    AppColors.cream,
                   ],
+                  stops: const [0, 0.25],
+                ),
+              ),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screen,
+                AppSpacing.xl,
+                AppSpacing.screen,
+                108,
+              ),
+              child: TextField(
+                controller: _inputController,
+                onSubmitted: (value) => _sendMessage(value),
+                textInputAction: TextInputAction.send,
+                minLines: 1,
+                maxLines: 4,
+                style: AppTextStyles.body,
+                decoration: InputDecoration(
+                  hintText: 'Ask about your spending',
+                  contentPadding: const EdgeInsets.fromLTRB(20, 14, 8, 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.xl),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.xl),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.xl),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                  suffixIcon: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: IconButton.filled(
+                      onPressed: () => _sendMessage(_inputController.text),
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.onPrimary,
+                      ),
+                      icon: const Icon(
+                        Icons.arrow_upward_rounded,
+                        size: 20,
+                        semanticLabel: 'Send',
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -622,16 +636,18 @@ class _CoachAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 32,
-      height: 32,
+      width: 36,
+      height: 36,
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.4)),
+        color: AppColors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.border),
       ),
-      child: Image.asset('assets/images/lucky_cat.png',
-          filterQuality: FilterQuality.medium),
+      child: Image.asset(
+        'assets/images/lucky_cat.png',
+        filterQuality: FilterQuality.medium,
+      ),
     );
   }
 }

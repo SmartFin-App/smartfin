@@ -1,11 +1,9 @@
-import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:smart_fin/constants/color_style.dart';
+import 'package:smart_fin/widgets/ui/ui.dart';
 import 'package:smart_fin/features/subscriptions/data/subscription_repository_impl.dart';
 import 'package:smart_fin/features/subscriptions/services/bill_reminder_service.dart';
 
@@ -24,24 +22,33 @@ class SubscriptionsScreen extends StatefulWidget {
 
 class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   static const List<String> _categories = [
-    'Bills', 'Entertainment', 'Health', 'Transport', 'Shopping', 'Food', 'Groceries', 'Other',
+    'Bills',
+    'Entertainment',
+    'Health',
+    'Transport',
+    'Shopping',
+    'Food',
+    'Groceries',
+    'Other',
   ];
   static const List<String> _cycles = ['weekly', 'monthly', 'yearly'];
 
   static const Map<String, ({IconData icon, Color color})> _categoryStyle = {
-    'Food':          (icon: Icons.restaurant_outlined,          color: Color(0xFFFF9F29)),
-    'Transport':     (icon: Icons.directions_car_outlined,      color: Color(0xFF2563EB)),
-    'Entertainment': (icon: Icons.movie_outlined,               color: Color(0xFF7C3AED)),
-    'Shopping':      (icon: Icons.shopping_bag_outlined,        color: Color(0xFFDB2777)),
-    'Health':        (icon: Icons.favorite_outline,             color: Color(0xFFDC2626)),
-    'Groceries':     (icon: Icons.local_grocery_store_outlined, color: Color(0xFF65A30D)),
-    'Bills':         (icon: Icons.receipt_outlined,             color: Color(0xFF0D9488)),
-    'Other':         (icon: Icons.add_circle_outline,           color: Color(0xFF9E9E9E)),
+    'Food': (icon: Icons.restaurant_outlined, color: Color(0xFFFF9F29)),
+    'Transport': (
+      icon: Icons.directions_car_outlined,
+      color: Color(0xFF2563EB),
+    ),
+    'Entertainment': (icon: Icons.movie_outlined, color: Color(0xFF7C3AED)),
+    'Shopping': (icon: Icons.shopping_bag_outlined, color: Color(0xFFDB2777)),
+    'Health': (icon: Icons.favorite_outline, color: Color(0xFFDC2626)),
+    'Groceries': (
+      icon: Icons.local_grocery_store_outlined,
+      color: Color(0xFF65A30D),
+    ),
+    'Bills': (icon: Icons.receipt_outlined, color: Color(0xFF0D9488)),
+    'Other': (icon: Icons.add_circle_outline, color: Color(0xFF9E9E9E)),
   };
-
-  static const _orange = Color(0xFFFF9F29);
-  static const _red = Color(0xFFEF4444);
-  static const _muted = Color(0xFF9E9E9E);
 
   List<Map<String, dynamic>> _subs = [];
   Map<String, dynamic> _envelope = {};
@@ -82,7 +89,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       return;
     }
 
-    final res = await SubscriptionRepositoryImpl().getSubscriptions(userID: _uid);
+    final res = await SubscriptionRepositoryImpl().getSubscriptions(
+      userID: _uid,
+    );
     if (!mounted) return;
     setState(() {
       _isLoading = false;
@@ -109,12 +118,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
 
   void _toast(String message, {bool error = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-      backgroundColor: error ? _red : const Color(0xFF4CAF50),
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
+    showAppToast(context, message, error: error);
   }
 
   String _baht(num amount) =>
@@ -124,34 +128,40 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   DateTime? _day(String? raw) => raw == null ? null : DateTime.tryParse(raw);
 
   String _cycleLabel(String? cycle) => switch (cycle) {
-        'weekly' => 'Weekly',
-        'yearly' => 'Yearly',
-        _ => 'Monthly',
-      };
-
-  ({String text, Color fg, Color bg}) _badge(Map<String, dynamic> s) {
+    'weekly' => 'Weekly',
+    'yearly' => 'Yearly',
+    _ => 'Monthly',
+  };
+  ({String text, Color fg}) _badge(Map<String, dynamic> s) {
     if (s['active'] != true) {
-      return (text: 'Paused', fg: _muted, bg: const Color.fromRGBO(240, 235, 225, 0.6));
+      return (text: 'Paused', fg: AppColors.textSecondary);
     }
     final days = (s['days_until_due'] as num?)?.toInt() ?? 0;
-    const soonBg = Color.fromRGBO(255, 159, 41, 0.12);
     if (days < 0) {
       final n = -days;
-      return (
-        text: '$n day${n == 1 ? '' : 's'} overdue',
-        fg: _red,
-        bg: const Color.fromRGBO(239, 68, 68, 0.1),
-      );
+      return (text: '$n day${n == 1 ? '' : 's'} overdue', fg: AppColors.danger);
     }
-    if (days == 0) return (text: 'Due today', fg: _orange, bg: soonBg);
-    if (days == 1) return (text: 'Due tomorrow', fg: _orange, bg: soonBg);
-    if (days <= 7) return (text: 'Due in $days days', fg: _orange, bg: soonBg);
+    if (days == 0) return (text: 'Due today', fg: AppColors.primaryText);
+    if (days == 1) return (text: 'Due tomorrow', fg: AppColors.primaryText);
+    if (days <= 7) {
+      return (text: 'Due in $days days', fg: AppColors.primaryText);
+    }
     return (
       text: 'Due ${s['formatted_due_date'] ?? ''}',
-      fg: _muted,
-      bg: const Color.fromRGBO(240, 235, 225, 0.6),
+      fg: AppColors.textSecondary,
     );
   }
+
+  ({IconData icon, Color color}) _styleFor(String? category) =>
+      _categoryStyle[category] ?? _categoryStyle['Other']!;
+
+  Widget _sheetLabel(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+    child: Text(
+      text,
+      style: AppTextStyles.label.copyWith(color: AppColors.textSecondary),
+    ),
+  );
 
   // ── Add / edit ──────────────────────────────────────────────────────────────
 
@@ -159,10 +169,17 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     if (_isBusy) return;
     final isEdit = sub != null;
 
-    final nameController = TextEditingController(text: sub?['name'] as String? ?? '');
+    final nameController = TextEditingController(
+      text: sub?['name'] as String? ?? '',
+    );
     final amountController = TextEditingController(
-        text: sub == null ? '' : ((sub['amount'] as num?) ?? 0).round().toString());
-    final noteController = TextEditingController(text: sub?['note'] as String? ?? '');
+      text: sub == null
+          ? ''
+          : ((sub['amount'] as num?) ?? 0).round().toString(),
+    );
+    final noteController = TextEditingController(
+      text: sub?['note'] as String? ?? '',
+    );
     String cycle = sub?['billing_cycle'] as String? ?? 'monthly';
     String category = sub?['category'] as String? ?? 'Bills';
     if (!_categories.contains(category)) category = 'Other';
@@ -175,7 +192,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     final action = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      showDragHandle: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) {
           void close(String result) {
@@ -186,183 +203,186 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
           }
 
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-            child: Container(
-              constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.9),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(ctx).size.height * 0.85,
               ),
-              child: SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEAE2D6),
-                          borderRadius: BorderRadius.circular(2),
+              child: SafeArea(
+                top: false,
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xl,
+                    0,
+                    AppSpacing.xl,
+                    AppSpacing.xl,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isEdit ? 'Edit bill' : 'Add a bill',
+                        style: AppTextStyles.title,
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      TextField(
+                        controller: nameController,
+                        textCapitalization: TextCapitalization.words,
+                        maxLength: 60,
+                        style: AppTextStyles.body,
+                        decoration: const InputDecoration(
+                          labelText: 'Name',
+                          hintText: 'e.g. Netflix, phone bill',
+                          counterText: '',
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      isEdit ? 'Edit bill' : 'Add a bill',
-                      style: GoogleFonts.bricolageGrotesque(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 20,
-                        color: AppColors.textDark,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: nameController,
-                      textCapitalization: TextCapitalization.words,
-                      maxLength: 60,
-                      decoration: _fieldDecoration('Name (e.g. Netflix, phone bill)')
-                          .copyWith(counterText: ''),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: amountController,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: _fieldDecoration('Amount in ฿'),
-                    ),
-                    const SizedBox(height: 16),
-                    _label('REPEATS'),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _cycles
-                          .map((c) => _chip(_cycleLabel(c), c == cycle,
-                              () => setSheet(() => cycle = c)))
-                          .toList(),
-                    ),
-                    const SizedBox(height: 16),
-                    InkWell(
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: ctx,
-                          initialDate: due,
-                          // Past dates are allowed for a bill that is already
-                          // overdue; future ones for everything else.
-                          firstDate: today.subtract(const Duration(days: 365)),
-                          lastDate: DateTime(today.year + 5, 12, 31),
-                        );
-                        if (picked != null) setSheet(() => due = picked);
-                      },
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        decoration: BoxDecoration(
-                          color: const Color.fromRGBO(240, 235, 225, 0.35),
-                          borderRadius: BorderRadius.circular(14),
+                      const SizedBox(height: AppSpacing.md),
+                      TextField(
+                        controller: amountController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        style: AppTextStyles.body,
+                        decoration: const InputDecoration(
+                          labelText: 'Amount',
+                          prefixText: '฿ ',
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.calendar_today_outlined, size: 17, color: _muted),
-                            const SizedBox(width: 12),
-                            Text('Next due',
-                                style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w600, fontSize: 13, color: _muted)),
-                            const Spacer(),
-                            Text(
-                              DateFormat('d MMM yyyy').format(due),
-                              style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w700, fontSize: 13, color: _orange),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      _sheetLabel('Repeats'),
+                      Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
+                        children: _cycles
+                            .map(
+                              (c) => AppChip(
+                                label: _cycleLabel(c),
+                                selected: c == cycle,
+                                onTap: () => setSheet(() => cycle = c),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      AppCard(
+                        flat: true,
+                        padding: EdgeInsets.zero,
+                        child: ListRow(
+                          leading: const Icon(
+                            Icons.calendar_today_rounded,
+                            size: 20,
+                            color: AppColors.textSecondary,
+                          ),
+                          title: 'Next due',
+                          trailing: Text(
+                            DateFormat('d MMM yyyy').format(due),
+                            style: AppTextStyles.label.copyWith(
+                              color: AppColors.primaryText,
                             ),
-                          ],
+                          ),
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: ctx,
+                              initialDate: due,
+                              // Past dates are allowed for a bill that is
+                              // already overdue; future ones for everything
+                              // else.
+                              firstDate: today.subtract(
+                                const Duration(days: 365),
+                              ),
+                              lastDate: DateTime(today.year + 5, 12, 31),
+                            );
+                            if (picked != null) setSheet(() => due = picked);
+                          },
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    _label('CATEGORY'),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _categories
-                          .map((c) => _chip(c, c == category,
-                              () => setSheet(() => category = c)))
-                          .toList(),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: noteController,
-                      maxLength: 200,
-                      decoration: _fieldDecoration('Note (optional)').copyWith(counterText: ''),
-                    ),
-                    if (isEdit) ...[
-                      const SizedBox(height: 8),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        value: active,
-                        activeThumbColor: _orange,
-                        onChanged: (v) => setSheet(() => active = v),
-                        title: Text('Active',
-                            style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                                color: AppColors.textDark)),
-                        subtitle: Text('Paused bills are not counted or reminded',
-                            style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w500, fontSize: 11, color: _muted)),
+                      const SizedBox(height: AppSpacing.xl),
+                      _sheetLabel('Category'),
+                      Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
+                        children: _categories
+                            .map(
+                              (c) => AppChip(
+                                label: c,
+                                icon: _styleFor(c).icon,
+                                selected: c == category,
+                                onTap: () => setSheet(() => category = c),
+                              ),
+                            )
+                            .toList(),
                       ),
-                    ],
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _orange,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(9999)),
+                      const SizedBox(height: AppSpacing.xl),
+                      TextField(
+                        controller: noteController,
+                        maxLength: 200,
+                        style: AppTextStyles.body,
+                        decoration: const InputDecoration(
+                          labelText: 'Note (optional)',
+                          counterText: '',
                         ),
+                      ),
+                      if (isEdit) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        AppCard(
+                          flat: true,
+                          padding: EdgeInsets.zero,
+                          child: ListRow(
+                            title: 'Active',
+                            subtitle:
+                                'Paused bills are not counted or reminded',
+                            trailing: Switch(
+                              value: active,
+                              onChanged: (v) => setSheet(() => active = v),
+                            ),
+                            onTap: () => setSheet(() => active = !active),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: AppSpacing.xl),
+                      AppButton(
+                        label: isEdit ? 'Save changes' : 'Add bill',
+                        expand: true,
                         onPressed: () {
-                          final amount = int.tryParse(amountController.text.trim()) ?? 0;
+                          final amount =
+                              int.tryParse(amountController.text.trim()) ?? 0;
                           if (nameController.text.trim().isEmpty) {
                             _toast('Give the bill a name', error: true);
                             return;
                           }
                           if (amount <= 0) {
-                            _toast('Amount must be greater than 0', error: true);
+                            _toast(
+                              'Amount must be greater than 0',
+                              error: true,
+                            );
                             return;
                           }
                           close('save');
                         },
-                        child: Text(
-                          isEdit ? 'SAVE CHANGES' : 'ADD BILL',
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 12,
-                            letterSpacing: 2,
-                            color: Colors.white,
+                      ),
+                      if (isEdit) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        Center(
+                          child: TextButton.icon(
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.danger,
+                            ),
+                            onPressed: () => close('delete'),
+                            icon: const Icon(
+                              Icons.delete_outline_rounded,
+                              size: 18,
+                            ),
+                            label: const Text('Delete bill'),
                           ),
                         ),
-                      ),
-                    ),
-                    if (isEdit) ...[
-                      const SizedBox(height: 8),
-                      Center(
-                        child: TextButton.icon(
-                          onPressed: () => close('delete'),
-                          icon: const Icon(Icons.delete_outline, size: 18, color: _red),
-                          label: Text('Delete bill',
-                              style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w700, fontSize: 13, color: _red)),
-                        ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -422,25 +442,22 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Delete ${sub['name'] ?? 'bill'}?',
-            style: GoogleFonts.bricolageGrotesque(
-                fontWeight: FontWeight.w800, fontSize: 19, color: _red)),
-        content: Text(
+        title: Text('Delete ${sub['name'] ?? 'bill'}?'),
+        content: const Text(
           'It stops being tracked. Payments you already logged stay in your history.',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 14, color: _muted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: _muted)),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
+            ),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Delete',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: _red)),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -449,8 +466,10 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
 
     setState(() => _isBusy = true);
     final id = sub['id'] as String? ?? '';
-    final res = await SubscriptionRepositoryImpl()
-        .deleteSubscription(subscriptionID: id, userID: _uid);
+    final res = await SubscriptionRepositoryImpl().deleteSubscription(
+      subscriptionID: id,
+      userID: _uid,
+    );
     if (!mounted) return;
     setState(() => _isBusy = false);
 
@@ -474,26 +493,22 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Mark ${sub['name'] ?? 'this bill'} as paid?',
-            style: GoogleFonts.bricolageGrotesque(
-                fontWeight: FontWeight.w800, fontSize: 19, color: AppColors.textDark)),
+        title: Text('Mark ${sub['name'] ?? 'this bill'} as paid?'),
         content: Text(
           'Logs a ${sub['formatted_amount'] ?? ''} ${sub['category'] ?? ''} expense for today'
           '${next != null ? ' and moves the next due date to ${DateFormat('d MMM yyyy').format(next)}' : ''}.',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 14, color: _muted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: _muted)),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
+            ),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Mark paid',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: _orange)),
+            child: const Text('Mark paid'),
           ),
         ],
       ),
@@ -521,8 +536,6 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     if (mounted) await _load();
   }
 
-  // ── UI ──────────────────────────────────────────────────────────────────────
-
   // ── Reminders ───────────────────────────────────────────────────────────────
 
   /// Explains the reminders and lets the user fire a test one — reminders are
@@ -539,166 +552,119 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       }
     }
 
-    Future<void> run(BuildContext sheetContext, Future<bool> Function() send, String ok) async {
+    Future<void> run(
+      BuildContext sheetContext,
+      Future<bool> Function() send,
+      String ok,
+    ) async {
       Navigator.pop(sheetContext);
       final granted = await service.requestPermission();
       if (!granted) {
-        _toast('Notifications are off for SmartFin. Turn them on in Settings.', error: true);
+        _toast(
+          'Notifications are off for SmartFin. Turn them on in Settings.',
+          error: true,
+        );
         return;
       }
-      _toast(await send() ? ok : 'Could not send a test reminder', error: false);
+      _toast(
+        await send() ? ok : 'Could not send a test reminder',
+        error: false,
+      );
     }
+
+    const chevron = Icon(
+      Icons.chevron_right_rounded,
+      color: AppColors.textMuted,
+    );
 
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEAE2D6),
-                  borderRadius: BorderRadius.circular(2),
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Bill reminders', style: AppTextStyles.title),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      'SmartFin reminds you at 9:00 the day before a bill is due, and again on the day.',
+                      style: AppTextStyles.body.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text('Bill reminders',
-                style: GoogleFonts.bricolageGrotesque(
-                    fontWeight: FontWeight.w800, fontSize: 20, color: AppColors.textDark)),
-            const SizedBox(height: 6),
-            Text(
-              'SmartFin reminds you at 9:00 the day before a bill is due, and again on the day.',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 13, color: _muted),
-            ),
-            const SizedBox(height: 16),
-            _reminderOption(
-              icon: Icons.notifications_active_outlined,
-              title: 'Send a test reminder now',
-              onTap: () => run(ctx, () => service.showTestNow(sample), 'Test reminder sent'),
-            ),
-            _reminderOption(
-              icon: Icons.timer_outlined,
-              title: 'Remind me in 10 seconds',
-              subtitle: 'Go to the home screen to see it arrive',
-              onTap: () => run(ctx, () => service.scheduleTest(seconds: 10, bill: sample),
-                  'Scheduled — it may take a few seconds longer'),
-            ),
-            if (!enabled)
-              _reminderOption(
-                icon: Icons.settings_outlined,
-                title: 'Turn on notifications',
-                subtitle: 'Notifications are currently off for SmartFin',
-                onTap: () {
-                  Navigator.pop(ctx);
-                  service.openSettings();
-                },
+              const SizedBox(height: AppSpacing.md),
+              ListRow(
+                leading: const IconTile(
+                  icon: Icons.notifications_active_outlined,
+                  color: AppColors.primary,
+                ),
+                title: 'Send a test reminder now',
+                trailing: chevron,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xl,
+                  vertical: AppSpacing.md,
+                ),
+                onTap: () => run(
+                  ctx,
+                  () => service.showTestNow(sample),
+                  'Test reminder sent',
+                ),
               ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _reminderOption({
-    required IconData icon,
-    required String title,
-    String? subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color.fromRGBO(255, 159, 41, 0.1),
-                borderRadius: BorderRadius.circular(12),
+              ListRow(
+                leading: const IconTile(
+                  icon: Icons.timer_outlined,
+                  color: AppColors.primary,
+                ),
+                title: 'Remind me in 10 seconds',
+                subtitle: 'Go to the home screen to see it arrive',
+                trailing: chevron,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xl,
+                  vertical: AppSpacing.md,
+                ),
+                onTap: () => run(
+                  ctx,
+                  () => service.scheduleTest(seconds: 10, bill: sample),
+                  'Scheduled — it may take a few seconds longer',
+                ),
               ),
-              child: Icon(icon, size: 20, color: _orange),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textDark)),
-                  if (subtitle != null)
-                    Text(subtitle,
-                        style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w500, fontSize: 11, color: _muted)),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right, size: 18, color: Color.fromRGBO(158, 158, 158, 0.5)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  InputDecoration _fieldDecoration(String label) => InputDecoration(
-        labelText: label,
-        labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13, color: _muted),
-        filled: true,
-        fillColor: const Color.fromRGBO(240, 235, 225, 0.35),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
-      );
-
-  Widget _label(String text, {Color color = _muted}) => Text(
-        text,
-        style: GoogleFonts.inter(
-          fontWeight: FontWeight.w800,
-          fontSize: 10,
-          letterSpacing: 2,
-          color: color,
-        ),
-      );
-
-  Widget _chip(String text, bool selected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-        decoration: BoxDecoration(
-          color: selected ? const Color.fromRGBO(255, 159, 41, 0.08) : Colors.white,
-          border: Border.all(
-            color: selected ? _orange : const Color(0xFFEAE2D6),
-            width: selected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(9999),
-        ),
-        child: Text(
-          text,
-          style: GoogleFonts.inter(
-            fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-            fontSize: 13,
-            color: selected ? _orange : AppColors.textDark,
+              if (!enabled)
+                ListRow(
+                  leading: const IconTile(
+                    icon: Icons.settings_outlined,
+                    color: AppColors.primary,
+                  ),
+                  title: 'Turn on notifications',
+                  subtitle: 'Notifications are currently off for SmartFin',
+                  trailing: chevron,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xl,
+                    vertical: AppSpacing.md,
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    service.openSettings();
+                  },
+                ),
+            ],
           ),
         ),
       ),
     );
   }
+
+  // ── UI ──────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -712,21 +678,48 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
         body: Stack(
           children: [
             RefreshIndicator(
-              color: _orange,
-              edgeOffset: 110,
+              color: AppColors.primary,
+              edgeOffset: SubpageHeader.contentTop,
               onRefresh: _load,
               child: ListView(
-                physics: const ClampingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-                padding: const EdgeInsets.fromLTRB(24, 120, 24, 48),
+                physics: const ClampingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.screen,
+                  SubpageHeader.contentTop,
+                  AppSpacing.screen,
+                  48,
+                ),
                 children: _buildBody(),
               ),
             ),
-            _buildHeader(),
+            SubpageHeader(
+              title: 'Subscriptions & bills',
+              onBack: () => context.pop(_changed),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppIconButton(
+                    icon: Icons.notifications_none_rounded,
+                    semanticLabel: 'Reminders',
+                    onPressed: _showReminderSheet,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  AppIconButton(
+                    icon: Icons.add_rounded,
+                    semanticLabel: 'Add a bill',
+                    filled: true,
+                    onPressed: () => _openEditor(),
+                  ),
+                ],
+              ),
+            ),
             if (_isBusy)
               Positioned.fill(
-                child: Container(
-                  color: const Color.fromRGBO(255, 249, 240, 0.6),
-                  child: const Center(child: CircularProgressIndicator(color: _orange)),
+                child: ColoredBox(
+                  color: AppColors.cream.withValues(alpha: 0.6),
+                  child: const Center(child: CircularProgressIndicator()),
                 ),
               ),
           ],
@@ -739,35 +732,93 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     if (_isLoading) {
       return const [
         SizedBox(height: 160),
-        Center(child: CircularProgressIndicator(color: _orange)),
+        Center(child: CircularProgressIndicator()),
       ];
     }
-    if (_error != null) return [_buildMessage(Icons.cloud_off_outlined, _error!, retry: true)];
-    if (_subs.isEmpty) return [_buildEmpty()];
+    if (_error != null) {
+      return [
+        const SizedBox(height: 60),
+        StatusMessage(
+          icon: Icons.cloud_off_rounded,
+          title: "Couldn't load your bills",
+          message: _error,
+          action: AppButton.secondary(
+            label: 'Try again',
+            icon: Icons.refresh_rounded,
+            onPressed: _load,
+          ),
+        ),
+      ];
+    }
+    if (_subs.isEmpty) {
+      return [
+        const SizedBox(height: 60),
+        StatusMessage(
+          icon: Icons.event_repeat_rounded,
+          title: 'No bills tracked yet',
+          message:
+              "Add Netflix, your phone plan or rent and SmartFin will remind you before they're due.",
+          action: AppButton(
+            label: 'Add a bill',
+            icon: Icons.add_rounded,
+            onPressed: () => _openEditor(),
+          ),
+        ),
+      ];
+    }
 
     final overdue = _subs.where((s) => s['status'] == 'overdue').toList();
-    final soon = _subs.where((s) => s['status'] == 'due_today' || s['status'] == 'due_soon').toList();
+    final soon = _subs
+        .where((s) => s['status'] == 'due_today' || s['status'] == 'due_soon')
+        .toList();
     final later = _subs.where((s) => s['status'] == 'upcoming').toList();
     final paused = _subs.where((s) => s['status'] == 'paused').toList();
 
     return [
+      const SizedBox(height: AppSpacing.sm),
       _buildSummaryCard(),
-      if (overdue.isNotEmpty) ..._section('OVERDUE', overdue, color: _red),
-      if (soon.isNotEmpty) ..._section('DUE SOON · NEXT 7 DAYS', soon),
-      if (later.isNotEmpty) ..._section('LATER', later),
-      if (paused.isNotEmpty) ..._section('PAUSED', paused),
+      if (overdue.isNotEmpty)
+        _section('Overdue', overdue, color: AppColors.danger),
+      if (soon.isNotEmpty) _section('Due in the next 7 days', soon),
+      if (later.isNotEmpty) _section('Later', later),
+      if (paused.isNotEmpty) _section('Paused', paused),
     ];
   }
 
-  List<Widget> _section(String title, List<Map<String, dynamic>> items, {Color color = _muted}) {
-    return [
-      const SizedBox(height: 28),
-      Padding(
-        padding: const EdgeInsets.only(left: 4, bottom: 12),
-        child: _label(title, color: color),
+  Widget _section(
+    String title,
+    List<Map<String, dynamic>> items, {
+    Color color = AppColors.textSecondary,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(
+              left: AppSpacing.xs,
+              bottom: AppSpacing.sm,
+            ),
+            child: Text(
+              title,
+              style: AppTextStyles.label.copyWith(color: color),
+            ),
+          ),
+          AppCard(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+            child: Column(
+              children: [
+                for (var i = 0; i < items.length; i++) ...[
+                  if (i > 0) ListRow.divider(),
+                  _buildRow(items[i]),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
-      ...items.map(_buildRow),
-    ];
+    );
   }
 
   Widget _buildSummaryCard() {
@@ -781,34 +832,25 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       if (soon > 0) '$soon due this week',
     ];
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.5)),
-        boxShadow: const [
-          BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.02), blurRadius: 10, offset: Offset(0, 4)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return AppCard(
+      child: Row(
         children: [
-          _label('MONTHLY TOTAL'),
-          const SizedBox(height: 8),
-          Text(
-            _baht(total),
-            style: GoogleFonts.bricolageGrotesque(
-              fontWeight: FontWeight.w800,
-              fontSize: 34,
-              letterSpacing: -1,
-              color: AppColors.textDark,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Monthly total', style: AppTextStyles.caption),
+                const SizedBox(height: AppSpacing.xs),
+                Text(_baht(total), style: AppTextStyles.display),
+                const SizedBox(height: AppSpacing.xs),
+                Text(parts.join(' · '), style: AppTextStyles.caption),
+              ],
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            parts.join(' · '),
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 12, color: _muted),
+          const IconTile(
+            icon: Icons.event_repeat_rounded,
+            color: AppColors.primary,
+            size: 52,
           ),
         ],
       ),
@@ -819,36 +861,23 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     final id = s['id'] as String? ?? '';
     final active = s['active'] == true;
     final category = s['category'] as String? ?? 'Other';
-    final style = _categoryStyle[category] ?? _categoryStyle['Other']!;
+    final style = _styleFor(category);
     final badge = _badge(s);
     final paying = _paying.contains(id);
 
     return Opacity(
       opacity: active ? 1 : 0.6,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      child: InkWell(
         onTap: () => _openEditor(sub: s),
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.5)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
           ),
           child: Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: style.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: style.color.withValues(alpha: 0.2)),
-                ),
-                child: Icon(style.icon, color: style.color, size: 20),
-              ),
-              const SizedBox(width: 12),
+              IconTile(icon: style.icon, color: style.color),
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -857,69 +886,30 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                       s['name'] as String? ?? '-',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textDark),
+                      style: AppTextStyles.bodyStrong,
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${_cycleLabel(s['billing_cycle'] as String?)} · $category',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 11, color: _muted),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: badge.bg,
-                        borderRadius: BorderRadius.circular(9999),
-                      ),
-                      child: Text(
-                        badge.text,
-                        style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w700, fontSize: 10.5, color: badge.fg),
-                      ),
+                      '${_cycleLabel(s['billing_cycle'] as String?)} · ${badge.text}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.caption.copyWith(color: badge.fg),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    s['formatted_amount'] as String? ?? _baht((s['amount'] as num?) ?? 0),
-                    style: GoogleFonts.bricolageGrotesque(
-                        fontWeight: FontWeight.w800, fontSize: 17, color: AppColors.textDark),
+                    s['formatted_amount'] as String? ??
+                        _baht((s['amount'] as num?) ?? 0),
+                    style: AppTextStyles.amount,
                   ),
                   if (active) ...[
-                    const SizedBox(height: 10),
-                    GestureDetector(
-                      onTap: paying ? null : () => _markPaid(s),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: const Color.fromRGBO(255, 159, 41, 0.06),
-                          border: Border.all(color: _orange, width: 1.5),
-                          borderRadius: BorderRadius.circular(9999),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (paying)
-                              const SizedBox(
-                                width: 12,
-                                height: 12,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: _orange),
-                              )
-                            else
-                              const Icon(Icons.check_rounded, size: 14, color: _orange),
-                            const SizedBox(width: 4),
-                            Text('Mark paid',
-                                style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w800, fontSize: 11, color: _orange)),
-                          ],
-                        ),
-                      ),
-                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _markPaidButton(s, paying),
                   ],
                 ],
               ),
@@ -930,127 +920,39 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     );
   }
 
-  Widget _buildEmpty() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 60),
-      child: Column(
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: const Color.fromRGBO(255, 159, 41, 0.1),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: const Icon(Icons.event_repeat_outlined, size: 34, color: _orange),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'No bills tracked yet',
-            style: GoogleFonts.bricolageGrotesque(
-                fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.textDark),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Add Netflix, your phone plan or rent and SmartFin will remind you before they\'re due',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 13, color: _muted),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 50,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _orange,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
-              ),
-              onPressed: () => _openEditor(),
-              icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
-              label: Text('ADD A BILL',
-                  style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12,
-                      letterSpacing: 2,
-                      color: Colors.white)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessage(IconData icon, String message, {bool retry = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 100),
-      child: Column(
-        children: [
-          Icon(icon, size: 32, color: _muted),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-                fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.textDark),
-          ),
-          if (retry) ...[
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: _load,
-              child: Text('Try again',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: _orange)),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _headerButton({required IconData icon, required VoidCallback onTap, bool filled = false}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: filled ? _orange : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: filled ? null : Border.all(color: const Color.fromRGBO(234, 226, 214, 0.6)),
-        ),
-        child: Icon(icon,
-            size: 22, color: filled ? Colors.white : const Color.fromRGBO(51, 51, 51, 0.7)),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
-          child: Container(
-            color: const Color.fromRGBO(255, 249, 240, 0.8),
-            padding: const EdgeInsets.only(left: 24, right: 24, top: 48, bottom: 20),
-            child: Row(
-              children: [
-                _headerButton(icon: Icons.chevron_left, onTap: () => context.pop(_changed)),
-                Expanded(
-                  child: Text(
-                    'Subscriptions & Bills',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.bricolageGrotesque(
-                        fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.textDark),
-                  ),
+  Widget _markPaidButton(Map<String, dynamic> s, bool paying) {
+    return Material(
+      color: AppColors.primary.withValues(alpha: 0.14),
+      shape: const StadiumBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: paying ? null : () => _markPaid(s),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (paying)
+                const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                const Icon(
+                  Icons.check_rounded,
+                  size: 14,
+                  color: AppColors.primaryText,
                 ),
-                _headerButton(icon: Icons.notifications_none_rounded, onTap: _showReminderSheet),
-                const SizedBox(width: 8),
-                _headerButton(icon: Icons.add_rounded, onTap: () => _openEditor(), filled: true),
-              ],
-            ),
+              const SizedBox(width: 4),
+              Text(
+                'Mark paid',
+                style: AppTextStyles.label.copyWith(
+                  fontSize: 12,
+                  color: AppColors.primaryText,
+                ),
+              ),
+            ],
           ),
         ),
       ),

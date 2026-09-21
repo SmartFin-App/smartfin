@@ -1,11 +1,9 @@
-import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:smart_fin/constants/color_style.dart';
+import 'package:smart_fin/widgets/ui/ui.dart';
 import 'package:smart_fin/features/transactions/data/transaction_repository_impl.dart';
 
 /// Full record for a single transaction, with edit and delete.
@@ -19,23 +17,37 @@ class TransactionDetailScreen extends StatefulWidget {
   const TransactionDetailScreen({super.key, required this.transactionID});
 
   @override
-  State<TransactionDetailScreen> createState() => _TransactionDetailScreenState();
+  State<TransactionDetailScreen> createState() =>
+      _TransactionDetailScreenState();
 }
 
 class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   static const List<String> _expenseCategories = [
-    'Food', 'Transport', 'Shopping', 'Bills', 'Groceries', 'Health', 'Entertainment', 'Other',
+    'Food',
+    'Transport',
+    'Shopping',
+    'Bills',
+    'Groceries',
+    'Health',
+    'Entertainment',
+    'Other',
   ];
 
   static const Map<String, ({IconData icon, Color color})> _categoryStyle = {
-    'Food':          (icon: Icons.restaurant_outlined,          color: Color(0xFFFF9F29)),
-    'Transport':     (icon: Icons.directions_car_outlined,      color: Color(0xFF2563EB)),
-    'Entertainment': (icon: Icons.movie_outlined,               color: Color(0xFF7C3AED)),
-    'Shopping':      (icon: Icons.shopping_bag_outlined,        color: Color(0xFFDB2777)),
-    'Health':        (icon: Icons.favorite_outline,             color: Color(0xFFDC2626)),
-    'Groceries':     (icon: Icons.local_grocery_store_outlined, color: Color(0xFF65A30D)),
-    'Bills':         (icon: Icons.receipt_outlined,             color: Color(0xFF0D9488)),
-    'Other':         (icon: Icons.add_circle_outline,           color: Color(0xFF9E9E9E)),
+    'Food': (icon: Icons.restaurant_outlined, color: Color(0xFFFF9F29)),
+    'Transport': (
+      icon: Icons.directions_car_outlined,
+      color: Color(0xFF2563EB),
+    ),
+    'Entertainment': (icon: Icons.movie_outlined, color: Color(0xFF7C3AED)),
+    'Shopping': (icon: Icons.shopping_bag_outlined, color: Color(0xFFDB2777)),
+    'Health': (icon: Icons.favorite_outline, color: Color(0xFFDC2626)),
+    'Groceries': (
+      icon: Icons.local_grocery_store_outlined,
+      color: Color(0xFF65A30D),
+    ),
+    'Bills': (icon: Icons.receipt_outlined, color: Color(0xFF0D9488)),
+    'Other': (icon: Icons.add_circle_outline, color: Color(0xFF9E9E9E)),
   };
 
   Map<String, dynamic>? _tx;
@@ -85,13 +97,11 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
   void _toast(String message, {bool error = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-      backgroundColor: error ? const Color(0xFFEF4444) : const Color(0xFF4CAF50),
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
+    showAppToast(context, message, error: error);
   }
+
+  ({IconData icon, Color color}) _styleFor(String? category) =>
+      _categoryStyle[category] ?? _categoryStyle['Other']!;
 
   String _baht(num amount) =>
       '฿${amount.round().toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (m) => "${m[1]},")}';
@@ -107,163 +117,115 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     final tx = _tx;
     if (tx == null || _isBusy) return;
 
-    final merchantController =
-        TextEditingController(text: tx['merchant'] as String? ?? '');
-    final amountController =
-        TextEditingController(text: ((tx['amount'] as num?) ?? 0).round().toString());
+    final merchantController = TextEditingController(
+      text: tx['merchant'] as String? ?? '',
+    );
+    final amountController = TextEditingController(
+      text: ((tx['amount'] as num?) ?? 0).round().toString(),
+    );
     String category = tx['category'] as String? ?? 'Other';
     DateTime date = _date ?? DateTime.now();
 
     final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      showDragHandle: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) {
           const categories = _expenseCategories;
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-              ),
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEAE2D6),
-                        borderRadius: BorderRadius.circular(2),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            ),
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  0,
+                  AppSpacing.xl,
+                  AppSpacing.xl,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Edit expense', style: AppTextStyles.title),
+                    const SizedBox(height: AppSpacing.xl),
+                    TextField(
+                      controller: merchantController,
+                      textCapitalization: TextCapitalization.words,
+                      style: AppTextStyles.body,
+                      decoration: const InputDecoration(labelText: 'Merchant'),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    TextField(
+                      controller: amountController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      style: AppTextStyles.body,
+                      decoration: const InputDecoration(
+                        labelText: 'Amount',
+                        prefixText: '฿ ',
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Edit transaction',
-                    style: GoogleFonts.bricolageGrotesque(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 20,
-                      color: const Color(0xFF333333),
+                    const SizedBox(height: AppSpacing.xl),
+                    Text(
+                      'Category',
+                      style: AppTextStyles.label.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: merchantController,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: _fieldDecoration('Merchant'),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: amountController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: _fieldDecoration('Amount in ฿'),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'CATEGORY',
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10,
-                      letterSpacing: 2,
-                      color: const Color(0xFF9E9E9E),
+                    const SizedBox(height: AppSpacing.md),
+                    Wrap(
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
+                      children: categories
+                          .map(
+                            (c) => AppChip(
+                              label: c,
+                              icon: _styleFor(c).icon,
+                              selected: c == category,
+                              onTap: () => setSheet(() => category = c),
+                            ),
+                          )
+                          .toList(),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: categories.map((c) {
-                      final selected = c == category;
-                      return GestureDetector(
-                        onTap: () => setSheet(() => category = c),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? const Color.fromRGBO(255, 159, 41, 0.08)
-                                : Colors.white,
-                            border: Border.all(
-                              color: selected
-                                  ? const Color(0xFFFF9F29)
-                                  : const Color(0xFFEAE2D6),
-                              width: selected ? 2 : 1,
-                            ),
-                            borderRadius: BorderRadius.circular(9999),
-                          ),
-                          child: Text(
-                            c,
-                            style: GoogleFonts.inter(
-                              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                              fontSize: 13,
-                              color: selected
-                                  ? const Color(0xFFFF9F29)
-                                  : const Color(0xFF333333),
-                            ),
+                    const SizedBox(height: AppSpacing.xl),
+                    AppCard(
+                      flat: true,
+                      padding: EdgeInsets.zero,
+                      child: ListRow(
+                        leading: const Icon(
+                          Icons.calendar_today_rounded,
+                          size: 20,
+                          color: AppColors.textSecondary,
+                        ),
+                        title: 'Date',
+                        trailing: Text(
+                          DateFormat('d MMM yyyy').format(date),
+                          style: AppTextStyles.label.copyWith(
+                            color: AppColors.primaryText,
                           ),
                         ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  InkWell(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: ctx,
-                        initialDate: date,
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime.now(),
-                      );
-                      if (picked != null) setSheet(() => date = picked);
-                    },
-                    borderRadius: BorderRadius.circular(14),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                      decoration: BoxDecoration(
-                        color: const Color.fromRGBO(240, 235, 225, 0.35),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.calendar_today_outlined,
-                              size: 17, color: Color(0xFF9E9E9E)),
-                          const SizedBox(width: 12),
-                          Text('Date',
-                              style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                  color: const Color(0xFF9E9E9E))),
-                          const Spacer(),
-                          Text(
-                            DateFormat('d MMM yyyy').format(date),
-                            style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
-                                color: const Color(0xFFFF9F29)),
-                          ),
-                        ],
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: ctx,
+                            initialDate: date,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null) setSheet(() => date = picked);
+                        },
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF9F29),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(9999)),
-                      ),
+                    const SizedBox(height: AppSpacing.xl),
+                    AppButton(
+                      label: 'Save changes',
+                      expand: true,
                       onPressed: () {
-                        final amount = int.tryParse(amountController.text.trim()) ?? 0;
+                        final amount =
+                            int.tryParse(amountController.text.trim()) ?? 0;
                         if (merchantController.text.trim().isEmpty) {
                           _toast('Merchant cannot be empty', error: true);
                           return;
@@ -274,18 +236,9 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                         }
                         Navigator.pop(ctx, true);
                       },
-                      child: Text(
-                        'SAVE CHANGES',
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12,
-                          letterSpacing: 2,
-                          color: Colors.white,
-                        ),
-                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );
@@ -309,24 +262,12 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
     if (res.success) {
       _changed = true;
-      _toast('Transaction updated');
+      _toast('Expense updated');
       await _load();
     } else {
       _toast(res.error ?? 'Could not save changes', error: true);
     }
   }
-
-  InputDecoration _fieldDecoration(String label) => InputDecoration(
-        labelText: label,
-        labelStyle: GoogleFonts.inter(
-            fontWeight: FontWeight.w600, fontSize: 13, color: const Color(0xFF9E9E9E)),
-        filled: true,
-        fillColor: const Color.fromRGBO(240, 235, 225, 0.35),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
-      );
 
   // ── Delete ──────────────────────────────────────────────────────────────────
 
@@ -336,30 +277,22 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Delete transaction?',
-            style: GoogleFonts.bricolageGrotesque(
-                fontWeight: FontWeight.w800,
-                fontSize: 19,
-                color: const Color(0xFFEF4444))),
-        content: Text(
-          'This removes it from your history and recalculates that month\'s totals.',
-          style: GoogleFonts.inter(
-              fontWeight: FontWeight.w500, fontSize: 14, color: const Color(0xFF9E9E9E)),
+        title: const Text('Delete this expense?'),
+        content: const Text(
+          "It's removed from your history and that month's totals are recalculated.",
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel',
-                style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w700, color: const Color(0xFF9E9E9E))),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
+            ),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Delete',
-                style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w700, color: const Color(0xFFEF4444))),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -375,7 +308,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     setState(() => _isBusy = false);
 
     if (res.success) {
-      _toast('Transaction deleted');
+      _toast('Expense deleted');
       context.pop(true);
     } else {
       _toast(res.error ?? 'Could not delete', error: true);
@@ -396,18 +329,20 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
         body: Stack(
           children: [
             if (_isLoading)
-              const Center(child: CircularProgressIndicator(color: Color(0xFFFF9F29)))
+              const Center(child: CircularProgressIndicator())
             else if (_error != null)
               _buildError()
             else
               _buildContent(),
-            _buildHeader(),
+            SubpageHeader(
+              title: 'Expense',
+              onBack: () => context.pop(_changed),
+            ),
             if (_isBusy)
               Positioned.fill(
-                child: Container(
-                  color: const Color.fromRGBO(255, 249, 240, 0.6),
-                  child: const Center(
-                      child: CircularProgressIndicator(color: Color(0xFFFF9F29))),
+                child: ColoredBox(
+                  color: AppColors.cream.withValues(alpha: 0.6),
+                  child: const Center(child: CircularProgressIndicator()),
                 ),
               ),
           ],
@@ -418,27 +353,14 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
   Widget _buildError() {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.receipt_long_outlined, size: 32, color: Color(0xFF9E9E9E)),
-            const SizedBox(height: 16),
-            Text(
-              _error!,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.textDark),
-            ),
-            const SizedBox(height: 20),
-            TextButton(
-              onPressed: _load,
-              child: Text('Try again',
-                  style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w700, color: const Color(0xFFFF9F29))),
-            ),
-          ],
+      child: StatusMessage(
+        icon: Icons.receipt_long_rounded,
+        title: "Couldn't open this expense",
+        message: _error,
+        action: AppButton.secondary(
+          label: 'Try again',
+          icon: Icons.refresh_rounded,
+          onPressed: _load,
         ),
       ),
     );
@@ -447,122 +369,88 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   Widget _buildContent() {
     final tx = _tx!;
     final category = tx['category'] as String? ?? 'Other';
-    final style = _categoryStyle[category] ?? _categoryStyle['Other']!;
+    final style = _styleFor(category);
     final amount = (tx['amount'] as num?) ?? 0;
     final source = tx['source'] as String? ?? 'manual';
 
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
-      padding: const EdgeInsets.only(top: 130, bottom: 60),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Headline amount
-            Center(
-              child: Column(
-                children: [
-                  Container(
-                    width: 62,
-                    height: 62,
-                    decoration: BoxDecoration(
-                      color: style.color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: style.color.withValues(alpha: 0.25)),
-                    ),
-                    child: Icon(style.icon, color: style.color, size: 28),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '− ${_baht(amount)}',
-                    style: GoogleFonts.bricolageGrotesque(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 38,
-                      letterSpacing: -1,
-                      color: AppColors.textDark,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    tx['merchant'] as String? ?? '-',
-                    style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                        color: const Color(0xFF9E9E9E)),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screen,
+        SubpageHeader.contentTop,
+        AppSpacing.screen,
+        60,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Headline amount
+          const SizedBox(height: AppSpacing.sm),
+          Center(
+            child: IconTile(icon: style.icon, color: style.color, size: 64),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            '−${_baht(amount)}',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.display.copyWith(fontSize: 40),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            tx['merchant'] as String? ?? '-',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.xxl),
 
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.5)),
-              ),
-              child: Column(
-                children: [
-                  // No Type row: SmartFin records expenses only, so it
-                  // could only ever say "Expense".
-                  _row('Category', category),
-                  _divider(),
-                  _row(
-                    'Date',
-                    _date != null
-                        ? DateFormat('EEEE, d MMMM yyyy').format(_date!)
-                        : (tx['formatted_date'] as String? ?? '—'),
-                  ),
-                  _divider(),
-                  _row('Added by', _sourceLabel(source)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            Row(
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
               children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 52,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF9F29),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(9999)),
-                      ),
-                      onPressed: _edit,
-                      icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.white),
-                      label: Text('Edit',
-                          style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 13,
-                              color: Colors.white)),
-                    ),
-                  ),
+                // No Type row: SmartFin records expenses only, so it
+                // could only ever say "Expense".
+                _row('Category', category),
+                const Divider(indent: AppSpacing.lg, endIndent: AppSpacing.lg),
+                _row(
+                  'Date',
+                  _date != null
+                      ? DateFormat('EEEE, d MMMM yyyy').format(_date!)
+                      : (tx['formatted_date'] as String? ?? '—'),
                 ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  height: 52,
-                  width: 52,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color.fromRGBO(239, 68, 68, 0.35)),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(9999)),
-                      padding: EdgeInsets.zero,
-                    ),
-                    onPressed: _delete,
-                    child: const Icon(Icons.delete_outline,
-                        size: 20, color: Color(0xFFEF4444)),
-                  ),
-                ),
+                const Divider(indent: AppSpacing.lg, endIndent: AppSpacing.lg),
+                _row('Added by', _sourceLabel(source)),
               ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+
+          Row(
+            children: [
+              Expanded(
+                child: AppButton(
+                  label: 'Edit',
+                  icon: Icons.edit_outlined,
+                  expand: true,
+                  onPressed: _edit,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.danger,
+                    side: BorderSide(
+                      color: AppColors.danger.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  onPressed: _delete,
+                  icon: const Icon(Icons.delete_outline_rounded, size: 20),
+                  label: const Text('Delete'),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -580,76 +468,26 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     }
   }
 
-  Widget _divider() => Divider(
-      height: 1, thickness: 1, color: const Color.fromRGBO(234, 226, 214, 0.4));
-
   Widget _row(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 17),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.lg,
+      ),
       child: Row(
         children: [
-          Text(label,
-              style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: const Color(0xFF9E9E9E))),
-          const SizedBox(width: 16),
+          Text(label, style: AppTextStyles.caption.copyWith(fontSize: 14)),
+          const SizedBox(width: AppSpacing.lg),
           // Expanded, not Spacer + Flexible: those split the spare width in
           // half, so short values sat mid-row instead of at the right edge.
           Expanded(
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13.5,
-                  color: AppColors.textDark),
+              style: AppTextStyles.bodyStrong,
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
-          child: Container(
-            color: const Color.fromRGBO(255, 249, 240, 0.8),
-            padding: const EdgeInsets.only(left: 24, right: 24, top: 48, bottom: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                GestureDetector(
-                  onTap: () => context.pop(_changed),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border:
-                          Border.all(color: const Color.fromRGBO(234, 226, 214, 0.6)),
-                    ),
-                    child: const Icon(Icons.chevron_left,
-                        size: 22, color: Color.fromRGBO(51, 51, 51, 0.7)),
-                  ),
-                ),
-                Text('Transaction',
-                    style: GoogleFonts.bricolageGrotesque(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18,
-                        color: const Color(0xFF333333))),
-                const SizedBox(width: 40),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

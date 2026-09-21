@@ -34,22 +34,15 @@ The pub package name is **`smart_fin`**, so imports are `package:smart_fin/…` 
 
 ## Structure
 
-Feature-first: `lib/features/<feature>/{data,bloc,presentation}` for auth, dashboard, transactions, scanner, coach, splash. Shared UI in `lib/widgets/`, theme tokens in `lib/constants/{color_style,text_style}.dart` (cream background, Bricolage Grotesque via google_fonts, wired up in `main.dart`).
+Feature-first: `lib/features/<feature>/{data,presentation}` for auth, dashboard, transactions, scanner, coach, subscriptions, splash. Shared UI in `lib/widgets/` (see **UI kit** below), design tokens in `lib/constants/`.
 
-**There is no BLoC, despite the layout.** Every file under `features/*/bloc/` is a ~100-byte comment stub, and `flutter_bloc` is never imported anywhere in `lib/` — both it and `flutter_riverpod` are dead weight in `pubspec.yaml`. All state is `StatefulWidget` + `setState`, and repositories are constructed directly at the call site. Match that pattern rather than half-introducing BLoC for one feature.
+**There is no BLoC or Riverpod.** All state is `StatefulWidget` + `setState`, and repositories are constructed directly at the call site. Match that pattern.
 
 Routing is one top-level `GoRouter` in `lib/core/router/app_router.dart`; every screen is registered there with a name, and `lib/widgets/bottom_nav_bar.dart` navigates by those names.
 
 ## Traps — check these before creating or editing a file
 
-**Dead scaffolding.** Several files are one-line comment stubs, not implementations:
-
-- `lib/features/coach/{coach_screen,coach_service,chat_bubble,suggestion_chip}.dart` (~100 bytes each)
-- `lib/core/injection/injection_container.dart` — the real one is `lib/core/di/injection_container.dart`
-- `presentation/views/*_view.dart` for dashboard and coach
-- every `features/*/bloc/*_{bloc,event,state}.dart` file (12 of them)
-
-**The router imports `presentation/*_screen.dart` — those are the live files.** The only real view under a `views/` directory is `splash/presentation/views/splash_view.dart`.
+**The router imports `presentation/*_screen.dart`.** The only view under a `views/` directory is `splash/presentation/views/splash_view.dart`. The comment-only stubs (`bloc/`, duplicate coach files, `core/injection/`, placeholder widgets, an unused Outfit theme in `lib/src/`) were deleted in Sept 2026; don't recreate them.
 
 **Auth is intentionally bypassed.** `_authRedirect` in `app_router.dart` returns `null` unconditionally under a `// BYPASS AUTH REDIRECT FOR TESTING` comment, so the paths listed in `_protectedPaths` (`/home`, `/history`, `/coach`, `/profile`) are reachable while logged out. Restore it only when asked. While bypassed, screens send an empty user id (see below), and the backend will return empty data rather than an error.
 
@@ -128,10 +121,23 @@ A gallery slip is marked processed **only after its transaction saves**, not whe
 
 Money is **integer Thai Baht (฿)** end-to-end — the API sends `int64` and preformatted `formatted_amount` / `formatted_date` strings; don't reintroduce decimals or client-side float math. Copy is warm in tone everywhere, but the 🐾 paw and cat imagery appear **only on the coach screen** (greeting, error replies, `lucky_cat.png` avatar). Toasts, empty states, bill reminders and sheet titles elsewhere must not use them.
 
-**Tab screens share one header title**: `PageTitleRow` (`lib/widgets/page_title_row.dart`) on History, AI Coach and Profile. It shows a left-aligned 24px Bricolage title in a 40px row, 48px from the top, with an optional action on the right (History's filter). There is no back button, because the bottom nav already does that job. Use it for any new tab screen rather than hand-building a title row.
+**Tab screens share one header title**: `PageTitleRow` (`lib/widgets/page_title_row.dart`) on History, AI Coach and Profile. It shows a left-aligned 24px Bricolage title in a 40px row, 48px from the top, with an optional action on the right (History's filter). There is no back button, because the bottom nav already does that job. Use it for any new tab screen rather than hand-building a title row. Size the pinned `SliverAppBar` around it with `PageTitleRow.barHeight(context, contentBottom)`, where `contentBottom` is where the header's content ends, measured from the top of the screen (96 for a title alone, 156 with History's search field). The app bar adds the status-bar inset on top of any fixed height, which left about 60pt of empty space under the title on iPhones.
 
 **The add button sits inside the bottom nav bar**, as the middle of five slots, on every tab (`lib/widgets/bottom_nav_bar.dart`). It used to float 24px above the bar, where it covered the coach's chat input. Coach and Profile hid it with a `showFab` flag, which left an empty gap in the bar. It is a filled orange square with no label, not a tab, because it opens the action hub rather than a page. Don't make it float again.
 
 **Category colours are one palette, copied into six screens**: dashboard, history (`transaction_list_screen`), transaction detail, manual add, verify and subscriptions. Food `FF9F29` orange, Transport `2563EB` blue, Bills `0D9488` teal, Groceries `65A30D` green, Entertainment `7C3AED` violet, Shopping `DB2777` pink, Health `DC2626` red, Other `9E9E9E` grey. They were chosen so neighbouring slices of the dashboard donut stay distinguishable. Bills used to be `FF9800`, almost the same as Food's orange. Change a colour in all six files at once, and don't give two categories the same hue.
 
-**The only chart is the dashboard's budget donut** (`fl_chart`, inline in `dashboard_screen.dart`); `dashboard/presentation/chart_widgets.dart` is still a one-line comment stub. Test coverage is essentially absent — `test/` holds only the default `widget_test.dart`.
+**The only chart is the dashboard's budget donut** (`fl_chart`, inline in `dashboard_screen.dart`). Tests are few: the album matcher, `CoachAction` parsing, a login-screen smoke test, and layout tests for the action hub and both slip sheets (rendered with the real theme, failing on any overflow). The whole app can't be pumped in a widget test, because the splash needs Firebase initialised.
+
+## UI kit (refined warm)
+
+New and converted screens build from `package:smart_fin/widgets/ui/ui.dart`, which also exports the tokens:
+
+- **Tokens** (`lib/constants/`): `AppColors` (cream background, white cards, `surfaceMuted` for tracks and skeletons, `primary` orange for fills, `primaryText` darker orange for text and links, since the brand orange is about 2:1 on white; `onPrimary` (the ink) for text and icons **on** an orange fill — filled buttons, the nav's + button, the coach's send button — because white on the orange is also about 2:1; `textDark` / `textSecondary` / `textMuted`; `danger`, `success`), `AppRadius` (sm 10, md 14, lg 20, xl 28, pill), `AppSpacing` (4px grid, `screen` = 20 side inset), `AppShadows.card`, and `AppTextStyles` (Bricolage `display` / `title` / `heading`, Inter `body` / `bodyStrong` / `caption` / `label` / `button`, `amount` with tabular figures).
+- **Theme** (`lib/constants/app_theme.dart`, wired in `main.dart`): stock `FilledButton`, `OutlinedButton`, `TextButton`, inputs, cards, sheets, dialogs, floating snackbars and switches are already styled. Prefer them to hand-built `GestureDetector` + `Container` buttons. The sheet theme deliberately sets no drag handle, because several sheets draw their own.
+- **Components**: `AppCard` (tappable with ripple; `flat` drops the shadow), `AppChip` (selectable pill), `AppIconButton` (40px header action with an optional count badge; `filled` for a screen's main action, such as add), `SectionHeader` (title + "See all"), `IconTile` (tinted icon square), `ListRow` + `ListRow.divider()`, `AppButton` (`.secondary`, `.text`; `loading` blocks a second tap), `Skeleton` (pulsing placeholder), `StatusMessage` (empty and failed states, plain copy), `showAppToast(context, message, error:)` (floating confirmation; red for errors), `SubpageHeader` (blurred back-button + centred-title header for pushed screens; start content at `SubpageHeader.contentTop`), `CategoryTile` (one choice in the 2-column category picker on manual add and verify). Use the toast rather than hand-building green/red `SnackBar`s.
+- **Pinned bars need `Stack(fit: StackFit.expand)`** when the scrolling child is a `SingleChildScrollView`: inside a plain `Stack` it shrinks to its content, so a short form's save bar (or the nav) sat mid-screen. `CustomScrollView` and `ListView` always fill, so the tab screens built on them don't need it.
+- **Copy style**: sentence case, at least 12px. No letter-spaced capitals (`'TOP CATEGORIES'`); they were retired from every screen.
+- **The camera screen stays dark** (it is a viewfinder). Its controls use a dark translucent backing, not frosted white, because a white slip fills most of the frame.
+
+**Every screen and sheet now builds from the kit.** The only literal colours left outside `lib/constants/` are the category palette (see above), the Auto-Detect blue in the action hub, and a few overlay tints (the camera's scan line and frame, Profile's photo-upload scrim); don't add new ones. Manual add takes whole baht only (digits keyboard), since money is integer ฿. On the coach screen, user bubbles are a soft orange tint with dark text, because white on the brand orange is about 2:1 and hard to read. Coach replies render the Markdown the model writes (`**bold**` and `*`/`-` bullets) in `_buildRichText`; everything else shows as written. 

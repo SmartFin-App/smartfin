@@ -2,11 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:smart_fin/features/scanner/services/gallery_watcher_service.dart';
 import 'package:smart_fin/features/scanner/presentation/widgets/slip_detection_sheet.dart';
+import 'package:smart_fin/features/scanner/presentation/widgets/slip_folders_sheet.dart';
+import 'package:smart_fin/widgets/ui/ui.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -15,7 +16,8 @@ class CameraScreen extends StatefulWidget {
   State<CameraScreen> createState() => _CameraScreenState();
 }
 
-class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderStateMixin {
+class _CameraScreenState extends State<CameraScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _scanAnimationController;
   late CurvedAnimation _curvedAnimation;
 
@@ -54,7 +56,8 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
       case SlipCheckStatus.disabled:
         return "Auto-Detect is turned off. You can switch it back on in your profile.";
       case SlipCheckStatus.noAlbum:
-        return "No 'SmartFin Receipts' album yet. Save PromptPay slips to that album to auto-detect!";
+        // Same wording and picker offer as the action hub.
+        return "We couldn't find your slip folder. Pick the one your bank saves slips to.";
       case SlipCheckStatus.none:
       case SlipCheckStatus.found:
         return "No new slips found. You're all caught up!";
@@ -80,7 +83,7 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
               height: double.infinity,
             ),
           ),
-          
+
           // 2. Overlay Scanning Frame
           Center(
             child: SizedBox(
@@ -89,9 +92,7 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
               child: Stack(
                 children: [
                   Positioned.fill(
-                    child: CustomPaint(
-                      painter: ScannerOverlayPainter(),
-                    ),
+                    child: CustomPaint(painter: ScannerOverlayPainter()),
                   ),
                   AnimatedBuilder(
                     animation: _curvedAnimation,
@@ -103,25 +104,25 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
                         child: Container(
                           height: 2,
                           decoration: const BoxDecoration(
-                            color: Color.fromRGBO(255, 159, 41, 0.4),
+                            color: Color.fromRGBO(255, 159, 41, 0.6),
                             // Subtle glow
                             boxShadow: [
                               BoxShadow(
                                 color: Color.fromRGBO(255, 159, 41, 0.6),
                                 blurRadius: 10,
                                 blurStyle: BlurStyle.outer,
-                              )
+                              ),
                             ],
                           ),
                         ),
                       );
                     },
-                  )
+                  ),
                 ],
               ),
             ),
           ),
-          
+
           // 3. Top Header navigation
           Positioned(
             top: 0,
@@ -129,26 +130,27 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
             right: 0,
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.only(top: 16, left: 24, right: 24),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.screen,
+                  AppSpacing.sm,
+                  AppSpacing.screen,
+                  0,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Back
-                    GestureDetector(
+                    _glassButton(
+                      semanticLabel: 'Back',
                       onTap: () => context.go('/home'),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: const Color.fromRGBO(255, 255, 255, 0.05),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color.fromRGBO(255, 255, 255, 0.1)),
-                        ),
-                        child: const Icon(Icons.chevron_left, color: Colors.white, size: 22),
+                      child: const Icon(
+                        Icons.arrow_back_rounded,
+                        color: Colors.white,
+                        size: 22,
                       ),
                     ),
-                    // Auto-Detect button
-                    GestureDetector(
+                    // Auto-Detect
+                    _glassButton(
+                      semanticLabel: 'Auto-Detect slips',
                       onTap: () async {
                         final result = await GalleryWatcherService()
                             .checkForNewSlipsDetailed();
@@ -156,52 +158,42 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
                         if (result.slip != null) {
                           SlipDetectionSheet.show(context, result.slip!);
                         } else {
+                          final offerPicker =
+                              result.status == SlipCheckStatus.noAlbum;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(_slipCheckMessage(result.status)),
-                              duration: const Duration(seconds: 3),
+                              duration: Duration(seconds: offerPicker ? 8 : 3),
+                              action: offerPicker
+                                  ? SnackBarAction(
+                                      label: 'Pick',
+                                      onPressed: () =>
+                                          SlipFoldersSheet.show(context),
+                                    )
+                                  : null,
                             ),
                           );
                         }
                       },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color.fromRGBO(255, 159, 41, 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color.fromRGBO(255, 159, 41, 0.4)),
-                        ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.photo_album_outlined, color: Color(0xFFFF9F29), size: 16),
+                            const Icon(
+                              Icons.auto_awesome_rounded,
+                              color: AppColors.primary,
+                              size: 18,
+                            ),
                             const SizedBox(width: 6),
                             Text(
-                              "SLIPS ALBUM",
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 10,
-                                letterSpacing: 1,
-                                color: const Color(0xFFFF9F29),
+                              'Auto-Detect',
+                              style: AppTextStyles.label.copyWith(
+                                color: Colors.white,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                    // Flash (decorative in demo mode)
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: const Color.fromRGBO(255, 255, 255, 0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color.fromRGBO(255, 255, 255, 0.1)),
-                      ),
-                      child: const Icon(
-                        Icons.flashlight_off,
-                        color: Colors.white,
-                        size: 22,
                       ),
                     ),
                   ],
@@ -209,75 +201,68 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
               ),
             ),
           ),
-          
+
           // 4. Bottom Controls Interface
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
             child: Container(
-              height: 200,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black],
+                  colors: [Colors.transparent, Color(0x99000000), Colors.black],
+                  stops: [0, 0.45, 1],
                 ),
               ),
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 40),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    SizedBox(
-                      width: 320,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          // Gallery Button
-                          GestureDetector(
-                            onTap: () async {
-                              final xFile = await ImagePicker().pickImage(
-                                source: ImageSource.gallery,
-                                imageQuality: 85,
+              padding: const EdgeInsets.only(top: 72, bottom: 40),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                    child: Text(
+                      'Line the slip up inside the frame',
+                      style: AppTextStyles.label.copyWith(color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  SizedBox(
+                    width: 320,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _sideAction(
+                          icon: Icons.photo_library_outlined,
+                          label: 'Gallery',
+                          onTap: () async {
+                            final xFile = await ImagePicker().pickImage(
+                              source: ImageSource.gallery,
+                              imageQuality: 85,
+                            );
+                            if (xFile != null && context.mounted) {
+                              context.go(
+                                '/processing',
+                                extra: File(xFile.path),
                               );
-                              if (xFile != null && context.mounted) {
-                                context.go('/processing', extra: File(xFile.path));
-                              }
-                            },
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: const Color.fromRGBO(255, 255, 255, 0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: const Color.fromRGBO(255, 255, 255, 0.1)),
-                                  ),
-                                  child: const Icon(
-                                    Icons.photo_library_outlined, 
-                                    color: Color.fromRGBO(255, 255, 255, 0.4), 
-                                    size: 22
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  "GALLERY",
-                                  style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 9,
-                                    letterSpacing: 2,
-                                    color: const Color.fromRGBO(255, 255, 255, 0.4),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          
-                          // Center Shutter Button (uses sample receipt in demo mode)
-                          GestureDetector(
+                            }
+                          },
+                        ),
+
+                        // Center Shutter Button (uses sample receipt in demo mode)
+                        Semantics(
+                          button: true,
+                          label: 'Take photo',
+                          child: GestureDetector(
                             onTap: () async {
                               try {
                                 final file = await _getReceiptFile();
@@ -291,78 +276,93 @@ class _CameraScreenState extends State<CameraScreen> with SingleTickerProviderSt
                             child: Container(
                               width: 80,
                               height: 80,
-                              padding: const EdgeInsets.all(4),
+                              padding: const EdgeInsets.all(5),
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: const Color.fromRGBO(255, 255, 255, 0.3),
-                                  width: 2,
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                  width: 3,
                                 ),
                               ),
-                              child: Container(
-                                decoration: const BoxDecoration(
+                              child: const DecoratedBox(
+                                decoration: BoxDecoration(
                                   color: Colors.white,
                                   shape: BoxShape.circle,
                                 ),
                               ),
                             ),
                           ),
-                          
-                          // Manual Button
-                          GestureDetector(
-                            onTap: () {
-                              context.go('/manual-add');
-                            },
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: const Color.fromRGBO(255, 255, 255, 0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: const Color.fromRGBO(255, 255, 255, 0.1)),
-                                  ),
-                                  child: const Icon(
-                                    Icons.keyboard_outlined, 
-                                    color: Color.fromRGBO(255, 255, 255, 0.4), 
-                                    size: 22
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  "MANUAL",
-                                  style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 9,
-                                    letterSpacing: 2,
-                                    color: const Color.fromRGBO(255, 255, 255, 0.4),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+
+                        _sideAction(
+                          icon: Icons.edit_outlined,
+                          label: 'Manual',
+                          onTap: () => context.go('/manual-add'),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 24),
-                    Text(
-                      "SCAN RECEIPT",
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 10,
-                        letterSpacing: 2,
-                        color: const Color.fromRGBO(255, 255, 255, 0.4),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          )
+          ),
         ],
       ),
+    );
+  }
+
+  /// A dark translucent control for the camera view. Dark rather than frosted
+  /// white: a white slip fills most of the frame, and white-on-white vanished.
+  Widget _glassButton({
+    required String semanticLabel,
+    required VoidCallback onTap,
+    required Widget child,
+  }) {
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.black.withValues(alpha: 0.45),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.18)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+            child: Center(widthFactor: 1, child: child),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sideAction({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _glassButton(
+          semanticLabel: label,
+          onTap: onTap,
+          child: Icon(icon, color: Colors.white, size: 22),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          label,
+          style: AppTextStyles.label.copyWith(
+            fontSize: 12,
+            color: Colors.white,
+            shadows: const [Shadow(color: Colors.black54, blurRadius: 6)],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -384,7 +384,10 @@ class ScannerOverlayPainter extends CustomPainter {
     Path topLeft = Path()
       ..moveTo(0, lineLength)
       ..lineTo(0, radius)
-      ..arcToPoint(const Offset(radius, 0), radius: const Radius.circular(radius))
+      ..arcToPoint(
+        const Offset(radius, 0),
+        radius: const Radius.circular(radius),
+      )
       ..lineTo(lineLength, 0);
     canvas.drawPath(topLeft, paint);
 
@@ -392,7 +395,10 @@ class ScannerOverlayPainter extends CustomPainter {
     Path topRight = Path()
       ..moveTo(size.width - lineLength, 0)
       ..lineTo(size.width - radius, 0)
-      ..arcToPoint(Offset(size.width, radius), radius: const Radius.circular(radius))
+      ..arcToPoint(
+        Offset(size.width, radius),
+        radius: const Radius.circular(radius),
+      )
       ..lineTo(size.width, lineLength);
     canvas.drawPath(topRight, paint);
 
@@ -400,7 +406,11 @@ class ScannerOverlayPainter extends CustomPainter {
     Path bottomLeft = Path()
       ..moveTo(0, size.height - lineLength)
       ..lineTo(0, size.height - radius)
-      ..arcToPoint(Offset(radius, size.height), radius: const Radius.circular(radius), clockwise: false)
+      ..arcToPoint(
+        Offset(radius, size.height),
+        radius: const Radius.circular(radius),
+        clockwise: false,
+      )
       ..lineTo(lineLength, size.height);
     canvas.drawPath(bottomLeft, paint);
 
@@ -408,7 +418,11 @@ class ScannerOverlayPainter extends CustomPainter {
     Path bottomRight = Path()
       ..moveTo(size.width - lineLength, size.height)
       ..lineTo(size.width - radius, size.height)
-      ..arcToPoint(Offset(size.width, size.height - radius), radius: const Radius.circular(radius), clockwise: false)
+      ..arcToPoint(
+        Offset(size.width, size.height - radius),
+        radius: const Radius.circular(radius),
+        clockwise: false,
+      )
       ..lineTo(size.width, size.height - lineLength);
     canvas.drawPath(bottomRight, paint);
   }

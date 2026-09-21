@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:smart_fin/constants/color_style.dart';
+import 'package:smart_fin/widgets/ui/ui.dart';
 import 'package:smart_fin/features/scanner/services/gallery_watcher_service.dart';
 
 /// Lets the user say which gallery folders Auto-Detect watches.
@@ -17,7 +16,7 @@ class SlipFoldersSheet extends StatefulWidget {
     final changed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      showDragHandle: true,
       builder: (ctx) => const SlipFoldersSheet(),
     );
     return changed ?? false;
@@ -70,177 +69,135 @@ class _SlipFoldersSheetState extends State<SlipFoldersSheet> {
     final albums = _albums;
     final automatic = _selected.isEmpty;
 
-    return Container(
-      padding: const EdgeInsets.only(top: 12, left: 24, right: 24, bottom: 24),
+    return ConstrainedBox(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.8,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE0E0E0),
-                  borderRadius: BorderRadius.circular(2),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xl,
+            0,
+            AppSpacing.xl,
+            AppSpacing.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Slip folders', style: AppTextStyles.title),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                automatic
+                    ? 'SmartFin is watching your banking app folders automatically.'
+                    : 'Watching ${_selected.length} folder${_selected.length == 1 ? '' : 's'} you chose.',
+                style: AppTextStyles.body.copyWith(
+                  color: AppColors.textSecondary,
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Slip folders',
-              style: GoogleFonts.bricolageGrotesque(
-                fontWeight: FontWeight.w800,
-                fontSize: 20,
-                letterSpacing: -0.5,
-                color: const Color(0xFF333333),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              automatic
-                  ? 'SmartFin is watching your banking app folders automatically.'
-                  : 'Watching ${_selected.length} folder${_selected.length == 1 ? '' : 's'} you chose.',
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w500,
-                fontSize: 13,
-                color: const Color(0xFF9E9E9E),
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (albums == null)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 48),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_permissionDenied)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 32),
-                child: Text(
-                  'SmartFin needs photo access to list your folders. '
-                  'You can allow it in your phone settings.',
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 13,
-                    color: const Color(0xFF9E9E9E),
-                  ),
-                ),
-              )
-            else
-              Flexible(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  physics: const ClampingScrollPhysics(
-                      parent: AlwaysScrollableScrollPhysics()),
-                  itemCount: albums.length,
-                  separatorBuilder: (context, index) => Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: const Color.fromRGBO(234, 226, 214, 0.3),
-                  ),
-                  itemBuilder: (context, i) {
-                    final album = albums[i];
-                    final checked = _selected.contains(album.id);
-                    return CheckboxListTile(
-                      value: checked,
-                      activeColor: const Color(0xFFFF9F29),
-                      contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.trailing,
-                      onChanged: (val) => setState(() {
-                        if (val == true) {
-                          _selected.add(album.id);
-                        } else {
-                          _selected.remove(album.id);
-                        }
-                      }),
-                      title: Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              album.name,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                                color: const Color(0xFF333333),
-                              ),
-                            ),
+              const SizedBox(height: AppSpacing.lg),
+              if (albums == null)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 48),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_permissionDenied)
+                const StatusMessage(
+                  icon: Icons.photo_library_outlined,
+                  title: 'Photo access is off',
+                  message:
+                      'SmartFin needs photo access to list your folders. You can allow it in your phone settings.',
+                )
+              else
+                Flexible(
+                  child: AppCard(
+                    flat: true,
+                    padding: EdgeInsets.zero,
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      physics: const ClampingScrollPhysics(
+                        parent: AlwaysScrollableScrollPhysics(),
+                      ),
+                      itemCount: albums.length,
+                      separatorBuilder: (context, index) =>
+                          const Divider(indent: AppSpacing.lg),
+                      itemBuilder: (context, i) {
+                        final album = albums[i];
+                        final checked = _selected.contains(album.id);
+                        return CheckboxListTile(
+                          value: checked,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
                           ),
-                          if (album.autoMatched) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color.fromRGBO(255, 159, 41, 0.12),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'Suggested',
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 10,
-                                  color: const Color(0xFFFF9F29),
+                          controlAffinity: ListTileControlAffinity.trailing,
+                          onChanged: (val) => setState(() {
+                            if (val == true) {
+                              _selected.add(album.id);
+                            } else {
+                              _selected.remove(album.id);
+                            }
+                          }),
+                          title: Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  album.name,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.bodyStrong,
                                 ),
                               ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      subtitle: Text(
-                        '${album.count} photo${album.count == 1 ? '' : 's'}',
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 11,
-                          color: const Color(0xFF9E9E9E),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            const SizedBox(height: 12),
-            Text(
-              automatic
-                  ? 'Tip: pick a folder yourself if your bank saves slips somewhere we missed.'
-                  : 'Untick everything to go back to automatic.',
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w500,
-                fontSize: 11,
-                color: const Color(0xFF9E9E9E),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _albums == null ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF9F29),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                              if (album.autoMatched) ...[
+                                const SizedBox(width: AppSpacing.sm),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.14,
+                                    ),
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.pill,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Suggested',
+                                    style: AppTextStyles.label.copyWith(
+                                      fontSize: 12,
+                                      color: AppColors.primaryText,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          subtitle: Text(
+                            '${album.count} photo${album.count == 1 ? '' : 's'}',
+                            style: AppTextStyles.caption,
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
-                child: Text(
-                  'Done',
-                  style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w700, fontSize: 15),
-                ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                automatic
+                    ? 'Tip: pick a folder yourself if your bank saves slips somewhere we missed.'
+                    : 'Untick everything to go back to automatic.',
+                style: AppTextStyles.caption,
               ),
-            ),
-          ],
+              const SizedBox(height: AppSpacing.lg),
+              AppButton(
+                label: 'Done',
+                expand: true,
+                onPressed: _albums == null ? null : _save,
+              ),
+            ],
+          ),
         ),
       ),
     );

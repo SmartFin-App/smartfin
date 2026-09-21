@@ -11,7 +11,12 @@ abstract class AuthRepository {
     required double budgetLimit,
   });
 
-  Future<ApiResponse<Map<String, dynamic>>> getUserByFirebaseUID(String firebaseUID);
+  Future<ApiResponse<Map<String, dynamic>>> getUserByFirebaseUID(
+    String firebaseUID,
+  );
 
-  Future<ApiResponse<bool>> updateUser(String firebaseUID, Map<String, dynamic> data);
+  Future<ApiResponse<bool>> updateUser(
+    String firebaseUID,
+    Map<String, dynamic> data,
+  );
 }

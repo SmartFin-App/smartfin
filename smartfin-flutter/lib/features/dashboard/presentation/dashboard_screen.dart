@@ -2,11 +2,11 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:smart_fin/constants/color_style.dart';
+import 'package:smart_fin/widgets/ui/ui.dart';
 import 'package:smart_fin/core/network/dio_client.dart';
 import 'package:smart_fin/widgets/bottom_nav_bar.dart';
+import 'package:smart_fin/widgets/page_title_row.dart';
 import 'package:smart_fin/widgets/smartfin_logo.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:smart_fin/features/transactions/data/transaction_repository_impl.dart';
@@ -23,7 +23,8 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingObserver {
+class _DashboardScreenState extends State<DashboardScreen>
+    with WidgetsBindingObserver {
   Map<String, dynamic>? _monthlySummary;
   List<Map<String, dynamic>> _recentTransactions = [];
   bool _isLoading = true;
@@ -34,14 +35,20 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   String _currentMonth = '';
 
   static const Map<String, ({IconData icon, Color color})> _categoryStyle = {
-    'Food':          (icon: Icons.restaurant_outlined,            color: Color(0xFFFF9F29)),
-    'Transport':     (icon: Icons.directions_car_outlined,        color: Color(0xFF2563EB)),
-    'Entertainment': (icon: Icons.movie_outlined,                 color: Color(0xFF7C3AED)),
-    'Shopping':      (icon: Icons.shopping_bag_outlined,          color: Color(0xFFDB2777)),
-    'Health':        (icon: Icons.favorite_outline,               color: Color(0xFFDC2626)),
-    'Groceries':     (icon: Icons.local_grocery_store_outlined,   color: Color(0xFF65A30D)),
-    'Bills':         (icon: Icons.receipt_outlined,               color: Color(0xFF0D9488)),
-    'Other':         (icon: Icons.attach_money,                   color: Color(0xFF9E9E9E)),
+    'Food': (icon: Icons.restaurant_outlined, color: Color(0xFFFF9F29)),
+    'Transport': (
+      icon: Icons.directions_car_outlined,
+      color: Color(0xFF2563EB),
+    ),
+    'Entertainment': (icon: Icons.movie_outlined, color: Color(0xFF7C3AED)),
+    'Shopping': (icon: Icons.shopping_bag_outlined, color: Color(0xFFDB2777)),
+    'Health': (icon: Icons.favorite_outline, color: Color(0xFFDC2626)),
+    'Groceries': (
+      icon: Icons.local_grocery_store_outlined,
+      color: Color(0xFF65A30D),
+    ),
+    'Bills': (icon: Icons.receipt_outlined, color: Color(0xFF0D9488)),
+    'Other': (icon: Icons.attach_money, color: Color(0xFF9E9E9E)),
   };
 
   @override
@@ -90,7 +97,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text(
-                "We couldn't find your slip folder. Pick one so SmartFin can spot new slips."),
+              "We couldn't find your slip folder. Pick one so SmartFin can spot new slips.",
+            ),
             duration: const Duration(seconds: 8),
             action: SnackBarAction(
               label: 'Pick',
@@ -129,118 +137,6 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     if (changed == true && mounted) _loadData();
   }
 
-  /// Bills that are overdue or due within a week. Hidden when there are none, so
-  /// it never adds an empty card for users who don't track bills. The figures and
-  /// day counts come from the server in Thai time; this only picks the wording.
-  Widget _buildUpcomingBillsCard() {
-    final count = _upcomingBills.length;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: _openSubscriptions,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.4)),
-          boxShadow: const [
-            BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.02), blurRadius: 10, offset: Offset(0, 4)),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: const Color.fromRGBO(255, 159, 41, 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.event_repeat_outlined, size: 18, color: Color(0xFFFF9F29)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'UPCOMING BILLS',
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 10,
-                          letterSpacing: 2,
-                          color: const Color(0xFF9E9E9E),
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${_baht(_upcomingTotal)} · $count bill${count == 1 ? '' : 's'}',
-                        style: GoogleFonts.bricolageGrotesque(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 18,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right, size: 20, color: Color.fromRGBO(158, 158, 158, 0.6)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ..._upcomingBills.take(3).map(_buildUpcomingBillRow),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUpcomingBillRow(Map<String, dynamic> bill) {
-    final days = (bill['days_until_due'] as num?)?.toInt() ?? 0;
-    final String when;
-    if (days < 0) {
-      when = '${-days} day${days == -1 ? '' : 's'} overdue';
-    } else if (days == 0) {
-      when = 'Due today';
-    } else if (days == 1) {
-      when = 'Due tomorrow';
-    } else {
-      when = 'Due in $days days';
-    }
-    return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              bill['name'] as String? ?? '-',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textDark),
-            ),
-          ),
-          Text(
-            when,
-            style: GoogleFonts.inter(
-              fontWeight: FontWeight.w700,
-              fontSize: 11,
-              color: days < 0 ? const Color(0xFFEF4444) : const Color(0xFFFF9F29),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            bill['formatted_amount'] as String? ?? _baht((bill['amount'] as num?) ?? 0),
-            style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textDark),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _loadData() async {
     if (!mounted) return;
     setState(() {
@@ -267,31 +163,32 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     try {
       await Future.wait([
         // Monthly Summary
-        DioClient.dio.get(
-          '/api/summary/$uid',
-          queryParameters: {'month': _currentMonth},
-        ).then((res) {
-          if (mounted) {
-            setState(() {
-              _monthlySummary = res.data as Map<String, dynamic>;
-            });
-          }
-        }),
-        // Recent 3
-        TransactionRepositoryImpl()
-            .getTransactions(userID: uid, limit: 3)
+        DioClient.dio
+            .get('/api/summary/$uid', queryParameters: {'month': _currentMonth})
             .then((res) {
-          if (res.success && mounted) {
-            setState(() => _recentTransactions = res.data ?? []);
-          }
-        }),
+              if (mounted) {
+                setState(() {
+                  _monthlySummary = res.data as Map<String, dynamic>;
+                });
+              }
+            }),
+        // Recent 3
+        TransactionRepositoryImpl().getTransactions(userID: uid, limit: 3).then(
+          (res) {
+            if (res.success && mounted) {
+              setState(() => _recentTransactions = res.data ?? []);
+            }
+          },
+        ),
         // Upcoming bills — non-fatal, the rest of the dashboard stands without
         // them. Wrapped so a failure here cannot reject the whole Future.wait and
         // take the rest of the dashboard down with it.
         () async {
           try {
-            final res = await SubscriptionRepositoryImpl()
-                .getSubscriptions(userID: uid, activeOnly: true);
+            final res = await SubscriptionRepositoryImpl().getSubscriptions(
+              userID: uid,
+              activeOnly: true,
+            );
             if (!res.success || !mounted) return;
             final all = ((res.data?['subscriptions'] as List?) ?? [])
                 .map((e) => Map<String, dynamic>.from(e as Map))
@@ -303,7 +200,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
               _upcomingBills = all
                   .where((s) => ((s['days_until_due'] as num?) ?? 999) <= 7)
                   .toList();
-              _upcomingTotal = (res.data?['due_soon_total'] as num?)?.toInt() ?? 0;
+              _upcomingTotal =
+                  (res.data?['due_soon_total'] as num?)?.toInt() ?? 0;
             });
           } catch (e) {
             debugPrint('Upcoming bills unavailable: $e');
@@ -341,10 +239,39 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
+  Future<void> _openProfileForBudget() async {
+    await context.push('/profile');
+    if (mounted) _loadData();
+  }
+
+  Future<void> _openTransaction(Map<String, dynamic> tx) async {
+    final id = tx['id'] as String?;
+    if (id == null || id.isEmpty) return;
+    // Detail returns true when the record was edited or deleted.
+    final changed = await context.push<bool>('/transaction/$id');
+    if (changed == true && mounted) _loadData();
+  }
+
+  void _openCategory(String category) {
+    // Type and month travel with the category so History's totals match the
+    // card: category alone would pull that category's transactions from every
+    // month.
+    context.push(
+      Uri(
+        path: '/history',
+        queryParameters: {
+          'type': 'expense',
+          if (category.isNotEmpty) 'category': category,
+          if (_currentMonth.isNotEmpty) 'month': _currentMonth,
+        },
+      ).toString(),
+    );
+  }
+
+  ({IconData icon, Color color}) _styleFor(String? category) =>
+      _categoryStyle[category?.trim()] ?? _categoryStyle['Other']!;
 
   // ── Budget donut + top categories ─────────────────────────────────────────
   // Replaces the old budget card, whose headline ("available to spend") was
@@ -352,45 +279,32 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   // day one, so that headline was a projection dressed as a balance. Every
   // figure on this card is a recorded expense or the user's own budget limit.
 
-  static const Color _ringTrack = Color.fromRGBO(240, 235, 225, 0.8);
-  static const Color _overBudget = Color(0xFFEF4444);
-
   /// Placeholder shaped like the loaded card, so the layout doesn't jump.
-  Widget _buildTopCategoriesSkeleton() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(40),
-        border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.4)),
-      ),
+  Widget _buildBudgetCardSkeleton() {
+    return AppCard(
+      flat: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _shimmerBox(width: 110, height: 10),
-          const SizedBox(height: 20),
-          Center(child: _shimmerBox(width: 180, height: 180, radius: 90)),
-          const SizedBox(height: 28),
-          _shimmerBox(width: 110, height: 10),
+          const Skeleton(width: 140, height: 18),
+          const SizedBox(height: AppSpacing.sm),
+          const Skeleton(width: 90, height: 12),
+          const SizedBox(height: AppSpacing.xl),
+          const Center(child: Skeleton.circle(size: 180)),
+          const SizedBox(height: AppSpacing.xl),
           for (var i = 0; i < 3; i++) ...[
-            const SizedBox(height: 20),
-            Row(
+            const SizedBox(height: AppSpacing.lg),
+            const Row(
               children: [
-                _shimmerBox(width: 36, height: 36, radius: 12),
-                const SizedBox(width: 12),
-                Expanded(child: _shimmerBox(height: 14)),
+                Skeleton(width: 36, height: 36, radius: AppRadius.md),
+                SizedBox(width: AppSpacing.md),
+                Expanded(child: Skeleton(height: 14)),
               ],
             ),
           ],
         ],
       ),
     );
-  }
-
-  Future<void> _openProfileForBudget() async {
-    await context.push('/profile');
-    if (mounted) _loadData();
   }
 
   /// Donut of this month's spending, one segment per category, filling up to
@@ -408,37 +322,41 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         if (((c['amount'] as num?) ?? 0) > 0)
           PieChartSectionData(
             value: ((c['amount'] as num?) ?? 0).toDouble(),
-            color: (_categoryStyle[(c['category'] as String?)?.trim()] ??
-                    _categoryStyle['Other']!)
-                .color,
-            radius: 22,
+            color: _styleFor(c['category'] as String?).color,
+            radius: 18,
             showTitle: false,
           ),
       if (hasBudget && spent < budget)
         PieChartSectionData(
           value: (budget - spent).toDouble(),
-          color: _ringTrack,
-          radius: 22,
+          color: AppColors.surfaceMuted,
+          radius: 18,
           showTitle: false,
         ),
     ];
     // fl_chart draws nothing for an all-zero pie; keep the empty ring visible.
     if (sections.isEmpty) {
-      sections.add(PieChartSectionData(
-          value: 1, color: _ringTrack, radius: 22, showTitle: false));
+      sections.add(
+        PieChartSectionData(
+          value: 1,
+          color: AppColors.surfaceMuted,
+          radius: 18,
+          showTitle: false,
+        ),
+      );
     }
 
     final String status;
     final Color statusColor;
     if (!hasBudget) {
       status = 'No budget set';
-      statusColor = const Color(0xFF9E9E9E);
+      statusColor = AppColors.textSecondary;
     } else if (over) {
       status = '${_baht(spent - budget)} over';
-      statusColor = _overBudget;
+      statusColor = AppColors.danger;
     } else {
       status = '${_baht(budget - spent)} left';
-      statusColor = const Color(0xFF4CAF50);
+      statusColor = AppColors.success;
     }
 
     return Column(
@@ -451,7 +369,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
               PieChart(
                 PieChartData(
                   sections: sections,
-                  centerSpaceRadius: 72,
+                  centerSpaceRadius: 76,
                   sectionsSpace: sections.length > 1 ? 2 : 0,
                   startDegreeOffset: -90,
                   borderData: FlBorderData(show: false),
@@ -463,28 +381,30 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                 children: [
                   Text(
                     _baht(spent),
-                    style: GoogleFonts.bricolageGrotesque(
-                      fontWeight: FontWeight.w800,
+                    style: AppTextStyles.display.copyWith(
                       fontSize: 28,
-                      color: over ? _overBudget : AppColors.textDark,
+                      color: over ? AppColors.danger : AppColors.textDark,
                     ),
                   ),
                   if (hasBudget)
-                    Text(
-                      'of ${_baht(budget)}',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                        color: const Color(0xFF9E9E9E),
-                      ),
+                    Text('of ${_baht(budget)}', style: AppTextStyles.caption),
+                  const SizedBox(height: AppSpacing.sm),
+                  // A tinted pill, so the verdict reads at a glance.
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
                     ),
-                  const SizedBox(height: 6),
-                  Text(
-                    status,
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12,
-                      color: statusColor,
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                    child: Text(
+                      status,
+                      style: AppTextStyles.label.copyWith(
+                        fontSize: 12,
+                        color: statusColor,
+                      ),
                     ),
                   ),
                 ],
@@ -493,112 +413,54 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
           ),
         ),
         if (!hasBudget) ...[
-          const SizedBox(height: 8),
-          GestureDetector(
-            // Opaque so this tap doesn't fall through to the card's History tap.
-            behavior: HitTestBehavior.opaque,
-            onTap: _openProfileForBudget,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Text(
-                'Set a monthly budget →',
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 12,
-                  color: const Color(0xFFFF9F29),
-                ),
-              ),
-            ),
+          const SizedBox(height: AppSpacing.sm),
+          AppButton.text(
+            label: 'Set a monthly budget',
+            icon: Icons.add_rounded,
+            onPressed: _openProfileForBudget,
           ),
         ],
       ],
     );
   }
 
-  Widget _buildTopCategoriesCard() {
+  Widget _buildBudgetCard() {
     // Already sorted largest-first server-side, and [] rather than null when
     // there are no expenses — but guard the shape anyway.
     final raw = _monthlySummary?['expense_by_category'];
-    final allCategories =
-        (raw is List ? raw : const []).whereType<Map>().toList();
+    final allCategories = (raw is List ? raw : const [])
+        .whereType<Map>()
+        .toList();
     final categories = allCategories.take(3).toList();
+    final month = (_monthlySummary?['formatted_month'] as String?) ?? '';
 
-    return GestureDetector(
+    return AppCard(
       onTap: () => context.push('/history'),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(28),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(40),
-          border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.4)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Monthly budget', style: AppTextStyles.heading),
+          if (month.isNotEmpty) Text(month, style: AppTextStyles.caption),
+          const SizedBox(height: AppSpacing.lg),
+          _buildBudgetDonut(allCategories),
+          const SizedBox(height: AppSpacing.lg),
+          const Divider(),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            'Top categories',
+            style: AppTextStyles.label.copyWith(color: AppColors.textSecondary),
+          ),
+          if (categories.isEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
             Text(
-              'MONTHLY BUDGET',
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w800,
-                fontSize: 10,
-                letterSpacing: 2,
-                color: const Color(0xFF9E9E9E),
+              'No spending yet this month. Scan a slip or add an expense to see where your money goes.',
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.textSecondary,
               ),
             ),
-            const SizedBox(height: 16),
-            _buildBudgetDonut(allCategories),
-            const SizedBox(height: 24),
-            Text(
-              'TOP CATEGORIES',
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w800,
-                fontSize: 10,
-                letterSpacing: 2,
-                color: const Color(0xFF9E9E9E),
-              ),
-            ),
-            if (categories.isEmpty) ...[
-              const SizedBox(height: 16),
-              Text(
-                'No spending yet this month. Scan a slip or add an expense to see where your money goes',
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                  height: 1.5,
-                  color: const Color.fromRGBO(51, 51, 51, 0.8),
-                ),
-              ),
-            ] else
-              for (final c in categories) ...[
-                const SizedBox(height: 20),
-                GestureDetector(
-                  // Opaque so a tap anywhere across the row, gaps included,
-                  // opens this category instead of falling through to the
-                  // card-level tap that opens unfiltered History.
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    final category = (c['category'] as String?)?.trim() ?? '';
-                    // Type and month travel with the category so History's
-                    // totals match the card: category alone would pull that
-                    // category's transactions from every month.
-                    context.push(Uri(path: '/history', queryParameters: {
-                      'type': 'expense',
-                      if (category.isNotEmpty) 'category': category,
-                      if (_currentMonth.isNotEmpty) 'month': _currentMonth,
-                    }).toString());
-                  },
-                  child: _buildCategoryRow(c),
-                ),
-              ],
-          ],
-        ),
+          ] else
+            for (final c in categories) _buildCategoryRow(c),
+        ],
       ),
     );
   }
@@ -608,189 +470,269 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     final label = (name == null || name.isEmpty) ? 'Other' : name;
     final amount = (c['amount'] as num?) ?? 0;
     final pct = ((c['percentage'] as num?) ?? 0).toDouble();
-    final style = _categoryStyle[label] ?? _categoryStyle['Other']!;
+    final style = _styleFor(label);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    // Its own ink target, so a tap on the row opens this category rather than
+    // the card's unfiltered History.
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      onTap: () => _openCategory(name ?? ''),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: Row(
           children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: style.color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(style.icon, size: 18, color: style.color),
-            ),
-            const SizedBox(width: 12),
+            IconTile(icon: style.icon, color: style.color, size: 40),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: const Color(0xFF333333),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              _baht(amount),
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w800,
-                fontSize: 14,
-                color: const Color(0xFF333333),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(9999),
-                child: Container(
-                  height: 6,
-                  color: const Color.fromRGBO(240, 235, 225, 0.8),
-                  alignment: Alignment.centerLeft,
-                  child: FractionallySizedBox(
-                    widthFactor: (pct / 100).clamp(0.0, 1.0),
-                    child: Container(color: style.color),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.bodyStrong,
+                        ),
+                      ),
+                      Text(_baht(amount), style: AppTextStyles.amount),
+                    ],
                   ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              '${pct.round()}% of spending',
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w600,
-                fontSize: 11,
-                color: const Color(0xFF9E9E9E),
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                          child: LinearProgressIndicator(
+                            value: (pct / 100).clamp(0.0, 1.0),
+                            minHeight: 6,
+                            color: style.color,
+                            backgroundColor: AppColors.surfaceMuted,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      SizedBox(
+                        width: 36,
+                        child: Text(
+                          '${pct.round()}%',
+                          textAlign: TextAlign.right,
+                          style: AppTextStyles.caption.copyWith(fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
         ),
-      ],
-    );
-  }
-
-  // ── Shimmer placeholder ───────────────────────────────────────────────────
-  Widget _shimmerBox({double width = double.infinity, double height = 16, double radius = 8}) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: const Color(0xFFEAE2D6),
-        borderRadius: BorderRadius.circular(radius),
       ),
     );
   }
 
-  Widget _buildTransactionRow({
-    required BuildContext context,
-    required IconData icon,
-    required Color iconColor,
-    required String name,
-    required String meta,
-    required String amount,
-    required Color amountColor,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+  // ── Upcoming bills ────────────────────────────────────────────────────────
+
+  /// Bills that are overdue or due within a week. Hidden when there are none, so
+  /// it never adds an empty card for users who don't track bills. The figures and
+  /// day counts come from the server in Thai time; this only picks the wording.
+  Widget _buildUpcomingBillsCard() {
+    final count = _upcomingBills.length;
+    return AppCard(
+      onTap: _openSubscriptions,
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Column(
+        children: [
+          ListRow(
+            leading: const IconTile(
+              icon: Icons.event_repeat_rounded,
+              color: AppColors.primary,
+            ),
+            title: 'Upcoming bills',
+            subtitle:
+                '${_baht(_upcomingTotal)} · $count bill${count == 1 ? '' : 's'}',
+            trailing: const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textMuted,
+            ),
+          ),
+          ListRow.divider(indent: AppSpacing.lg),
+          ..._upcomingBills.take(3).map(_buildUpcomingBillRow),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpcomingBillRow(Map<String, dynamic> bill) {
+    final days = (bill['days_until_due'] as num?)?.toInt() ?? 0;
+    final String when;
+    if (days < 0) {
+      when = '${-days} day${days == -1 ? '' : 's'} overdue';
+    } else if (days == 0) {
+      when = 'Due today';
+    } else if (days == 1) {
+      when = 'Due tomorrow';
+    } else {
+      when = 'Due in $days days';
+    }
+    final whenColor = days < 0 ? AppColors.danger : AppColors.primaryText;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.sm,
+      ),
       child: Row(
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Icon(icon, color: iconColor, size: 24),
-          ),
-          const SizedBox(width: 16),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                    color: const Color(0xFF333333),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  meta,
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 10,
-                    letterSpacing: -0.25,
-                    color: const Color(0xFF9E9E9E),
-                  ),
-                ),
-              ],
+            child: Text(
+              bill['name'] as String? ?? '-',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.body,
             ),
           ),
-          Text(
-            amount,
-            style: GoogleFonts.inter(
-              fontWeight: FontWeight.w800,
-              fontSize: 13,
-              color: amountColor,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: whenColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
+            child: Text(
+              when,
+              style: AppTextStyles.label.copyWith(
+                fontSize: 12,
+                color: whenColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Text(
+            bill['formatted_amount'] as String? ??
+                _baht((bill['amount'] as num?) ?? 0),
+            style: AppTextStyles.amount,
           ),
         ],
       ),
     );
   }
 
+  // ── Recent activity ───────────────────────────────────────────────────────
+
+  Widget _buildRecentActivity() {
+    if (_isLoading) {
+      return AppCard(
+        flat: true,
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: Column(
+          children: [
+            for (var i = 0; i < 3; i++)
+              const Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.md,
+                ),
+                child: Row(
+                  children: [
+                    Skeleton(width: 40, height: 40, radius: AppRadius.md),
+                    SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Skeleton(width: 120, height: 14),
+                          SizedBox(height: 6),
+                          Skeleton(width: 80, height: 12),
+                        ],
+                      ),
+                    ),
+                    Skeleton(width: 56, height: 14),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
+    if (_recentTransactions.isEmpty) {
+      return const AppCard(
+        flat: true,
+        child: StatusMessage(
+          icon: Icons.receipt_long_rounded,
+          title: 'No expenses yet',
+          message: 'Scan a slip or tap + to add your first one.',
+        ),
+      );
+    }
+
+    return AppCard(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      child: Column(
+        children: [
+          for (var i = 0; i < _recentTransactions.length; i++) ...[
+            if (i > 0) ListRow.divider(),
+            _buildTransactionRow(_recentTransactions[i]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransactionRow(Map<String, dynamic> tx) {
+    final category = tx['category'] as String? ?? '';
+    final style = _styleFor(category);
+    final date = tx['formatted_date'] as String? ?? '';
+    return ListRow(
+      leading: IconTile(icon: style.icon, color: style.color),
+      title: tx['merchant'] as String? ?? '-',
+      subtitle: [category, date].where((s) => s.isNotEmpty).join(' · '),
+      trailing: Text(
+        tx['formatted_amount'] as String? ?? '',
+        style: AppTextStyles.amount,
+      ),
+      onTap: () => _openTransaction(tx),
+    );
+  }
+
   // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final formattedMonth = (_monthlySummary?['formatted_month'] as String?) ?? 'Loading...';
-
     return Scaffold(
       backgroundColor: AppColors.cream,
       body: RefreshIndicator(
-        color: const Color(0xFFFF9F29),
+        color: AppColors.primary,
         onRefresh: _loadData,
         child: Stack(
           children: [
             CustomScrollView(
               physics: const ClampingScrollPhysics(
-                  parent: AlwaysScrollableScrollPhysics()),
+                parent: AlwaysScrollableScrollPhysics(),
+              ),
               slivers: [
                 // ── Sticky Header ──────────────────────────────────────────
+                // Logo row: 48 from the top, 40 tall, then 8 of breathing room.
                 SliverAppBar(
                   pinned: true,
-                  expandedHeight: 80,
-                  collapsedHeight: 80,
+                  toolbarHeight: PageTitleRow.barHeight(context, 96),
+                  expandedHeight: PageTitleRow.barHeight(context, 96),
+                  collapsedHeight: PageTitleRow.barHeight(context, 96),
                   backgroundColor: Colors.transparent,
+                  surfaceTintColor: Colors.transparent,
                   elevation: 0,
                   flexibleSpace: ClipRect(
                     child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
+                      filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
                       child: Container(
-                        color: const Color.fromRGBO(255, 249, 240, 0.8),
-                        padding:
-                            const EdgeInsets.only(top: 48, left: 24, right: 24),
+                        color: AppColors.cream.withValues(alpha: 0.85),
+                        padding: const EdgeInsets.only(
+                          top: 48,
+                          left: AppSpacing.screen,
+                          right: AppSpacing.screen,
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -798,24 +740,25 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                             // the user nothing they did not know, and the logo
                             // gives every screenshot an identifiable header.
                             const SmartFinLogo(),
-                            GestureDetector(
-                              onTap: () => context.push('/profile'),
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white,
-                                  border:
-                                      Border.all(color: const Color(0xFFEAE2D6)),
-                                ),
-                                // A person icon: cat imagery belongs to the AI
-                                // Coach only.
-                                child: const Icon(
-                                  Icons.person_outline,
-                                  size: 20,
-                                  color: Color(0xFF333333),
+                            // A person icon: cat imagery belongs to the AI
+                            // Coach only.
+                            Material(
+                              color: AppColors.white,
+                              shape: const CircleBorder(
+                                side: BorderSide(color: AppColors.border),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: InkWell(
+                                onTap: () => context.push('/profile'),
+                                child: const SizedBox(
+                                  width: 40,
+                                  height: 40,
+                                  child: Icon(
+                                    Icons.person_outline_rounded,
+                                    size: 22,
+                                    color: AppColors.textDark,
+                                    semanticLabel: 'Profile',
+                                  ),
                                 ),
                               ),
                             ),
@@ -829,156 +772,49 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                 // ── Content ────────────────────────────────────────────────
                 SliverPadding(
                   padding: const EdgeInsets.only(
-                      left: 24, right: 24, top: 16, bottom: 120),
+                    left: AppSpacing.screen,
+                    right: AppSpacing.screen,
+                    top: AppSpacing.sm,
+                    bottom: 120,
+                  ),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
-
-                      // ── Month Header ──────────────────────────────────────────
-                      Center(
-                        child: Text(
-                          formattedMonth.toUpperCase(),
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 10,
-                            letterSpacing: 2,
-                            color: const Color(0xFF9E9E9E),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
                       // ── Budget donut + Top Categories ────────────────────
                       // A failed load must not render as a real ฿0 month.
-                      _loadFailed && !_isLoading
-                          ? Container(
-                              height: 180,
-                              padding: const EdgeInsets.all(32),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEAE2D6),
-                                borderRadius: BorderRadius.circular(40),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.cloud_off_rounded,
-                                      color: Color(0xFF9E9E9E), size: 28),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    "Couldn't load this month",
-                                    style: GoogleFonts.inter(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 16,
-                                      color: AppColors.textDark,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    "Pull down to try again",
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      color: const Color(0xFF9E9E9E),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : _isLoading
-                              ? _buildTopCategoriesSkeleton()
-                              : _buildTopCategoriesCard(),
+                      if (_loadFailed && !_isLoading)
+                        AppCard(
+                          flat: true,
+                          child: StatusMessage(
+                            icon: Icons.cloud_off_rounded,
+                            title: "Couldn't load this month",
+                            message: 'Check your connection, then try again.',
+                            action: AppButton.secondary(
+                              label: 'Try again',
+                              icon: Icons.refresh_rounded,
+                              onPressed: _loadData,
+                            ),
+                          ),
+                        )
+                      else if (_isLoading)
+                        _buildBudgetCardSkeleton()
+                      else
+                        _buildBudgetCard(),
 
                       if (!_isLoading && _upcomingBills.isNotEmpty) ...[
-                        const SizedBox(height: 24),
+                        const SizedBox(height: AppSpacing.lg),
                         _buildUpcomingBillsCard(),
                       ],
 
-                      const SizedBox(height: 48),
+                      const SizedBox(height: AppSpacing.xl),
 
                       // ── Recent Activity ──────────────────────────────────
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "RECENT ACTIVITY",
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 10,
-                              letterSpacing: 2,
-                              color: const Color(0xFF9E9E9E),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => context.push('/history'),
-                            child: Text(
-                              "VIEW ALL",
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 10,
-                                letterSpacing: 1,
-                                color: const Color(0xFFFF9F29),
-                              ),
-                            ),
-                          ),
-                        ],
+                      SectionHeader(
+                        title: 'Recent activity',
+                        actionLabel: 'See all',
+                        onAction: () => context.push('/history'),
                       ),
-                      const SizedBox(height: 16),
-
-                      if (_isLoading)
-                        ...List.generate(
-                          3,
-                          (_) => Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            child: Row(
-                              children: [
-                                _shimmerBox(
-                                    width: 48, height: 48, radius: 24),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      _shimmerBox(width: 120, height: 12),
-                                      const SizedBox(height: 6),
-                                      _shimmerBox(width: 80, height: 10),
-                                    ],
-                                  ),
-                                ),
-                                _shimmerBox(width: 60, height: 12),
-                              ],
-                            ),
-                          ),
-                        )
-                      else if (_recentTransactions.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 24),
-                          child: Center(
-                            child: Text(
-                              'No transactions yet. Add your first one!',
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 13,
-                                color: const Color(0xFF9E9E9E),
-                              ),
-                            ),
-                          ),
-                        )
-                      else
-                        ..._recentTransactions.map((tx) {
-                          final String category =
-                              tx['category'] as String? ?? '';
-                          final style = _categoryStyle[category] ??
-                              (icon: Icons.attach_money, color: const Color(0xFF9E9E9E));
-                          return _buildTransactionRow(
-                            context: context,
-                            icon: style.icon,
-                            iconColor: style.color,
-                            name: tx['merchant'] as String? ?? '-',
-                            meta: category.toUpperCase(),
-                            amount: tx['formatted_amount'] as String? ?? '',
-                            amountColor: const Color(0xFFEF4444),
-                          );
-                        }),
+                      const SizedBox(height: AppSpacing.sm),
+                      _buildRecentActivity(),
                     ]),
                   ),
                 ),

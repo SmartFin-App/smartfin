@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:smart_fin/constants/color_style.dart';
+import 'package:smart_fin/widgets/ui/ui.dart';
 import 'package:smart_fin/features/scanner/services/gallery_watcher_service.dart';
 
 /// Modal bottom sheet shown when a new payment slip is detected in "SmartFin Receipts"
@@ -10,122 +9,94 @@ class SlipDetectionSheet extends StatelessWidget {
   final DetectedSlip slip;
   final VoidCallback? onDismissed;
 
-  const SlipDetectionSheet({
-    super.key,
-    required this.slip,
-    this.onDismissed,
-  });
+  const SlipDetectionSheet({super.key, required this.slip, this.onDismissed});
 
   /// Helper to show this sheet
   static Future<void> show(BuildContext context, DetectedSlip slip) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      showDragHandle: true,
       builder: (ctx) => SlipDetectionSheet(slip: slip),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final formattedDate = DateFormat('MMM d, yyyy • h:mm a').format(slip.createDateTime);
+    final formattedDate = DateFormat(
+      'd MMM yyyy · h:mm a',
+    ).format(slip.createDateTime);
 
-    return Container(
-      padding: const EdgeInsets.only(top: 12, left: 24, right: 24, bottom: 32),
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      child: SafeArea(
-        top: false,
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.xl,
+          0,
+          AppSpacing.xl,
+          AppSpacing.lg,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Drag handle
-            Container(
-              width: 44,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE0E0E0),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-
             // Header with auto-detect badge
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primarySoft,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.auto_awesome, size: 14, color: AppColors.primary),
-                      const SizedBox(width: 4),
-                      Text(
-                        'AUTO-DETECT SLIP',
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // Title
-            Text(
-              "New payment slip found",
-              style: GoogleFonts.bricolageGrotesque(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textDark,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.auto_awesome_rounded,
+                      size: 14,
+                      color: AppColors.primaryText,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Auto-Detect',
+                      style: AppTextStyles.label.copyWith(
+                        fontSize: 12,
+                        color: AppColors.primaryText,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 6),
-
-            // Subtitle
+            const SizedBox(height: AppSpacing.md),
             Text(
-              "Found in '${slip.albumName}' album. Would you like AI to scan and record this transaction?",
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                color: AppColors.textMuted,
-                height: 1.4,
-              ),
+              'New payment slip found',
               textAlign: TextAlign.center,
+              style: AppTextStyles.title,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              "Found in '${slip.albumName}'. Scan it and add it as an expense?",
+              textAlign: TextAlign.center,
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
 
-            // Thumbnail Preview Container
+            // Thumbnail preview
             Container(
-              height: 170,
-              width: double.infinity,
+              height: 180,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppRadius.lg),
                 border: Border.all(color: AppColors.border),
-                boxShadow: const [
-                  BoxShadow(
-                    color: AppColors.cardShadow,
-                    blurRadius: 12,
-                    offset: Offset(0, 4),
-                  ),
-                ],
+                boxShadow: AppShadows.card,
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppRadius.lg),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -133,16 +104,22 @@ class SlipDetectionSheet extends StatelessWidget {
                       slip.file,
                       fit: BoxFit.cover,
                       errorBuilder: (ctx, err, stack) => const Center(
-                        child: Icon(Icons.receipt_long, size: 48, color: AppColors.textMuted),
+                        child: Icon(
+                          Icons.receipt_long_rounded,
+                          size: 48,
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ),
-                    // Gradient overlay at bottom
                     Positioned(
                       bottom: 0,
                       left: 0,
                       right: 0,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
@@ -154,21 +131,23 @@ class SlipDetectionSheet extends StatelessWidget {
                           ),
                         ),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              slip.albumName,
-                              style: GoogleFonts.inter(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
+                            Expanded(
+                              child: Text(
+                                slip.albumName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.label.copyWith(
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                             Text(
                               formattedDate,
-                              style: GoogleFonts.inter(
+                              style: AppTextStyles.caption.copyWith(
+                                fontSize: 12,
                                 color: Colors.white70,
-                                fontSize: 10,
                               ),
                             ),
                           ],
@@ -179,72 +158,39 @@ class SlipDetectionSheet extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xl),
 
-            // Primary Scan & Save Button
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  shadowColor: AppColors.primaryGlow,
-                ),
-                onPressed: () {
-                  // The asset id travels with the image and is marked processed only
-                  // after the transaction saves. Marking here meant a failed scan
-                  // (server down, bad image) hid the slip from the watcher forever.
-                  Navigator.of(context).pop();
-                  context.go('/processing', extra: {
-                    'file': slip.file,
-                    'assetId': slip.asset.id,
-                  });
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.document_scanner_outlined, color: Colors.white, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      "Scan & Add to SmartFin",
-                      style: GoogleFonts.inter(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            AppButton(
+              label: 'Scan and add',
+              icon: Icons.document_scanner_outlined,
+              expand: true,
+              onPressed: () {
+                // The asset id travels with the image and is marked processed only
+                // after the transaction saves. Marking here meant a failed scan
+                // (server down, bad image) hid the slip from the watcher forever.
+                Navigator.of(context).pop();
+                context.go(
+                  '/processing',
+                  extra: {'file': slip.file, 'assetId': slip.asset.id},
+                );
+              },
             ),
-            const SizedBox(height: 10),
-
-            // Secondary Dismiss Button
-            SizedBox(
-              width: double.infinity,
-              height: 44,
-              child: TextButton(
-                onPressed: () async {
-                  // Mark as processed/dismissed so user isn't prompted again
-                  await GalleryWatcherService().markSlipAsProcessed(slip.asset.id);
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-                  }
-                  onDismissed?.call();
-                },
-                child: Text(
-                  "Dismiss for now",
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textMuted,
-                  ),
-                ),
+            const SizedBox(height: AppSpacing.xs),
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.textSecondary,
               ),
+              onPressed: () async {
+                // Mark as processed/dismissed so user isn't prompted again
+                await GalleryWatcherService().markSlipAsProcessed(
+                  slip.asset.id,
+                );
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
+                onDismissed?.call();
+              },
+              child: const Text('Not this one'),
             ),
           ],
         ),

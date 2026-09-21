@@ -1,11 +1,9 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:smart_fin/constants/color_style.dart';
+import 'package:smart_fin/widgets/ui/ui.dart';
 import 'package:smart_fin/features/transactions/data/transaction_repository_impl.dart';
 import 'package:smart_fin/features/scanner/services/gallery_watcher_service.dart';
 
@@ -26,14 +24,46 @@ class _VerifyScreenState extends State<VerifyScreen> {
   bool _isLoading = false;
 
   final List<Map<String, dynamic>> _categories = [
-    {'label': 'Food',          'icon': Icons.restaurant_outlined,          'color': const Color(0xFFFF9F29)},
-    {'label': 'Transport',     'icon': Icons.directions_car_outlined,       'color': const Color(0xFF2563EB)},
-    {'label': 'Entertainment', 'icon': Icons.movie_outlined,                'color': const Color(0xFF7C3AED)},
-    {'label': 'Shopping',      'icon': Icons.shopping_bag_outlined,         'color': const Color(0xFFDB2777)},
-    {'label': 'Health',        'icon': Icons.favorite_outline,              'color': const Color(0xFFDC2626)},
-    {'label': 'Groceries',     'icon': Icons.local_grocery_store_outlined,  'color': const Color(0xFF65A30D)},
-    {'label': 'Bills',         'icon': Icons.receipt_outlined,              'color': const Color(0xFF0D9488)},
-    {'label': 'Other',         'icon': Icons.add_circle_outline,            'color': const Color(0xFF9E9E9E)},
+    {
+      'label': 'Food',
+      'icon': Icons.restaurant_outlined,
+      'color': const Color(0xFFFF9F29),
+    },
+    {
+      'label': 'Transport',
+      'icon': Icons.directions_car_outlined,
+      'color': const Color(0xFF2563EB),
+    },
+    {
+      'label': 'Entertainment',
+      'icon': Icons.movie_outlined,
+      'color': const Color(0xFF7C3AED),
+    },
+    {
+      'label': 'Shopping',
+      'icon': Icons.shopping_bag_outlined,
+      'color': const Color(0xFFDB2777),
+    },
+    {
+      'label': 'Health',
+      'icon': Icons.favorite_outline,
+      'color': const Color(0xFFDC2626),
+    },
+    {
+      'label': 'Groceries',
+      'icon': Icons.local_grocery_store_outlined,
+      'color': const Color(0xFF65A30D),
+    },
+    {
+      'label': 'Bills',
+      'icon': Icons.receipt_outlined,
+      'color': const Color(0xFF0D9488),
+    },
+    {
+      'label': 'Other',
+      'icon': Icons.add_circle_outline,
+      'color': const Color(0xFF9E9E9E),
+    },
   ];
 
   /// Brings a model-extracted date back into a plausible range. Thai slips are often
@@ -73,8 +103,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
 
       // Pre-select category if backend returns one
       final cat = data['category'] as String?;
-      if (cat != null &&
-          _categories.any((c) => c['label'] as String == cat)) {
+      if (cat != null && _categories.any((c) => c['label'] as String == cat)) {
         _selectedCategory = cat;
       }
     }
@@ -89,21 +118,22 @@ class _VerifyScreenState extends State<VerifyScreen> {
 
   // ── Save ──────────────────────────────────────────────────────────────────
 
+  void _toast(String message, {bool error = false}) =>
+      showAppToast(context, message, error: error);
+
   Future<void> _saveTransaction() async {
+    if (_isLoading) return;
     final merchant = _merchantController.text.trim();
-    final amountText = _amountController.text.trim().replaceAll(',', '');
-    final amount = int.tryParse(amountText) ?? (double.tryParse(amountText)?.toInt());
+    final amount = int.tryParse(
+      _amountController.text.trim().replaceAll(',', ''),
+    );
 
     if (merchant.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a merchant name')),
-      );
+      _toast('Please enter a merchant name', error: true);
       return;
     }
     if (amount == null || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid amount')),
-      );
+      _toast('Please enter a valid amount', error: true);
       return;
     }
 
@@ -130,21 +160,13 @@ class _VerifyScreenState extends State<VerifyScreen> {
           await GalleryWatcherService().markSlipAsProcessed(assetId);
         }
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Receipt saved!')),
-        );
+        _toast('Expense saved');
         context.go('/home');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.error ?? 'Failed to save transaction.')),
-        );
+        _toast(result.error ?? 'Could not save the expense', error: true);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
+      if (mounted) _toast('Error: $e', error: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -152,42 +174,13 @@ class _VerifyScreenState extends State<VerifyScreen> {
 
   // ── UI helpers ────────────────────────────────────────────────────────────
 
-  InputDecoration _inputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: GoogleFonts.inter(
-        fontWeight: FontWeight.w500,
-        fontSize: 14,
-        color: const Color.fromRGBO(158, 158, 158, 0.5),
-      ),
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color.fromRGBO(234, 226, 214, 0.6)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFFFF9F29)),
-      ),
-    );
-  }
-
-  Widget _sectionLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Text(
-        text,
-        style: GoogleFonts.inter(
-          fontWeight: FontWeight.w800,
-          fontSize: 10,
-          letterSpacing: 1.5,
-          color: const Color(0xFF9E9E9E),
-        ),
-      ),
-    );
-  }
+  Widget _fieldLabel(String text) => Padding(
+    padding: const EdgeInsets.only(left: AppSpacing.xs, bottom: AppSpacing.sm),
+    child: Text(
+      text,
+      style: AppTextStyles.label.copyWith(color: AppColors.textSecondary),
+    ),
+  );
 
   // ── Build ─────────────────────────────────────────────────────────────────
 
@@ -195,309 +188,190 @@ class _VerifyScreenState extends State<VerifyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.cream,
+      // Expand, so what is pinned to the bottom stays there when the content
+      // is shorter than the screen.
       body: Stack(
+        fit: StackFit.expand,
         children: [
-          // ── Scrollable content ─────────────────────────────────────────
           SingleChildScrollView(
-            padding: const EdgeInsets.only(top: 104, bottom: 120),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.screen,
+              SubpageHeader.contentTop,
+              AppSpacing.screen,
+              140,
+            ),
             physics: const ClampingScrollPhysics(),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Always ask for a check. The model's confidence score is not
                 // shown: in the slip evaluation it was 0.98 on right and wrong
                 // scans alike, so a "Great scan!" message could stop users from
                 // catching a misread merchant or an invented date.
                 Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 24),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  color: const Color(0xFFFF9F29).withValues(alpha: 0.1),
-                  child: Text(
-                    'Please check the details below before saving.',
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: const Color(0xFFFF9F29),
-                    ),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
-                ),
-
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ── Merchant field ──────────────────────────────────
-                      _sectionLabel('MERCHANT / STORE'),
-                      TextFormField(
-                        controller: _merchantController,
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          color: const Color(0xFF333333),
-                        ),
-                        decoration: _inputDecoration('e.g. Big C Supermarket'),
+                      const Icon(
+                        Icons.fact_check_outlined,
+                        size: 20,
+                        color: AppColors.primaryText,
                       ),
-
-                      const SizedBox(height: 24),
-
-                      // ── Amount field ────────────────────────────────────
-                      _sectionLabel('AMOUNT (฿)'),
-                      TextFormField(
-                        controller: _amountController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                        ],
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          color: const Color(0xFF333333),
-                        ),
-                        decoration: _inputDecoration('0'),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // ── Date picker ─────────────────────────────────────
-                      _sectionLabel('DATE'),
-                      GestureDetector(
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: _selectedDate,
-                            firstDate: DateTime(2000),
-                            lastDate: DateTime.now(),
-                            builder: (ctx, child) => Theme(
-                              data: Theme.of(ctx).copyWith(
-                                colorScheme: const ColorScheme.light(
-                                  primary: Color(0xFFFF9F29),
-                                ),
-                              ),
-                              child: child!,
-                            ),
-                          );
-                          if (picked != null) {
-                            setState(() => _selectedDate = picked);
-                          }
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: const Border.fromBorderSide(BorderSide(
-                                color: Color.fromRGBO(234, 226, 214, 0.6))),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.calendar_today_outlined,
-                                  size: 16,
-                                  color: Color.fromRGBO(158, 158, 158, 0.7)),
-                              const SizedBox(width: 12),
-                              Text(
-                                DateFormat('MMM d, yyyy').format(_selectedDate),
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                  color: const Color(0xFF333333),
-                                ),
-                              ),
-                            ],
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Text(
+                          'Check what was read from your slip before saving.',
+                          style: AppTextStyles.body.copyWith(
+                            color: AppColors.primaryText,
                           ),
                         ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // ── Category grid ───────────────────────────────────
-                      _sectionLabel('CATEGORY'),
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 0.85,
-                        ),
-                        itemCount: _categories.length,
-                        itemBuilder: (context, i) {
-                          final cat = _categories[i];
-                          final label = cat['label'] as String;
-                          final icon = cat['icon'] as IconData;
-                          final color = cat['color'] as Color;
-                          final isSelected = _selectedCategory == label;
-
-                          return GestureDetector(
-                            onTap: () =>
-                                setState(() => _selectedCategory = label),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 180),
-                              curve: Curves.easeOut,
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? color.withValues(alpha: 0.12)
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? color
-                                      : const Color.fromRGBO(234, 226, 214, 0.6),
-                                  width: isSelected ? 1.5 : 1,
-                                ),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(icon,
-                                      size: 22,
-                                      color: isSelected
-                                          ? color
-                                          : const Color.fromRGBO(
-                                              51, 51, 51, 0.4)),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    label,
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.inter(
-                                      fontWeight: isSelected
-                                          ? FontWeight.w800
-                                          : FontWeight.w500,
-                                      fontSize: 9,
-                                      color: isSelected
-                                          ? color
-                                          : const Color.fromRGBO(
-                                              51, 51, 51, 0.5),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
                       ),
                     ],
                   ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+
+                // ── Merchant ────────────────────────────────────────────
+                _fieldLabel('Merchant'),
+                TextFormField(
+                  controller: _merchantController,
+                  textCapitalization: TextCapitalization.words,
+                  style: AppTextStyles.body,
+                  decoration: const InputDecoration(
+                    hintText: 'e.g. Big C Supermarket',
+                    prefixIcon: Icon(
+                      Icons.storefront_outlined,
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+
+                // ── Amount ──────────────────────────────────────────────
+                _fieldLabel('Amount'),
+                TextFormField(
+                  controller: _amountController,
+                  // Whole baht only: money is integer ฿.
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  style: AppTextStyles.body,
+                  decoration: InputDecoration(
+                    hintText: '0',
+                    // An icon rather than prefixText, which only shows once
+                    // the field is focused.
+                    prefixIcon: SizedBox(
+                      width: 48,
+                      child: Center(
+                        child: Text(
+                          '฿',
+                          style: AppTextStyles.bodyStrong
+                              .copyWith(color: AppColors.textSecondary),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+
+                // ── Date ────────────────────────────────────────────────
+                _fieldLabel('Date'),
+                AppCard(
+                  flat: true,
+                  padding: EdgeInsets.zero,
+                  child: ListRow(
+                    leading: const Icon(
+                      Icons.calendar_today_rounded,
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    ),
+                    title: DateFormat('d MMM yyyy').format(_selectedDate),
+                    trailing: const Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.textMuted,
+                    ),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDate,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime.now(),
+                      );
+                      if (picked != null) {
+                        setState(() => _selectedDate = picked);
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+
+                // ── Category ────────────────────────────────────────────
+                _fieldLabel('Category'),
+                GridView.builder(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: AppSpacing.md,
+                    crossAxisSpacing: AppSpacing.md,
+                    mainAxisExtent: 60,
+                  ),
+                  itemCount: _categories.length,
+                  itemBuilder: (context, i) {
+                    final cat = _categories[i];
+                    final label = cat['label'] as String;
+                    return CategoryTile(
+                      label: label,
+                      icon: cat['icon'] as IconData,
+                      color: cat['color'] as Color,
+                      selected: _selectedCategory == label,
+                      onTap: () => setState(() => _selectedCategory = label),
+                    );
+                  },
                 ),
               ],
             ),
           ),
 
-          // ── Sticky glass header ────────────────────────────────────────
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: ClipRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                child: Container(
-                  color: const Color.fromRGBO(255, 249, 240, 0.85),
-                  padding:
-                      const EdgeInsets.only(top: 48, left: 24, right: 24, bottom: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Back
-                      Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () => context.go('/scanner'),
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                    color: const Color.fromRGBO(
-                                        234, 226, 214, 0.6)),
-                                boxShadow: [
-                                  BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.02),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2))
-                                ],
-                              ),
-                              child: const Icon(Icons.chevron_left,
-                                  size: 22,
-                                  color: Color.fromRGBO(51, 51, 51, 0.7)),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Text(
-                            'Verify Receipt',
-                            style: GoogleFonts.bricolageGrotesque(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 18,
-                              color: const Color(0xFF333333),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          SubpageHeader(
+            title: 'Verify receipt',
+            onBack: () => context.go('/scanner'),
           ),
 
-          // ── Fixed footer Save button ───────────────────────────────────
+          // ── Save ─────────────────────────────────────────────────────
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               decoration: BoxDecoration(
-                color: const Color.fromRGBO(255, 249, 240, 0.95),
-                border: const Border(
-                    top: BorderSide(
-                        color: Color.fromRGBO(234, 226, 214, 0.4))),
-              ),
-              child: GestureDetector(
-                onTap: _isLoading ? null : _saveTransaction,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 120),
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFF9F29),
-                    borderRadius: BorderRadius.circular(9999),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFFF9F29).withValues(alpha: 0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  alignment: Alignment.center,
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : Text(
-                          'SAVE TRANSACTION',
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 12,
-                            letterSpacing: 2,
-                            color: Colors.white,
-                          ),
-                        ),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppColors.cream.withValues(alpha: 0),
+                    AppColors.cream,
+                  ],
+                  stops: const [0, 0.35],
                 ),
+              ),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screen,
+                AppSpacing.xxl,
+                AppSpacing.screen,
+                32,
+              ),
+              child: AppButton(
+                label: 'Save expense',
+                expand: true,
+                loading: _isLoading,
+                onPressed: _saveTransaction,
               ),
             ),
           ),

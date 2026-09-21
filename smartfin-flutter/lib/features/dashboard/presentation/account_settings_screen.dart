@@ -1,11 +1,9 @@
-import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:smart_fin/constants/color_style.dart';
+import 'package:smart_fin/widgets/ui/ui.dart';
 import 'package:smart_fin/core/network/dio_client.dart';
 
 /// Editor for the profile attributes captured once during onboarding and never
@@ -87,7 +85,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             ? data['email'] as String
             : _email;
         _status = _valueOrNull(data['current_status'], _statuses) ?? _status;
-        _health = _valueOrNull(data['financial_health'], _healthOptions) ?? _health;
+        _health =
+            _valueOrNull(data['financial_health'], _healthOptions) ?? _health;
         _isLoading = false;
       });
     } catch (e) {
@@ -111,14 +110,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     return allowed.contains(value) ? value : null;
   }
 
-  void _toast(String message, {bool error = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-      backgroundColor: error ? const Color(0xFFEF4444) : const Color(0xFF4CAF50),
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
-  }
+  void _toast(String message, {bool error = false}) =>
+      showAppToast(context, message, error: error);
 
   Future<void> _save() async {
     if (_isSaving) return;
@@ -137,11 +130,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
     setState(() => _isSaving = true);
     try {
-      await DioClient.dio.put('/api/users/$uid', data: {
-        'name': name,
-        if (_status != null) 'current_status': _status,
-        if (_health != null) 'financial_health': _health,
-      });
+      await DioClient.dio.put(
+        '/api/users/$uid',
+        data: {
+          'name': name,
+          if (_status != null) 'current_status': _status,
+          if (_health != null) 'financial_health': _health,
+        },
+      );
 
       // Keep Firebase's displayName in step — the profile header and the coach's
       // greeting both read it rather than the backend record.
@@ -156,10 +152,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       if (_health != null) await prefs.setString('user_health', _health!);
 
       if (!mounted) return;
-      _toast('Account updated!');
+      _toast('Account updated');
       context.pop(true);
     } on DioException catch (e) {
-      if (mounted) _toast('Failed to save: ${DioClient.handleError(e)}', error: true);
+      if (mounted) {
+        _toast('Failed to save: ${DioClient.handleError(e)}', error: true);
+      }
     } catch (e) {
       if (mounted) _toast('Failed to save: $e', error: true);
     } finally {
@@ -167,309 +165,185 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     }
   }
 
+  static const Map<String, IconData> _statusIcons = {
+    'Student': Icons.school_outlined,
+    'Pro': Icons.work_outline,
+    'Founder': Icons.rocket_launch_outlined,
+  };
+
+  Widget _sectionLabel(String text) => Padding(
+    padding: const EdgeInsets.only(left: AppSpacing.xs, bottom: AppSpacing.sm),
+    child: Text(
+      text,
+      style: AppTextStyles.label.copyWith(color: AppColors.textSecondary),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.cream,
+      // Expand, so the save bar pins to the screen's bottom: a short form's
+      // scroll view would otherwise size the stack to its content.
       body: Stack(
+        fit: StackFit.expand,
         children: [
           if (_isLoading)
-            const Center(child: CircularProgressIndicator(color: Color(0xFFFF9F29)))
+            const Center(child: CircularProgressIndicator())
           else if (_loadFailed)
-            _buildFailureState()
+            Center(
+              child: StatusMessage(
+                icon: Icons.cloud_off_rounded,
+                title: "Couldn't load your account",
+                message: 'Check your connection, then try again.',
+                action: AppButton.secondary(
+                  label: 'Try again',
+                  icon: Icons.refresh_rounded,
+                  onPressed: () {
+                    setState(() {
+                      _isLoading = true;
+                      _loadFailed = false;
+                    });
+                    _load();
+                  },
+                ),
+              ),
+            )
           else
             SingleChildScrollView(
               physics: const ClampingScrollPhysics(),
-              padding: const EdgeInsets.only(top: 130, bottom: 140),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionLabel('YOUR NAME'),
-                    const SizedBox(height: 12),
-                    _card(
-                      child: TextField(
-                        controller: _nameController,
-                        textCapitalization: TextCapitalization.words,
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: const Color(0xFF333333),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screen,
+                SubpageHeader.contentTop,
+                AppSpacing.screen,
+                140,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _sectionLabel('Your name'),
+                  TextField(
+                    controller: _nameController,
+                    textCapitalization: TextCapitalization.words,
+                    style: AppTextStyles.body,
+                    decoration: const InputDecoration(
+                      hintText: 'Your name',
+                      prefixIcon: Icon(
+                        Icons.person_outline_rounded,
+                        size: 20,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+
+                  _sectionLabel('Email'),
+                  // Read-only: the email is the Firebase login, changed there.
+                  AppCard(
+                    flat: true,
+                    padding: EdgeInsets.zero,
+                    color: AppColors.surfaceMuted,
+                    child: ListRow(
+                      leading: const Icon(
+                        Icons.mail_outline_rounded,
+                        size: 20,
+                        color: AppColors.textSecondary,
+                      ),
+                      title: _email.isEmpty
+                          ? 'No email on this account'
+                          : _email,
+                      titleColor: AppColors.textSecondary,
+                      trailing: const Icon(
+                        Icons.lock_outline_rounded,
+                        size: 18,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+
+                  _sectionLabel('What do you do?'),
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    children: [
+                      for (final s in _statuses)
+                        AppChip(
+                          label: s,
+                          icon: _statusIcons[s],
+                          selected: _status == s,
+                          onTap: () => setState(() => _status = s),
                         ),
-                        decoration: InputDecoration(
-                          hintText: 'Your name',
-                          hintStyle: GoogleFonts.inter(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 15,
-                            color: const Color(0xFFBDBDBD),
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.zero,
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+
+                  _sectionLabel('How are your finances?'),
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    children: [
+                      for (final h in _healthOptions)
+                        AppChip(
+                          label: h,
+                          selected: _health == h,
+                          onTap: () => setState(() => _health = h),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline_rounded,
+                        size: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          'Your AI Coach uses these to tailor its advice.',
+                          style: AppTextStyles.caption,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    _sectionLabel('EMAIL'),
-                    const SizedBox(height: 12),
-                    _card(
-                      child: Row(
-                        children: [
-                          const Icon(Icons.mail_outline,
-                              size: 18, color: Color(0xFF9E9E9E)),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              _email.isEmpty ? 'No email on this account' : _email,
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                                color: const Color(0xFF9E9E9E),
-                              ),
-                            ),
-                          ),
-                          const Icon(Icons.lock_outline,
-                              size: 16, color: Color(0xFFBDBDBD)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    _sectionLabel('CURRENT STATUS'),
-                    const SizedBox(height: 12),
-                    _pillGroup(
-                        _statuses, _status, (v) => setState(() => _status = v)),
-                    const SizedBox(height: 28),
-
-                    _sectionLabel('FINANCIAL HEALTH'),
-                    const SizedBox(height: 12),
-                    _pillGroup(_healthOptions, _health,
-                        (v) => setState(() => _health = v)),
-                    const SizedBox(height: 16),
-
-                    Text(
-                      'Your coach uses these to tailor its advice.',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12,
-                        color: const Color(0xFF9E9E9E),
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          _buildHeader(),
-          if (!_isLoading && !_loadFailed) _buildSaveBar(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFailureState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.cloud_off_rounded, color: Color(0xFF9E9E9E), size: 32),
-            const SizedBox(height: 16),
-            Text(
-              "Couldn't load your account",
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
-                color: AppColors.textDark,
-              ),
-            ),
-            const SizedBox(height: 20),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _isLoading = true;
-                  _loadFailed = false;
-                });
-                _load();
-              },
+          SubpageHeader(title: 'Account settings', onBack: () => context.pop()),
+          if (!_isLoading && !_loadFailed)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFF9F29),
-                  borderRadius: BorderRadius.circular(9999),
-                ),
-                child: Text(
-                  'TRY AGAIN',
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 11,
-                    letterSpacing: 2,
-                    color: Colors.white,
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppColors.cream.withValues(alpha: 0),
+                      AppColors.cream,
+                    ],
+                    stops: const [0, 0.35],
                   ),
+                ),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.screen,
+                  AppSpacing.xxl,
+                  AppSpacing.screen,
+                  32,
+                ),
+                child: AppButton(
+                  label: 'Save changes',
+                  expand: true,
+                  loading: _isSaving,
+                  onPressed: _save,
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _sectionLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Text(
-        text,
-        style: GoogleFonts.inter(
-          fontWeight: FontWeight.w700,
-          fontSize: 10,
-          letterSpacing: 2,
-          color: const Color(0xFF9E9E9E),
-        ),
-      ),
-    );
-  }
-
-  Widget _card({required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.5)),
-      ),
-      child: child,
-    );
-  }
-
-  Widget _pillGroup(
-      List<String> options, String? selected, ValueChanged<String> onSelect) {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: options.map((o) => _pill(o, selected, onSelect)).toList(),
-    );
-  }
-
-  Widget _pill(String text, String? groupValue, ValueChanged<String> onSelect) {
-    final bool isSelected = text == groupValue;
-    return GestureDetector(
-      onTap: () => onSelect(text),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color.fromRGBO(255, 159, 41, 0.05)
-              : Colors.white,
-          border: Border.all(
-            color: isSelected ? const Color(0xFFFF9F29) : const Color(0xFFEAE2D6),
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(9999),
-        ),
-        child: Text(
-          text,
-          style: GoogleFonts.inter(
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
-            fontSize: 14,
-            color: isSelected ? const Color(0xFFFF9F29) : const Color(0xFF333333),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
-          child: Container(
-            color: const Color.fromRGBO(255, 249, 240, 0.8),
-            padding: const EdgeInsets.only(
-                left: 24, right: 24, top: 48, bottom: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                GestureDetector(
-                  onTap: () => context.pop(),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: const Color.fromRGBO(234, 226, 214, 0.6)),
-                    ),
-                    child: const Icon(Icons.chevron_left,
-                        size: 22, color: Color.fromRGBO(51, 51, 51, 0.7)),
-                  ),
-                ),
-                Text(
-                  'Account Settings',
-                  style: GoogleFonts.bricolageGrotesque(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
-                    color: const Color(0xFF333333),
-                  ),
-                ),
-                const SizedBox(width: 40),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSaveBar() {
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.transparent, Color(0xFFFFF9F0)],
-          ),
-        ),
-        child: GestureDetector(
-          onTap: _isSaving ? null : _save,
-          child: Container(
-            height: 58,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFF9F29),
-              borderRadius: BorderRadius.circular(9999),
-            ),
-            child: _isSaving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2),
-                  )
-                : Text(
-                    'SAVE CHANGES',
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12,
-                      letterSpacing: 2,
-                      color: Colors.white,
-                    ),
-                  ),
-          ),
-        ),
+        ],
       ),
     );
   }

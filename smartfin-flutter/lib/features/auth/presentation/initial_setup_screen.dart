@@ -1,11 +1,9 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:smart_fin/constants/color_style.dart';
+import 'package:smart_fin/widgets/ui/ui.dart';
 import 'package:smart_fin/core/network/dio_client.dart';
 import 'package:smart_fin/features/auth/data/auth_repository_impl.dart';
 import 'package:smart_fin/widgets/smartfin_logo.dart';
@@ -17,7 +15,8 @@ class InitialSetupScreen extends StatefulWidget {
   State<InitialSetupScreen> createState() => _InitialSetupScreenState();
 }
 
-class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProviderStateMixin {
+class _InitialSetupScreenState extends State<InitialSetupScreen>
+    with TickerProviderStateMixin {
   String? selectedStatus;
   String? selectedHealth;
   final _nameController = TextEditingController();
@@ -34,8 +33,6 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
   late Animation<double> _contentFade;
   late Animation<Offset> _contentSlide;
 
-  bool _isButtonPressed = false;
-
   @override
   void initState() {
     super.initState();
@@ -45,9 +42,10 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
       vsync: this,
       duration: const Duration(milliseconds: 700),
     );
-    _catFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _catController, curve: Curves.easeOut),
-    );
+    _catFade = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _catController, curve: Curves.easeOut));
     _catScale = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(parent: _catController, curve: Curves.easeOutBack),
     );
@@ -55,14 +53,23 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
     // Content: slide-in from bottom fade-in duration 700ms delay 200ms
     _contentController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900), // 200ms delay + 700ms duration
+      duration: const Duration(
+        milliseconds: 900,
+      ), // 200ms delay + 700ms duration
     );
     _contentFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _contentController, curve: const Interval(0.22, 1.0, curve: Curves.easeOut)),
+      CurvedAnimation(
+        parent: _contentController,
+        curve: const Interval(0.22, 1.0, curve: Curves.easeOut),
+      ),
     );
-    _contentSlide = Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(
-      CurvedAnimation(parent: _contentController, curve: const Interval(0.22, 1.0, curve: Curves.easeOutCubic)),
-    );
+    _contentSlide = Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _contentController,
+            curve: const Interval(0.22, 1.0, curve: Curves.easeOutCubic),
+          ),
+        );
 
     _catController.forward();
     _contentController.forward();
@@ -77,12 +84,14 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
     super.dispose();
   }
 
+  void _showError(String message) =>
+      showAppToast(context, message, error: true);
+
   Future<void> _submitSetup() async {
+    if (_isLoading) return;
     final name = _nameController.text.trim();
     if (name.isEmpty || selectedStatus == null || selectedHealth == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete all fields to continue')),
-      );
+      _showError('Please fill in your name and pick one of each');
       return;
     }
 
@@ -113,9 +122,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
 
       if (!result.success) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result.error ?? 'Failed to save setup.')),
-          );
+          _showError(result.error ?? 'Could not save your details.');
         }
         return;
       }
@@ -138,8 +145,10 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(DioClient.handleError(e is Exception ? e as dynamic : Exception(e.toString())))),
+        _showError(
+          DioClient.handleError(
+            e is Exception ? e as dynamic : Exception(e.toString()),
+          ),
         );
       }
     } finally {
@@ -149,114 +158,62 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
     }
   }
 
-  Widget _buildSectionLabel(String label) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Text(
-        label,
-        style: GoogleFonts.inter( // Using Inter instead of Geist
-          fontWeight: FontWeight.w800,
-          fontSize: 10,
-          letterSpacing: 2.0,
-          color: const Color(0xFF9E9E9E),
-        ),
-      ),
-    );
-  }
+  Widget _sectionLabel(String label) => Padding(
+    padding: const EdgeInsets.only(left: AppSpacing.xs, bottom: AppSpacing.sm),
+    child: Text(
+      label,
+      style: AppTextStyles.label.copyWith(color: AppColors.textSecondary),
+    ),
+  );
 
-  Widget _buildPill(String text, String? groupValue, ValueChanged<String> onSelect) {
-    final bool isSelected = text == groupValue;
-    return GestureDetector(
-      onTap: () => onSelect(text),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color.fromRGBO(255, 159, 41, 0.05) : Colors.white,
-          border: Border.all(
-            color: isSelected ? const Color(0xFFFF9F29) : const Color(0xFFEAE2D6),
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(9999),
-        ),
-        child: Text(
-          text,
-          style: GoogleFonts.inter(
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
-            fontSize: 14,
-            color: isSelected ? const Color(0xFFFF9F29) : const Color(0xFF333333),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusCard({
-    required String label,
-    required IconData icon,
-    required String? groupValue,
-    required ValueChanged<String> onSelect,
-  }) {
-    final bool isSelected = label == groupValue;
+  Widget _statusCard({required String label, required IconData icon}) {
+    final selected = label == selectedStatus;
+    final radius = BorderRadius.circular(AppRadius.lg);
     return Expanded(
-      child: GestureDetector(
-        onTap: () => onSelect(label),
+      child: Semantics(
+        selected: selected,
+        button: true,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(32),
+            color: selected
+                ? Color.alphaBlend(
+                    AppColors.primary.withValues(alpha: 0.12),
+                    AppColors.white,
+                  )
+                : AppColors.white,
+            borderRadius: radius,
             border: Border.all(
-              color: isSelected ? const Color(0xFFFF9F29) : const Color(0xFFEAE2D6),
-              width: isSelected ? 2 : 1,
+              color: selected ? AppColors.primary : AppColors.border,
+              width: selected ? 1.5 : 1,
             ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: const Color.fromRGBO(255, 159, 41, 0.05),
-                      spreadRadius: 4,
-                      blurRadius: 10,
-                    )
-                  ]
-                : [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+          ),
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              borderRadius: radius,
+              onTap: () => setState(() => selectedStatus = label),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                child: Column(
+                  children: [
+                    IconTile(
+                      icon: icon,
+                      color: selected
+                          ? AppColors.primary
+                          : AppColors.textSecondary,
+                      size: 44,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      label,
+                      style: AppTextStyles.bodyStrong.copyWith(fontSize: 14),
                     ),
                   ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: isSelected 
-                      ? const Color.fromRGBO(255, 159, 41, 0.1) 
-                      : const Color.fromRGBO(240, 235, 225, 0.3),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(
-                  icon,
-                  color: isSelected ? const Color(0xFFFF9F29) : const Color(0xFF9E9E9E),
                 ),
               ),
-              const SizedBox(height: 12),
-              Text(
-                label.toUpperCase(),
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 11,
-                  letterSpacing: 1.2,
-                  color: isSelected ? const Color(0xFFFF9F29) : const Color(0xFF333333),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -267,309 +224,197 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> with TickerProv
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.cream,
-      body: Stack(
-        children: [
-          // Scrollable Area
-          SingleChildScrollView(
-            padding: const EdgeInsets.only(top: 132, bottom: 120, left: 24, right: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Top section: Cat + Title
-                FadeTransition(
-                  opacity: _catFade,
-                  child: ScaleTransition(
-                    scale: _catScale,
-                    child: Column(
-                      children: [
-                        const SmartFinLogo(fontSize: 40, letterSpacing: -2),
-                        const SizedBox(height: 16),
-                        Text(
-                          "Let's Build Your Profile.",
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.bricolageGrotesque(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 30,
-                            letterSpacing: -0.75,
-                            color: const Color(0xFF333333),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                72,
+                AppSpacing.xl,
+                140,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  FadeTransition(
+                    opacity: _catFade,
+                    child: ScaleTransition(
+                      scale: _catScale,
+                      child: Column(
+                        children: [
+                          const SmartFinLogo(fontSize: 32),
+                          const SizedBox(height: AppSpacing.xl),
+                          Text(
+                            "Let's set you up",
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.title,
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                
-                const SizedBox(height: 48),
+                  const SizedBox(height: AppSpacing.xxl),
 
-                // Content sections
-                FadeTransition(
-                  opacity: _contentFade,
-                  child: SlideTransition(
-                    position: _contentSlide,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Section 0: Name Field
-                        _buildSectionLabel('PREFERRED NAME'),
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 32),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFEAE2D6)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.02),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: TextField(
+                  FadeTransition(
+                    opacity: _contentFade,
+                    child: SlideTransition(
+                      position: _contentSlide,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _sectionLabel('Your name'),
+                          TextField(
                             controller: _nameController,
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                              color: const Color(0xFF333333),
-                            ),
-                            decoration: InputDecoration(
-                              hintText: "What should we call you?",
-                              hintStyle: GoogleFonts.inter(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                                color: const Color.fromRGBO(158, 158, 158, 0.3),
+                            textCapitalization: TextCapitalization.words,
+                            autofillHints: const [AutofillHints.givenName],
+                            style: AppTextStyles.body,
+                            decoration: const InputDecoration(
+                              hintText: 'What should we call you?',
+                              prefixIcon: Icon(
+                                Icons.person_outline_rounded,
+                                size: 20,
+                                color: AppColors.textSecondary,
                               ),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                             ),
                           ),
-                        ),
+                          const SizedBox(height: AppSpacing.xl),
 
-                        // Section 1: Monthly Budget (optional)
-                        _buildSectionLabel('MONTHLY BUDGET (OPTIONAL)'),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFEAE2D6)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.02),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: TextField(
+                          _sectionLabel('Monthly budget (optional)'),
+                          TextField(
                             controller: _budgetController,
                             keyboardType: TextInputType.number,
                             inputFormatters: [
                               FilteringTextInputFormatter.digitsOnly,
                               LengthLimitingTextInputFormatter(8),
                             ],
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                              color: const Color(0xFF333333),
-                            ),
+                            style: AppTextStyles.body,
                             decoration: InputDecoration(
-                              prefixText: '฿ ',
-                              prefixStyle: GoogleFonts.inter(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                                color: const Color(0xFFFF9F29),
-                              ),
                               hintText: 'e.g. 15000',
-                              hintStyle: GoogleFonts.inter(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                                color: const Color.fromRGBO(158, 158, 158, 0.3),
+                              // An icon rather than prefixText, which only
+                              // shows once the field is focused.
+                              prefixIcon: SizedBox(
+                                width: 48,
+                                child: Center(
+                                  child: Text(
+                                    '฿',
+                                    style: AppTextStyles.bodyStrong.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ),
                               ),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "How much you aim to spend each month. SmartFin shows your spending against it. You can skip this and set it later in Profile.",
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 11,
-                            height: 1.4,
-                            color: const Color(0xFF9E9E9E),
+                          const SizedBox(height: AppSpacing.sm),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xs,
+                            ),
+                            child: Text(
+                              'How much you aim to spend each month. You can skip this and set it later in Profile.',
+                              style: AppTextStyles.caption.copyWith(
+                                height: 1.4,
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: AppSpacing.xl),
 
-                        const SizedBox(height: 32),
+                          _sectionLabel('What do you do?'),
+                          Row(
+                            children: [
+                              _statusCard(
+                                label: 'Student',
+                                icon: Icons.school_outlined,
+                              ),
+                              _statusCard(
+                                label: 'Pro',
+                                icon: Icons.work_outline,
+                              ),
+                              _statusCard(
+                                label: 'Founder',
+                                icon: Icons.rocket_launch_outlined,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.xl),
 
-                        // Section 2: Current Status
-                        _buildSectionLabel('CURRENT STATUS'),
-                        Row(
-                          children: [
-                            _buildStatusCard(
-                              label: 'Student', 
-                              icon: Icons.school, 
-                              groupValue: selectedStatus, 
-                              onSelect: (val) => setState(() => selectedStatus = val),
-                            ),
-                            _buildStatusCard(
-                              label: 'Pro', 
-                              icon: Icons.work, 
-                              groupValue: selectedStatus, 
-                              onSelect: (val) => setState(() => selectedStatus = val),
-                            ),
-                            _buildStatusCard(
-                              label: 'Founder', 
-                              icon: Icons.rocket_launch, 
-                              groupValue: selectedStatus, 
-                              onSelect: (val) => setState(() => selectedStatus = val),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        // Section 3: Financial Health
-                        _buildSectionLabel('FINANCIAL HEALTH'),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 12,
-                          children: [
-                            _buildPill('Debt-Free', selectedHealth, (val) => setState(() => selectedHealth = val)),
-                            _buildPill('Saving Up', selectedHealth, (val) => setState(() => selectedHealth = val)),
-                            _buildPill('Managing Debt', selectedHealth, (val) => setState(() => selectedHealth = val)),
-                            _buildPill('Paycheck to Paycheck', selectedHealth, (val) => setState(() => selectedHealth = val)),
-                          ],
-                        ),
-                      ],
+                          _sectionLabel('How are your finances?'),
+                          Wrap(
+                            spacing: AppSpacing.sm,
+                            runSpacing: AppSpacing.sm,
+                            children: [
+                              for (final h in const [
+                                'Debt-Free',
+                                'Saving Up',
+                                'Managing Debt',
+                                'Paycheck to Paycheck',
+                              ])
+                                AppChip(
+                                  label: h,
+                                  selected: selectedHealth == h,
+                                  onTap: () =>
+                                      setState(() => selectedHealth = h),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-
-          // Header (Back button)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: ClipRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
-                child: Container(
-                  height: 112, // Status bar + 48 padding
-                  color: const Color.fromRGBO(255, 249, 240, 0.8),
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        left: 24,
-                        top: 48,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            if (context.canPop()) {
-                              context.pop();
-                            } else {
-                              context.go('/login');
-                            }
-                          },
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.6)),
-                              borderRadius: BorderRadius.circular(9999), // full circle
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.02),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(Icons.chevron_left, color: Color(0xFF333333)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ),
             ),
-          ),
 
-          // Footer Fixed Button
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: IgnorePointer( // Let pointer ignore the gradient part, only catch button
-              ignoring: false,
+            Positioned(
+              left: AppSpacing.screen,
+              top: AppSpacing.sm,
+              child: AppIconButton(
+                icon: Icons.arrow_back_rounded,
+                semanticLabel: 'Back',
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/login');
+                  }
+                },
+              ),
+            ),
+
+            // ── Continue ───────────────────────────────────────────────
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
               child: Container(
-                height: 154,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Color.fromRGBO(255, 249, 240, 0.0),
-                      Color(0xFFFFF9F0),
+                      AppColors.cream.withValues(alpha: 0),
+                      AppColors.cream,
                     ],
-                    stops: [0.0, 0.4],
+                    stops: const [0, 0.35],
                   ),
                 ),
-                alignment: Alignment.center,
-                padding: const EdgeInsets.only(top: 24),
-                child: GestureDetector(
-                  onTapDown: (_) => setState(() => _isButtonPressed = true),
-                  onTapUp: (_) {
-                    setState(() => _isButtonPressed = false);
-                    _submitSetup();
-                  },
-                  onTapCancel: () => setState(() => _isButtonPressed = false),
-                  child: AnimatedScale(
-                    scale: _isButtonPressed ? 0.98 : 1.0,
-                    duration: const Duration(milliseconds: 100),
-                    child: Container(
-                      height: 58,
-                      margin: const EdgeInsets.symmetric(horizontal: 32), // full width minus 64 (32+32)
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF9F29),
-                        borderRadius: BorderRadius.circular(9999),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFFF9F29).withValues(alpha: 0.3),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      alignment: Alignment.center,
-                      child: _isLoading 
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                          )
-                        : Text(
-                            'ANALYZE MY FINANCES',
-                            style: GoogleFonts.inter( // Inter instead of Geist as discussed earlier
-                              fontWeight: FontWeight.w800,
-                              fontSize: 12,
-                              letterSpacing: 2.4,
-                              color: Colors.white,
-                            ),
-                          ),
-                    ),
-                  ),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  AppSpacing.xxl,
+                  AppSpacing.xl,
+                  AppSpacing.lg,
+                ),
+                child: AppButton(
+                  label: 'Get started',
+                  expand: true,
+                  loading: _isLoading,
+                  onPressed: _submitSetup,
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

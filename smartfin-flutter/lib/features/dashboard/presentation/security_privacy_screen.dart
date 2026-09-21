@@ -1,12 +1,10 @@
-import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:smart_fin/constants/color_style.dart';
+import 'package:smart_fin/widgets/ui/ui.dart';
 import 'package:smart_fin/core/network/dio_client.dart';
 import 'package:smart_fin/features/subscriptions/services/bill_reminder_service.dart';
 
@@ -35,12 +33,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
 
   void _toast(String message, {bool error = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-      backgroundColor: error ? const Color(0xFFEF4444) : const Color(0xFF4CAF50),
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
+    showAppToast(context, message, error: error);
   }
 
   /// Prompts for credentials and verifies them against Firebase, so callers know
@@ -76,8 +69,10 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
         return false;
       }
     } else {
-      _toast('This sign-in method cannot be reauthenticated in the app',
-          error: true);
+      _toast(
+        'This sign-in method cannot be reauthenticated in the app',
+        error: true,
+      );
       return false;
     }
 
@@ -121,40 +116,23 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
     return showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Confirm it is you',
-          style: GoogleFonts.bricolageGrotesque(
-            fontWeight: FontWeight.w800,
-            fontSize: 19,
-            color: const Color(0xFF333333),
-          ),
-        ),
+        title: const Text('Confirm it is you'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Enter your current password to $purpose.',
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w500,
-                fontSize: 13,
-                color: const Color(0xFF9E9E9E),
-              ),
-            ),
+            Text('Enter your current password to $purpose.'),
             const SizedBox(height: 16),
             TextField(
               controller: controller,
               obscureText: true,
               autofocus: true,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Current password',
-                filled: true,
-                fillColor: const Color.fromRGBO(240, 235, 225, 0.3),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
+                prefixIcon: Icon(
+                  Icons.lock_outline_rounded,
+                  size: 20,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ),
@@ -163,15 +141,14 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel',
-                style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w700, color: const Color(0xFF9E9E9E))),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
+            ),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, controller.text),
-            child: Text('Confirm',
-                style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w700, color: const Color(0xFFFF9F29))),
+            child: const Text('Confirm'),
           ),
         ],
       ),
@@ -213,16 +190,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(
-            'New password',
-            style: GoogleFonts.bricolageGrotesque(
-              fontWeight: FontWeight.w800,
-              fontSize: 19,
-              color: const Color(0xFF333333),
-            ),
-          ),
+          title: const Text('New password'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -232,11 +200,10 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
                 autofocus: true,
                 decoration: InputDecoration(
                   hintText: 'New password',
-                  filled: true,
-                  fillColor: const Color.fromRGBO(240, 235, 225, 0.3),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
+                  prefixIcon: const Icon(
+                    Icons.lock_outline_rounded,
+                    size: 20,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ),
@@ -247,11 +214,10 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
                 decoration: InputDecoration(
                   hintText: 'Confirm new password',
                   errorText: error,
-                  filled: true,
-                  fillColor: const Color.fromRGBO(240, 235, 225, 0.3),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
+                  prefixIcon: const Icon(
+                    Icons.lock_outline_rounded,
+                    size: 20,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ),
@@ -260,10 +226,10 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel',
-                  style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF9E9E9E))),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.textSecondary,
+              ),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
@@ -277,10 +243,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
                 }
                 Navigator.pop(ctx, passwordController.text);
               },
-              child: Text('Update',
-                  style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFFFF9F29))),
+              child: const Text('Update'),
             ),
           ],
         ),
@@ -318,14 +281,18 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
       _toast('Your account and data have been deleted');
       context.go('/login');
     } on DioException catch (e) {
-      _toast('Could not delete your data: ${DioClient.handleError(e)}',
-          error: true);
+      _toast(
+        'Could not delete your data: ${DioClient.handleError(e)}',
+        error: true,
+      );
     } on FirebaseAuthException catch (e) {
       // The records are already gone at this point, so be explicit rather than
       // letting the user think nothing happened.
-      _toast('Your data was deleted, but the login could not be removed: '
-          '${_authMessage(e)}',
-          error: true);
+      _toast(
+        'Your data was deleted, but the login could not be removed: '
+        '${_authMessage(e)}',
+        error: true,
+      );
     } catch (e) {
       _toast('Could not delete account: $e', error: true);
     } finally {
@@ -337,38 +304,23 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Delete account?',
-          style: GoogleFonts.bricolageGrotesque(
-            fontWeight: FontWeight.w800,
-            fontSize: 20,
-            color: const Color(0xFFEF4444),
-          ),
-        ),
-        content: Text(
-          'This permanently erases your profile, every transaction, your monthly '
-          'summaries and your coach conversations. It cannot be undone.',
-          style: GoogleFonts.inter(
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-            height: 1.5,
-            color: const Color(0xFF9E9E9E),
-          ),
+        title: const Text('Delete account?'),
+        content: const Text(
+          'This permanently erases your profile, every expense, your monthly '
+          'summaries and your AI Coach conversations. It cannot be undone.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel',
-                style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w700, color: const Color(0xFF9E9E9E))),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
+            ),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Delete everything',
-                style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w700, color: const Color(0xFFEF4444))),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('Delete everything'),
           ),
         ],
       ),
@@ -378,13 +330,26 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
 
   // ── UI ─────────────────────────────────────────────────────────────────────
 
+  Widget _sectionLabel(String text, {Color color = AppColors.textSecondary}) =>
+      Padding(
+        padding: const EdgeInsets.only(
+          left: AppSpacing.xs,
+          bottom: AppSpacing.sm,
+        ),
+        child: Text(text, style: AppTextStyles.label.copyWith(color: color)),
+      );
+
   @override
   Widget build(BuildContext context) {
     final method = _hasPasswordProvider
         ? 'Email and password'
         : _hasGoogleProvider
-            ? 'Google'
-            : 'Unknown';
+        ? 'Google'
+        : 'Unknown';
+    const chevron = Icon(
+      Icons.chevron_right_rounded,
+      color: AppColors.textMuted,
+    );
 
     return Scaffold(
       backgroundColor: AppColors.cream,
@@ -392,245 +357,99 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
         children: [
           SingleChildScrollView(
             physics: const ClampingScrollPhysics(),
-            padding: const EdgeInsets.only(top: 130, bottom: 60),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _sectionLabel('SIGN-IN METHOD'),
-                  const SizedBox(height: 12),
-                  _card(
-                    child: Row(
-                      children: [
-                        Icon(
-                          _hasGoogleProvider
-                              ? Icons.g_mobiledata
-                              : Icons.mail_outline,
-                          size: 20,
-                          color: const Color(0xFF9E9E9E),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                method,
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                  color: const Color(0xFF333333),
-                                ),
-                              ),
-                              if ((_user?.email ?? '').isNotEmpty)
-                                Text(
-                                  _user!.email!,
-                                  style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 12,
-                                    color: const Color(0xFF9E9E9E),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.screen,
+              SubpageHeader.contentTop,
+              AppSpacing.screen,
+              60,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _sectionLabel('Sign-in method'),
+                AppCard(
+                  flat: true,
+                  padding: EdgeInsets.zero,
+                  child: ListRow(
+                    leading: IconTile(
+                      icon: _hasGoogleProvider
+                          ? Icons.g_mobiledata_rounded
+                          : Icons.mail_outline_rounded,
+                      color: AppColors.textSecondary,
                     ),
+                    title: method,
+                    subtitle: _user?.email,
                   ),
-                  const SizedBox(height: 28),
+                ),
+                const SizedBox(height: AppSpacing.xl),
 
-                  _sectionLabel('SECURITY'),
-                  const SizedBox(height: 12),
-                  if (_hasPasswordProvider)
-                    _actionCard(
-                      icon: Icons.lock_outline,
+                _sectionLabel('Security'),
+                if (_hasPasswordProvider)
+                  AppCard(
+                    padding: EdgeInsets.zero,
+                    child: ListRow(
+                      leading: const IconTile(
+                        icon: Icons.lock_outline_rounded,
+                        color: AppColors.textSecondary,
+                      ),
                       title: 'Change password',
-                      subtitle: 'Confirm your current password, then set a new one',
-                      onTap: _changePassword,
-                    )
-                  else
-                    _card(
-                      child: Text(
-                        'Your password is managed by Google, so it cannot be '
-                        'changed here.',
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 13,
-                          height: 1.5,
-                          color: const Color(0xFF9E9E9E),
-                        ),
+                      subtitle: 'Verify your current password first',
+                      trailing: chevron,
+                      onTap: _isBusy ? null : _changePassword,
+                    ),
+                  )
+                else
+                  AppCard(
+                    flat: true,
+                    child: Text(
+                      'Your password is managed by Google, so it cannot be changed here.',
+                      style: AppTextStyles.body.copyWith(
+                        color: AppColors.textSecondary,
                       ),
                     ),
-                  const SizedBox(height: 32),
+                  ),
+                const SizedBox(height: AppSpacing.xl),
 
-                  _sectionLabel('DANGER ZONE'),
-                  const SizedBox(height: 12),
-                  _actionCard(
-                    icon: Icons.delete_outline,
+                _sectionLabel('Danger zone', color: AppColors.danger),
+                AppCard(
+                  padding: EdgeInsets.zero,
+                  child: ListRow(
+                    leading: const IconTile(
+                      icon: Icons.delete_outline_rounded,
+                      color: AppColors.danger,
+                    ),
                     title: 'Delete account',
-                    subtitle: 'Erases your profile, transactions and chat history',
-                    danger: true,
-                    onTap: _deleteAccount,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Deleting removes your data from SmartFin permanently. There '
-                    'is no recovery.',
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12,
-                      height: 1.5,
-                      color: const Color(0xFF9E9E9E),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          _buildHeader(),
-          if (_isBusy)
-            Positioned.fill(
-              child: Container(
-                color: const Color.fromRGBO(255, 249, 240, 0.6),
-                child: const Center(
-                  child: CircularProgressIndicator(color: Color(0xFFFF9F29)),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Text(
-        text,
-        style: GoogleFonts.inter(
-          fontWeight: FontWeight.w700,
-          fontSize: 10,
-          letterSpacing: 2,
-          color: const Color(0xFF9E9E9E),
-        ),
-      ),
-    );
-  }
-
-  Widget _card({required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.5)),
-      ),
-      child: child,
-    );
-  }
-
-  Widget _actionCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    bool danger = false,
-  }) {
-    final accent = danger ? const Color(0xFFEF4444) : const Color(0xFF333333);
-    return InkWell(
-      onTap: _isBusy ? null : onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: danger
-                ? const Color.fromRGBO(239, 68, 68, 0.2)
-                : const Color.fromRGBO(234, 226, 214, 0.5),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 20, color: accent),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                      color: accent,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12,
-                      color: const Color(0xFF9E9E9E),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right,
-                size: 18, color: Color.fromRGBO(158, 158, 158, 0.5)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
-          child: Container(
-            color: const Color.fromRGBO(255, 249, 240, 0.8),
-            padding:
-                const EdgeInsets.only(left: 24, right: 24, top: 48, bottom: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                GestureDetector(
-                  onTap: () => context.pop(),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: const Color.fromRGBO(234, 226, 214, 0.6)),
-                    ),
-                    child: const Icon(Icons.chevron_left,
-                        size: 22, color: Color.fromRGBO(51, 51, 51, 0.7)),
+                    titleColor: AppColors.danger,
+                    subtitle: 'Erases your expenses and chats',
+                    trailing: chevron,
+                    onTap: _isBusy ? null : _deleteAccount,
                   ),
                 ),
-                Text(
-                  'Security & Privacy',
-                  style: GoogleFonts.bricolageGrotesque(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
-                    color: const Color(0xFF333333),
+                const SizedBox(height: AppSpacing.md),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xs,
+                  ),
+                  child: Text(
+                    'Deleting removes your data from SmartFin permanently. There is no recovery.',
+                    style: AppTextStyles.caption.copyWith(height: 1.4),
                   ),
                 ),
-                const SizedBox(width: 40),
               ],
             ),
           ),
-        ),
+          SubpageHeader(
+            title: 'Security & privacy',
+            onBack: () => context.pop(),
+          ),
+          if (_isBusy)
+            Positioned.fill(
+              child: ColoredBox(
+                color: AppColors.cream.withValues(alpha: 0.6),
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+            ),
+        ],
       ),
     );
   }

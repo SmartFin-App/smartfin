@@ -1,16 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:smart_fin/constants/color_style.dart';
 import 'package:smart_fin/widgets/action_hub_sheet.dart';
 
 class SmartFinBottomNav extends StatelessWidget {
   final int currentIndex;
 
-  const SmartFinBottomNav({
-    super.key,
-    required this.currentIndex,
-  });
+  const SmartFinBottomNav({super.key, required this.currentIndex});
 
   void _onTap(BuildContext context, int index) {
     if (index == currentIndex) return;
@@ -35,31 +32,40 @@ class SmartFinBottomNav extends StatelessWidget {
     required BuildContext context,
     required int index,
     required IconData icon,
+    required IconData activeIcon,
     required String label,
     required bool isActive,
   }) {
-    final color = isActive ? const Color(0xFFFF9F29) : const Color.fromRGBO(158, 158, 158, 0.6);
-    
+    // Icons only on screen; the label is still read out by screen readers.
+    // The active tab gets the filled icon on a soft orange pill.
     return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => _onTap(context, index),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 20, color: color),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w800,
-                fontSize: 8,
-                letterSpacing: 0.5,
-                color: color,
+      child: Semantics(
+        label: label,
+        button: true,
+        selected: isActive,
+        excludeSemantics: true,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => _onTap(context, index),
+          child: Center(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              width: 52,
+              height: 36,
+              decoration: BoxDecoration(
+                color: isActive
+                    ? AppColors.primary.withValues(alpha: 0.14)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+              ),
+              child: Icon(
+                isActive ? activeIcon : icon,
+                size: 24,
+                color: isActive ? AppColors.primaryText : AppColors.textMuted,
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -72,24 +78,34 @@ class SmartFinBottomNav extends StatelessWidget {
   Widget _buildAddButton(BuildContext context) {
     return Expanded(
       child: Center(
-        child: GestureDetector(
-          onTap: () => ActionHubSheet.show(context),
-          child: Container(
-            width: 44,
-            height: 44,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFF9F29),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFFF9F29).withValues(alpha: 0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.35),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: AppColors.primary,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => ActionHubSheet.show(context),
+              child: const SizedBox(
+                width: 48,
+                height: 44,
+                child: Icon(
+                  Icons.add_rounded,
+                  color: AppColors.onPrimary,
+                  size: 26,
+                  semanticLabel: 'Add',
                 ),
-              ],
+              ),
             ),
-            child: const Icon(Icons.add, color: Colors.white, size: 24),
           ),
         ),
       ),
@@ -108,68 +124,76 @@ class SmartFinBottomNav extends StatelessWidget {
           clipBehavior: Clip.none,
           alignment: Alignment.center,
           children: [
-            // Main Glass Bar
-            ClipRRect(
-              borderRadius: BorderRadius.circular(32),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
-                child: Container(
-                  width: MediaQuery.of(context).size.width * 0.92,
-                  constraints: const BoxConstraints(maxWidth: 448),
-                  height: 64, // Approximate height to fit icons+text comfortably
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color.fromRGBO(255, 255, 255, 0.95),
-                    borderRadius: BorderRadius.circular(32),
-                    border: Border.all(color: const Color.fromRGBO(234, 226, 214, 0.6)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
+            // Main glass bar. The shadow sits outside the clip, which would
+            // otherwise cut it off.
+            DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppRadius.xl),
+                boxShadow: AppShadows.card,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.xl),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                  child: Container(
+                    width: MediaQuery.of(context).size.width * 0.92,
+                    constraints: const BoxConstraints(maxWidth: 448),
+                    height: 64,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withValues(alpha: 0.92),
+                      borderRadius: BorderRadius.circular(AppRadius.xl),
+                      border: Border.all(
+                        color: AppColors.border.withValues(alpha: 0.7),
                       ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildNavItem(
-                        context: context,
-                        index: 0,
-                        icon: Icons.home,
-                        label: 'HOME',
-                        isActive: currentIndex == 0,
-                      ),
-                      _buildNavItem(
-                        context: context,
-                        index: 1,
-                        icon: Icons.history,
-                        label: 'HISTORY',
-                        isActive: currentIndex == 1,
-                      ),
-                      
-                      _buildAddButton(context),
-                      
-                      _buildNavItem(
-                        context: context,
-                        index: 2,
-                        icon: Icons.chat_bubble_outline,
-                        label: 'COACH',
-                        isActive: currentIndex == 2,
-                      ),
-                      _buildNavItem(
-                        context: context,
-                        index: 3,
-                        icon: Icons.person_outline,
-                        label: 'PROFILE',
-                        isActive: currentIndex == 3,
-                      ),
-                    ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildNavItem(
+                          context: context,
+                          index: 0,
+                          icon: Icons.home_outlined,
+                          activeIcon: Icons.home_rounded,
+                          label: 'Home',
+                          isActive: currentIndex == 0,
+                        ),
+                        _buildNavItem(
+                          context: context,
+                          index: 1,
+                          icon: Icons.receipt_long_outlined,
+                          activeIcon: Icons.receipt_long_rounded,
+                          label: 'History',
+                          isActive: currentIndex == 1,
+                        ),
+
+                        _buildAddButton(context),
+
+                        _buildNavItem(
+                          context: context,
+                          index: 2,
+                          icon: Icons.chat_bubble_outline_rounded,
+                          activeIcon: Icons.chat_bubble_rounded,
+                          label: 'AI Coach',
+                          isActive: currentIndex == 2,
+                        ),
+                        _buildNavItem(
+                          context: context,
+                          index: 3,
+                          icon: Icons.person_outline_rounded,
+                          activeIcon: Icons.person_rounded,
+                          label: 'Profile',
+                          isActive: currentIndex == 3,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-
           ],
         ),
       ),
