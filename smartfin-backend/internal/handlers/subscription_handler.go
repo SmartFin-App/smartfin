@@ -336,6 +336,9 @@ func (h *SubscriptionHandler) MarkPaid(c *fiber.Ctx) error {
 	}
 	var body struct {
 		ExpectedDueDate string `json:"expected_due_date"`
+		// The payment is already in the user's history (its slip was scanned),
+		// so only the due date moves and no second expense is booked.
+		SkipExpense bool `json:"skip_expense"`
 	}
 	_ = c.BodyParser(&body)
 
@@ -389,6 +392,16 @@ func (h *SubscriptionHandler) MarkPaid(c *fiber.Ctx) error {
 		current := sub
 		_ = h.collection.FindOne(ctx, owned).Decode(&current)
 		return conflict("This bill was already marked paid", current)
+	}
+
+	if body.SkipExpense {
+		sub.NextDueDate = newDue
+		sub.LastPaidAt = &now
+		sub.UpdatedAt = now
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"message":      fmt.Sprintf("%s marked paid — next due %s", sub.Name, newDue.In(summaries.Zone).Format("Jan 2")),
+			"subscription": toSubscriptionResponse(sub, now),
+		})
 	}
 
 	tx := models.Transaction{

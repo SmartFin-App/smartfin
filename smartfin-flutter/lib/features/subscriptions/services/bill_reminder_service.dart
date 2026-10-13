@@ -95,6 +95,14 @@ class BillReminderService {
       if (defaultTargetPlatform == TargetPlatform.android) {
         return await _android?.areNotificationsEnabled() ?? false;
       }
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        // Ask iOS rather than assuming: a denied prompt is never shown again,
+        // and reminders then fail without any error.
+        final status = await _plugin
+            .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+            ?.checkPermissions();
+        return status?.isEnabled ?? false;
+      }
       return true;
     } catch (_) {
       return false;

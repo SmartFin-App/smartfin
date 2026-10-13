@@ -42,9 +42,12 @@ abstract class SubscriptionRepository {
   /// Logs the bill as an expense for today and moves its due date on a cycle.
   /// [expectedDueDate] is the `due_date` the user saw — the server refuses
   /// (409) if the bill has already moved on, so a double tap books one expense.
+  /// With [skipExpense] only the due date moves: the payment is already in the
+  /// user's history, usually because its slip was scanned.
   Future<ApiResponse<Map<String, dynamic>>> markPaid({
     required String subscriptionID,
     required String userID,
     required String expectedDueDate,
+    bool skipExpense = false,
   });
 }

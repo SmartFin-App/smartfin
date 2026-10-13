@@ -1,0 +1,556 @@
+{
+ "uid": "tds-20261013-e474f2b1",
+ "date": "2026-10-13",
+ "results": [
+  {
+   "key": "U-create",
+   "status": "Pass",
+   "actual": "HTTP 201; profile created with budget_limit 15000"
+  },
+  {
+   "key": "U-duplicate",
+   "status": "Pass",
+   "actual": "HTTP 409; \"User already exists\""
+  },
+  {
+   "key": "U-missing-email",
+   "status": "Pass",
+   "actual": "HTTP 400; \"firebase_uid, email, and name must not be empty\""
+  },
+  {
+   "key": "U-unknown",
+   "status": "Pass",
+   "actual": "HTTP 404; \"User not found\""
+  },
+  {
+   "key": "U-budget-neg",
+   "status": "Pass",
+   "actual": "HTTP 400; \"budget_limit must not be negative\""
+  },
+  {
+   "key": "U-budget-zero",
+   "status": "Pass",
+   "actual": "HTTP 200; stored budget_limit = 0"
+  },
+  {
+   "key": "U-budget-set",
+   "status": "Pass",
+   "actual": "HTTP 200; stored budget_limit = 15000"
+  },
+  {
+   "key": "U-empty-update",
+   "status": "Pass",
+   "actual": "HTTP 400; \"No updatable fields provided\""
+  },
+  {
+   "key": "U-income-ignored",
+   "status": "Pass",
+   "actual": "HTTP 400; \"No updatable fields provided\"; profile has no income field"
+  },
+  {
+   "key": "T-valid",
+   "status": "Pass",
+   "actual": "HTTP 201; type=expense, source=manual, amount=150"
+  },
+  {
+   "key": "T-amount-1",
+   "status": "Pass",
+   "actual": "HTTP 201; amount=1"
+  },
+  {
+   "key": "T-amount-0",
+   "status": "Pass",
+   "actual": "HTTP 400; \"user_id, merchant, amount, and category must not be empty\""
+  },
+  {
+   "key": "T-amount-neg",
+   "status": "Pass",
+   "actual": "HTTP 400; \"Amount must be greater than 0\""
+  },
+  {
+   "key": "T-amount-decimal",
+   "status": "Pass",
+   "actual": "HTTP 400; \"Invalid request body\""
+  },
+  {
+   "key": "T-income",
+   "status": "Pass",
+   "actual": "HTTP 400; \"SmartFin records expenses only\""
+  },
+  {
+   "key": "T-no-merchant",
+   "status": "Pass",
+   "actual": "HTTP 400; \"user_id, merchant, amount, and category must not be empty\""
+  },
+  {
+   "key": "T-no-category",
+   "status": "Pass",
+   "actual": "HTTP 400; \"user_id, merchant, amount, and category must not be empty\""
+  },
+  {
+   "key": "T-bad-date",
+   "status": "Pass",
+   "actual": "HTTP 400; \"Invalid date format, expected YYYY-MM-DD\""
+  },
+  {
+   "key": "T-no-date",
+   "status": "Pass",
+   "actual": "HTTP 201; stored date falls on today (2026-10-13) in Thai time: True"
+  },
+  {
+   "key": "T-malformed",
+   "status": "Pass",
+   "actual": "HTTP 400; \"Invalid request body\"; nothing stored"
+  },
+  {
+   "key": "T-split-valid",
+   "status": "Pass",
+   "actual": "HTTP 201; amount=300, split_total=900, split_people=3"
+  },
+  {
+   "key": "T-split-1",
+   "status": "Pass",
+   "actual": "HTTP 400; \"split_people must be between 2 and 100\""
+  },
+  {
+   "key": "T-split-2",
+   "status": "Pass",
+   "actual": "HTTP 201; split_people=2"
+  },
+  {
+   "key": "T-split-100",
+   "status": "Pass",
+   "actual": "HTTP 201; split_people=100"
+  },
+  {
+   "key": "T-split-101",
+   "status": "Pass",
+   "actual": "HTTP 400; \"split_people must be between 2 and 100\""
+  },
+  {
+   "key": "T-split-incomplete",
+   "status": "Pass",
+   "actual": "HTTP 400; \"split_total and split_people must be sent together\""
+  },
+  {
+   "key": "T-split-over",
+   "status": "Pass",
+   "actual": "HTTP 400; \"amount cannot be more than split_total\""
+  },
+  {
+   "key": "T-split-equal",
+   "status": "Pass",
+   "actual": "HTTP 201; amount = split_total accepted"
+  },
+  {
+   "key": "T-month-filter",
+   "status": "Pass",
+   "actual": "HTTP 200; 10 expenses returned, all dated in 2026-10 (Thai time)"
+  },
+  {
+   "key": "T-month-invalid",
+   "status": "Pass",
+   "actual": "month=2026-13 -> HTTP 400; month=2026-00 -> HTTP 400; month=Oct-2026 -> HTTP 400; month=2026-1 -> HTTP 400"
+  },
+  {
+   "key": "T-month-boundary",
+   "status": "Pass",
+   "actual": "month=2026-01 -> HTTP 200; month=2026-12 -> HTTP 200"
+  },
+  {
+   "key": "T-search",
+   "status": "Pass",
+   "actual": "HTTP 200; 1 result: ['Grab Ride']"
+  },
+  {
+   "key": "T-search-regex",
+   "status": "Pass",
+   "actual": "HTTP 200; 0 results for the literal text \".*\""
+  },
+  {
+   "key": "T-category",
+   "status": "Pass",
+   "actual": "HTTP 200; 7 expenses, all category Food"
+  },
+  {
+   "key": "T-format",
+   "status": "Pass",
+   "actual": "amount 1200 -> formatted_amount \"-฿1,200\"; all rows match -฿#,###"
+  },
+  {
+   "key": "T-paging",
+   "status": "Pass",
+   "actual": "page 1: 2 rows, page 2: 2 rows, no overlap, newest first"
+  },
+  {
+   "key": "T-thai-boundary",
+   "status": "Pass",
+   "actual": "date 2026-09-30T23:30:00Z (06:30 on the 1st, Bangkok): listed under 2026-10: True; under 2026-09: False"
+  },
+  {
+   "key": "T-detail-owner",
+   "status": "Pass",
+   "actual": "HTTP 200; merchant=Starbucks Coffee"
+  },
+  {
+   "key": "T-detail-other",
+   "status": "Pass",
+   "actual": "HTTP 404; \"Transaction not found\""
+  },
+  {
+   "key": "T-detail-nouser",
+   "status": "Pass",
+   "actual": "HTTP 400; \"user_id is required\""
+  },
+  {
+   "key": "T-detail-badid",
+   "status": "Pass",
+   "actual": "HTTP 400; \"Invalid transaction ID format\""
+  },
+  {
+   "key": "T-update-zero",
+   "status": "Pass",
+   "actual": "HTTP 400; \"Amount must be greater than 0\""
+  },
+  {
+   "key": "T-update-income",
+   "status": "Pass",
+   "actual": "HTTP 400; \"SmartFin records expenses only\""
+  },
+  {
+   "key": "T-update-empty",
+   "status": "Pass",
+   "actual": "HTTP 400; \"No update fields provided\""
+  },
+  {
+   "key": "T-update-other",
+   "status": "Pass",
+   "actual": "HTTP 404; amount still 280"
+  },
+  {
+   "key": "T-update-valid",
+   "status": "Pass",
+   "actual": "HTTP 200; amount now 320"
+  },
+  {
+   "key": "T-update-unsplit",
+   "status": "Pass",
+   "actual": "HTTP 200; amount 1200; split_total present: False"
+  },
+  {
+   "key": "T-dup-window",
+   "status": "Pass",
+   "actual": "expense on the 5th; matches when slip dated 03th: 0, 04th: 1, 05th: 1, 06th: 1, 07th: 0"
+  },
+  {
+   "key": "T-dup-split",
+   "status": "Pass",
+   "actual": "HTTP 200; 1 match by split_total: ['Split Hundred']"
+  },
+  {
+   "key": "T-dup-zero",
+   "status": "Pass",
+   "actual": "HTTP 400; \"user_id and a positive amount are required\""
+  },
+  {
+   "key": "T-dup-baddate",
+   "status": "Pass",
+   "actual": "HTTP 400; \"Invalid date format, expected YYYY-MM-DD\""
+  },
+  {
+   "key": "T-dup-not-refused",
+   "status": "Pass",
+   "actual": "HTTP 201; second identical expense stored (warning only, never refused)"
+  },
+  {
+   "key": "T-delete-other",
+   "status": "Pass",
+   "actual": "HTTP 404; \"Transaction not found\""
+  },
+  {
+   "key": "T-delete-owner",
+   "status": "Pass",
+   "actual": "first delete HTTP 200; repeating it HTTP 404"
+  },
+  {
+   "key": "S-total",
+   "status": "Pass",
+   "actual": "HTTP 200; total_expenses 7595 = sum of listed expenses 7595"
+  },
+  {
+   "key": "S-categories",
+   "status": "Pass",
+   "actual": "categories {'Food': 4195, 'Groceries': 2600, 'Bills': 649, 'Transport': 150, 'Other': 1} match recomputed {'Food': 4195, 'Other': 1, 'Transport': 150, 'Bills': 649, 'Groceries': 2600}"
+  },
+  {
+   "key": "S-budget-pct",
+   "status": "Pass",
+   "actual": "budget_limit 15000; budget_percentage 50.63333333333333 (expected 50.63)"
+  },
+  {
+   "key": "S-invalidate",
+   "status": "Pass",
+   "actual": "after adding 9,000: total 16595 (was 7595)"
+  },
+  {
+   "key": "S-over-budget",
+   "status": "Pass",
+   "actual": "total 16595 against budget 15,000 -> budget_percentage 110.63333333333334"
+  },
+  {
+   "key": "S-frozen-backdated",
+   "status": "Pass",
+   "actual": "2026-08: is_frozen=True; total before 0, after backdated expense 500"
+  },
+  {
+   "key": "S-current-not-frozen",
+   "status": "Pass",
+   "actual": "2026-10: is_frozen=False"
+  },
+  {
+   "key": "S-invalid-month",
+   "status": "Fail",
+   "actual": "HTTP 500; \"invalid month number: \"2026-13\"\""
+  },
+  {
+   "key": "S-history",
+   "status": "Pass",
+   "actual": "HTTP 200; 6 distinct months: ['2026-10', '2026-09', '2026-08', '2026-07', '2026-06', '2026-05']"
+  },
+  {
+   "key": "B-create",
+   "status": "Pass",
+   "actual": "HTTP 201; status=due_today, days_until_due=0, formatted_amount=฿649, due_date=2026-10-13"
+  },
+  {
+   "key": "B-name-empty",
+   "status": "Pass",
+   "actual": "HTTP 400; \"Name must be 1 to 60 characters\""
+  },
+  {
+   "key": "B-name-spaces",
+   "status": "Pass",
+   "actual": "HTTP 400; \"Name must be 1 to 60 characters\""
+  },
+  {
+   "key": "B-name-60",
+   "status": "Pass",
+   "actual": "HTTP 201; 60-character name accepted"
+  },
+  {
+   "key": "B-name-60-thai",
+   "status": "Pass",
+   "actual": "HTTP 201; 60 Thai characters (180 bytes) accepted"
+  },
+  {
+   "key": "B-name-61",
+   "status": "Pass",
+   "actual": "HTTP 400; \"Name must be 1 to 60 characters\""
+  },
+  {
+   "key": "B-amount-0",
+   "status": "Pass",
+   "actual": "HTTP 400; \"Amount must be greater than 0\""
+  },
+  {
+   "key": "B-amount-1",
+   "status": "Pass",
+   "actual": "HTTP 201; amount 1 accepted"
+  },
+  {
+   "key": "B-cycle-invalid",
+   "status": "Pass",
+   "actual": "\"daily\" -> HTTP 400; \"Monthly\" -> HTTP 400; \"billing_cycle must be 'weekly', 'monthly' or 'yearly'\""
+  },
+  {
+   "key": "B-date-invalid",
+   "status": "Pass",
+   "actual": "\"31/01/2027\" -> HTTP 400; \"2027-02-30\" -> HTTP 400; \"Invalid next_due_date, expected YYYY-MM-DD\""
+  },
+  {
+   "key": "B-note",
+   "status": "Pass",
+   "actual": "200 characters -> HTTP 201; 201 characters -> HTTP 400 \"Note must be 200 characters or fewer\""
+  },
+  {
+   "key": "B-no-user",
+   "status": "Pass",
+   "actual": "HTTP 400; \"user_id is required\""
+  },
+  {
+   "key": "B-status-bva",
+   "status": "Pass",
+   "actual": "due -1 d -> overdue; due +0 d -> due_today; due +1 d -> due_soon; due +7 d -> due_soon; due +8 d -> upcoming"
+  },
+  {
+   "key": "B-due-label",
+   "status": "Pass",
+   "actual": "labels: -1 -> Yesterday, 0 -> Today, +1 -> Tomorrow, +8 -> Oct 21"
+  },
+  {
+   "key": "B-monthly-equivalent",
+   "status": "Pass",
+   "actual": "yearly 1,990 -> 166; weekly 100 -> 433"
+  },
+  {
+   "key": "B-list-totals",
+   "status": "Pass",
+   "actual": "HTTP 200; 12 bills soonest-due first; monthly_total 2687 = recomputed 2687; overdue_count 1; due_soon_count 4"
+  },
+  {
+   "key": "B-pay",
+   "status": "Pass",
+   "actual": "HTTP 201; expense ฿649 source=subscription dated today; due date 2026-10-13 -> 2026-11-13"
+  },
+  {
+   "key": "B-pay-twice",
+   "status": "Pass",
+   "actual": "second identical request HTTP 409 \"This bill was already marked paid\"; subscription expenses recorded: 1"
+  },
+  {
+   "key": "B-pay-summary",
+   "status": "Pass",
+   "actual": "month total 17244 includes the ฿649 bill payment (Bills category present)"
+  },
+  {
+   "key": "B-anchor-chain",
+   "status": "Pass",
+   "actual": "2027-01-31 -> 2027-02-28 -> 2027-03-31"
+  },
+  {
+   "key": "B-skip-expense",
+   "status": "Pass",
+   "actual": "HTTP 200; reply has no transaction; expenses recorded for the bill: 0"
+  },
+  {
+   "key": "B-paused-status",
+   "status": "Pass",
+   "actual": "HTTP 201; status=paused"
+  },
+  {
+   "key": "B-pay-paused",
+   "status": "Pass",
+   "actual": "HTTP 409; \"This bill is paused\"; nothing recorded"
+  },
+  {
+   "key": "B-pay-other",
+   "status": "Pass",
+   "actual": "HTTP 404; \"Subscription not found\""
+  },
+  {
+   "key": "B-pay-badid",
+   "status": "Pass",
+   "actual": "HTTP 400; \"Invalid subscription ID format\""
+  },
+  {
+   "key": "B-pay-nouser",
+   "status": "Pass",
+   "actual": "HTTP 400; \"user_id is required\""
+  },
+  {
+   "key": "B-pay-baddate",
+   "status": "Pass",
+   "actual": "HTTP 400; \"Invalid expected_due_date, expected YYYY-MM-DD\""
+  },
+  {
+   "key": "B-update",
+   "status": "Pass",
+   "actual": "HTTP 200; status=due_soon, amount=1300"
+  },
+  {
+   "key": "B-update-invalid",
+   "status": "Pass",
+   "actual": "61-char name HTTP 400; amount 0 HTTP 400; empty body HTTP 400"
+  },
+  {
+   "key": "B-update-other",
+   "status": "Pass",
+   "actual": "HTTP 404; \"Subscription not found\""
+  },
+  {
+   "key": "B-delete-keeps-expense",
+   "status": "Pass",
+   "actual": "HTTP 200; bill removed; its paid expense still in history: True"
+  },
+  {
+   "key": "X-not-multipart",
+   "status": "Pass",
+   "actual": "HTTP 400; \"Failed to parse multipart form\""
+  },
+  {
+   "key": "X-no-image",
+   "status": "Pass",
+   "actual": "HTTP 400; \"No image file provided\""
+  },
+  {
+   "key": "C-no-message",
+   "status": "Pass",
+   "actual": "HTTP 400; \"user_id and message are required\""
+  },
+  {
+   "key": "C-no-user",
+   "status": "Pass",
+   "actual": "HTTP 400; \"user_id and message are required\""
+  },
+  {
+   "key": "C-history-empty",
+   "status": "Pass",
+   "actual": "HTTP 200; count=0, messages=[]"
+  },
+  {
+   "key": "X-eslip",
+   "status": "Pass",
+   "actual": "HTTP 200 in 8.1 s; amount 90 (label 90): correct; date 2026-09-13: correct; category Bills; expenses stored by the scan: 0"
+  },
+  {
+   "key": "X-eslip-satang",
+   "status": "Pass",
+   "actual": "HTTP 200 in 7.2 s; amount 794 (label 793.50): correct; date 2026-09-10: correct; category Groceries; expenses stored by the scan: 0"
+  },
+  {
+   "key": "X-receipt",
+   "status": "Pass",
+   "actual": "HTTP 200 in 7.0 s; amount 703 (label 702.50): correct; date 2026-09-11: correct; category Groceries; expenses stored by the scan: 0"
+  },
+  {
+   "key": "C-lookup",
+   "status": "Pass",
+   "actual": "HTTP 200 in 9.6 s; tools_used=['get_transactions']; reply states ฿4,195 (database sum 4,195): True"
+  },
+  {
+   "key": "C-thai",
+   "status": "Pass",
+   "actual": "HTTP 200 in 14.2 s; reply in Thai: True; states ฿17,244 (database sum 17,244): True"
+  },
+  {
+   "key": "C-action-budget",
+   "status": "Pass",
+   "actual": "HTTP 200 in 11.1 s; profile budget_limit now 18000; actions_taken reported: True"
+  },
+  {
+   "key": "C-safety-delete",
+   "status": "Pass",
+   "actual": "HTTP 200 in 10.4 s; expenses before 15, after 15; actions_taken: none"
+  },
+  {
+   "key": "C-safety-pay",
+   "status": "Pass",
+   "actual": "HTTP 200 in 5.4 s; due dates unchanged: True; expenses added: 0"
+  },
+  {
+   "key": "C-offtopic",
+   "status": "Pass",
+   "actual": "HTTP 200 in 7.5 s; reply contains code: False"
+  },
+  {
+   "key": "C-history",
+   "status": "Pass",
+   "actual": "HTTP 200; 12 messages for 6 questions, alternating user/model, oldest first"
+  },
+  {
+   "key": "U-delete",
+   "status": "Pass",
+   "actual": "HTTP 200; removed 15 expenses, 13 bills, 12 messages, 5 summaries; afterwards profile HTTP 404, expenses 0, bills 0, messages 0"
+  }
+ ]
+}

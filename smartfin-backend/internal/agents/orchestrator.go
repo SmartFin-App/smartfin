@@ -13,10 +13,9 @@ import (
 	"github.com/SmartFin-App/smartfin-backend/config"
 	"github.com/SmartFin-App/smartfin-backend/internal/models"
 	"github.com/SmartFin-App/smartfin-backend/internal/summaries"
-	"github.com/google/generative-ai-go/genai"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	"google.golang.org/api/option"
+	"google.golang.org/genai"
 )
 
 // Orchestrator coordinates multi-agent reasoning, tool dispatch, and generation
@@ -113,11 +112,10 @@ func (o *Orchestrator) ProcessQuery(ctx context.Context, input AskCoachInput) (*
 		return nil, fmt.Errorf("GEMINI_API_KEY is not configured")
 	}
 
-	geminiClient, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
+	geminiClient, err := genai.NewClient(ctx, &genai.ClientConfig{APIKey: apiKey, Backend: genai.BackendGeminiAPI})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Gemini client: %w", err)
 	}
-	defer geminiClient.Close()
 
 	// 1. Fetch user profile context for initial system prompt grounding
 	var user models.User
@@ -157,29 +155,30 @@ Follow this Reasoning Process:
    - Subscriptions and bills are tracked by the user in the app. If the user says they paid a bill, tell them to tap "Mark paid" in Subscriptions & Bills rather than calling add_transaction — that logs the expense and also moves the next due date.
    - Gently redirect non-financial topics back to financial health.`, userContext)
 
-	// Model setup
-	modelName := "gemini-2.5-flash"
-	model := geminiClient.GenerativeModel(modelName)
-	model.SetTemperature(0.5)
-	model.SystemInstruction = genai.NewUserContent(genai.Text(systemInstruction))
-
-	// Register Agent Tools
-	model.Tools = []*genai.Tool{
-		{
-			FunctionDeclarations: o.getFunctionDeclarations(),
+	// Model setup, with the agent tools registered
+	genConfig := &genai.GenerateContentConfig{
+		Temperature:       genai.Ptr[float32](0.5),
+		SystemInstruction: genai.NewContentFromText(systemInstruction, genai.RoleUser),
+		Tools: []*genai.Tool{
+			{
+				FunctionDeclarations: o.getFunctionDeclarations(),
+			},
 		},
 	}
 
-	chat := model.StartChat()
-
 	// Load previous history
+	var history []*genai.Content
 	for _, h := range input.History {
 		if h.Role == "user" || h.Role == "model" {
-			chat.History = append(chat.History, &genai.Content{
-				Role:  h.Role,
-				Parts: []genai.Part{genai.Text(h.Content)},
-			})
+			history = append(history, genai.NewContentFromText(h.Content, genai.Role(h.Role)))
 		}
+	}
+
+	// The chat keeps each model turn exactly as returned, thought signatures
+	// included; Gemini 3 rejects a tool response whose call has lost its signature.
+	chat, err := geminiClient.Chats.Create(ctx, config.GeminiModel, genConfig, history)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start Gemini chat: %w", err)
 	}
 
 	toolsUsedSet := make(map[string]bool)
@@ -189,7 +188,7 @@ Follow this Reasoning Process:
 	nudged := false
 
 	// Send initial user query
-	resp, err := chat.SendMessage(ctx, genai.Text(input.Message))
+	resp, err := chat.Send(ctx, genai.NewPartFromText(input.Message))
 	if err != nil {
 		return nil, fmt.Errorf("gemini send message failed: %w", err)
 	}
@@ -201,15 +200,16 @@ Follow this Reasoning Process:
 		}
 
 		candidate := resp.Candidates[0]
-		var functionCalls []genai.FunctionCall
+		var functionCalls []*genai.FunctionCall
 		var textParts []string
 
 		for _, part := range candidate.Content.Parts {
-			switch p := part.(type) {
-			case genai.FunctionCall:
-				functionCalls = append(functionCalls, p)
-			case genai.Text:
-				textParts = append(textParts, string(p))
+			switch {
+			case part == nil:
+			case part.FunctionCall != nil:
+				functionCalls = append(functionCalls, part.FunctionCall)
+			case part.Text != "" && !part.Thought:
+				textParts = append(textParts, part.Text)
 			}
 		}
 
@@ -221,7 +221,7 @@ Follow this Reasoning Process:
 			if turn == 0 && !nudged && looksLikeStall(text) {
 				nudged = true
 				log.Printf("Orchestrator: first reply announced a lookup without calling a tool; nudging once")
-				next, nerr := chat.SendMessage(ctx, genai.Text(stallNudge))
+				next, nerr := chat.Send(ctx, genai.NewPartFromText(stallNudge))
 				if nerr == nil {
 					resp = next
 					continue
@@ -233,7 +233,7 @@ Follow this Reasoning Process:
 		}
 
 		// Execute all requested tool calls and gather responses
-		var functionResponses []genai.Part
+		var functionResponses []*genai.Part
 		for _, call := range functionCalls {
 			toolsUsedSet[call.Name] = true
 			log.Printf("Orchestrator: Executing tool %s with args: %+v", call.Name, call.Args)
@@ -262,14 +262,17 @@ Follow this Reasoning Process:
 				})
 			}
 
-			functionResponses = append(functionResponses, genai.FunctionResponse{
-				Name:     call.Name,
-				Response: observation,
+			functionResponses = append(functionResponses, &genai.Part{
+				FunctionResponse: &genai.FunctionResponse{
+					ID:       call.ID,
+					Name:     call.Name,
+					Response: observation,
+				},
 			})
 		}
 
 		// Feed tool observations back to Gemini for the next reasoning step
-		resp, err = chat.SendMessage(ctx, functionResponses...)
+		resp, err = chat.Send(ctx, functionResponses...)
 		if err != nil {
 			return nil, fmt.Errorf("gemini tool response failed: %w", err)
 		}

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:smart_fin/widgets/ui/ui.dart';
 import 'package:smart_fin/features/subscriptions/data/subscription_repository_impl.dart';
 import 'package:smart_fin/features/subscriptions/services/bill_reminder_service.dart';
+import 'package:smart_fin/features/transactions/data/transaction_repository_impl.dart';
 
 /// Subscriptions & bills the user tracks by hand: what is overdue, what is due
 /// this week, and what they cost per month. "Mark paid" logs the bill as an
@@ -489,31 +490,38 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     final id = sub['id'] as String? ?? '';
     if (id.isEmpty || _paying.contains(id) || _isBusy) return;
 
+    // The payment may already be in the history, usually because its slip
+    // was scanned. Then only the due date needs to move. A failed check is
+    // treated as no match, so paying still works offline from this lookup.
+    setState(() => _paying.add(id));
+    var matches = const <Map<String, dynamic>>[];
+    try {
+      final amount = (sub['amount'] as num?)?.round() ?? 0;
+      if (amount > 0) {
+        final existing = await TransactionRepositoryImpl()
+            .findPossibleDuplicates(userID: _uid, amount: amount);
+        if (existing.success) matches = existing.data ?? matches;
+      }
+    } finally {
+      if (mounted) setState(() => _paying.remove(id));
+    }
+    if (!mounted) return;
+
     final next = _day(sub['next_due_after_payment'] as String?);
-    final confirmed = await showDialog<bool>(
+    final nextLabel = next != null
+        ? DateFormat('d MMM yyyy').format(next)
+        : null;
+    final choice = await showDialog<PayChoice>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Mark ${sub['name'] ?? 'this bill'} as paid?'),
-        content: Text(
-          'Logs a ${sub['formatted_amount'] ?? ''} ${sub['category'] ?? ''} expense for today'
-          '${next != null ? ' and moves the next due date to ${DateFormat('d MMM yyyy').format(next)}' : ''}.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.textSecondary,
-            ),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Mark paid'),
-          ),
-        ],
+      builder: (ctx) => MarkPaidDialog(
+        name: sub['name'] as String? ?? 'this bill',
+        formattedAmount: sub['formatted_amount'] as String? ?? '',
+        category: sub['category'] as String? ?? '',
+        nextDueLabel: nextLabel,
+        matches: matches,
       ),
     );
-    if (confirmed != true || !mounted || _paying.contains(id)) return;
+    if (choice == null || !mounted || _paying.contains(id)) return;
 
     setState(() => _paying.add(id));
     try {
@@ -521,6 +529,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
         subscriptionID: id,
         userID: _uid,
         expectedDueDate: sub['due_date'] as String? ?? '',
+        skipExpense: choice == PayChoice.dateOnly,
       );
       if (!mounted) return;
       if (res.success) {
@@ -956,6 +965,107 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// How a bill is marked paid: logging the expense, or only moving its due date
+/// because the payment is already in the history.
+enum PayChoice { logExpense, dateOnly }
+
+/// Confirms "Mark paid". With no [matches] it is the plain confirmation. With
+/// some, the payment looks already recorded, so it offers to move the due date
+/// without logging it a second time.
+class MarkPaidDialog extends StatelessWidget {
+  final String name;
+  final String formattedAmount;
+  final String category;
+  final String? nextDueLabel;
+  final List<Map<String, dynamic>> matches;
+
+  const MarkPaidDialog({
+    super.key,
+    required this.name,
+    required this.formattedAmount,
+    required this.category,
+    required this.nextDueLabel,
+    this.matches = const [],
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cancel = TextButton(
+      onPressed: () => Navigator.pop(context),
+      style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+      child: const Text('Cancel'),
+    );
+
+    if (matches.isEmpty) {
+      return AlertDialog(
+        title: Text('Mark $name as paid?'),
+        content: Text(
+          'Logs a $formattedAmount $category expense for today'
+          '${nextDueLabel != null ? ' and moves the next due date to $nextDueLabel' : ''}.',
+        ),
+        actions: [
+          cancel,
+          TextButton(
+            onPressed: () => Navigator.pop(context, PayChoice.logExpense),
+            child: const Text('Mark paid'),
+          ),
+        ],
+      );
+    }
+
+    return AlertDialog(
+      // Up to three matches and three stacked actions: scroll on a small phone.
+      scrollable: true,
+      title: const Text('Already in your history?'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'An expense of $formattedAmount is already recorded:',
+            style: AppTextStyles.body,
+          ),
+          for (final tx in matches) ...[
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              tx['merchant'] as String? ?? '-',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.bodyStrong,
+            ),
+            Text(
+              [
+                tx['formatted_amount'] as String? ?? '',
+                tx['formatted_date'] as String? ?? '',
+              ].where((part) => part.isNotEmpty).join(' · '),
+              style: AppTextStyles.caption,
+            ),
+          ],
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            'If that is this payment, just move the due date'
+            '${nextDueLabel != null ? ' to $nextDueLabel' : ''}. '
+            'Logging it too would count it twice.',
+            style: AppTextStyles.body,
+          ),
+        ],
+      ),
+      actions: [
+        cancel,
+        TextButton(
+          onPressed: () => Navigator.pop(context, PayChoice.logExpense),
+          style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+          child: const Text('Log it too'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, PayChoice.dateOnly),
+          child: const Text('Move date only'),
+        ),
+      ],
     );
   }
 }

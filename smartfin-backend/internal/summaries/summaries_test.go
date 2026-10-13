@@ -108,3 +108,29 @@ func TestBaht(t *testing.T) {
 		}
 	}
 }
+
+func TestDuplicateWindowCoversTheDayEitherSide(t *testing.T) {
+	day := time.Date(2026, 10, 13, 0, 0, 0, 0, Zone)
+	start, end := DuplicateWindow(day)
+
+	in := []time.Time{
+		time.Date(2026, 10, 12, 0, 0, 0, 0, Zone),       // start of the day before
+		time.Date(2026, 10, 13, 0, 0, 0, 0, time.UTC),   // a date-only expense: UTC midnight
+		time.Date(2026, 10, 14, 23, 59, 0, 0, Zone),     // marked paid late the next day
+		time.Date(2026, 10, 14, 16, 30, 0, 0, time.UTC), // the same evening, as Mongo returns it
+	}
+	out := []time.Time{
+		time.Date(2026, 10, 11, 23, 59, 0, 0, Zone),
+		time.Date(2026, 10, 15, 0, 0, 0, 0, Zone),
+	}
+	for _, ts := range in {
+		if ts.Before(start) || !ts.Before(end) {
+			t.Errorf("%s should fall inside the window %s – %s", ts, start, end)
+		}
+	}
+	for _, ts := range out {
+		if !ts.Before(start) && ts.Before(end) {
+			t.Errorf("%s should fall outside the window %s – %s", ts, start, end)
+		}
+	}
+}

@@ -372,6 +372,9 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     final style = _styleFor(category);
     final amount = (tx['amount'] as num?) ?? 0;
     final source = tx['source'] as String? ?? 'manual';
+    // Present only when the slip was shared; amount is then the user's share.
+    final splitTotal = (tx['split_total'] as num?) ?? 0;
+    final splitPeople = (tx['split_people'] as num?)?.toInt() ?? 0;
 
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
@@ -419,6 +422,16 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                 ),
                 const Divider(indent: AppSpacing.lg, endIndent: AppSpacing.lg),
                 _row('Added by', _sourceLabel(source)),
+                if (splitTotal > 0 && splitPeople > 1) ...[
+                  const Divider(
+                    indent: AppSpacing.lg,
+                    endIndent: AppSpacing.lg,
+                  ),
+                  _row(
+                    'Split',
+                    'Your share of ${_baht(splitTotal)} · $splitPeople people',
+                  ),
+                ],
               ],
             ),
           ),

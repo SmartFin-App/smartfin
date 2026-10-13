@@ -29,6 +29,32 @@ class SlipCheckResult {
   const SlipCheckResult(this.status, [this.slip]);
 }
 
+/// Slips already in the gallery when Auto-Detect first ran, saved earlier in
+/// that same month. The user is asked once whether to add them.
+class EarlierSlipsOffer {
+  final int count;
+
+  /// First day of the month Auto-Detect first ran in, Thai time.
+  final DateTime monthStart;
+
+  /// When Auto-Detect first ran on this phone.
+  final DateTime firstRunAt;
+
+  const EarlierSlipsOffer({
+    required this.count,
+    required this.monthStart,
+    required this.firstRunAt,
+  });
+}
+
+/// Where a slip sits in the review queue of earlier slips the user chose to add.
+class SlipQueueProgress {
+  final int position;
+  final int total;
+
+  const SlipQueueProgress({required this.position, required this.total});
+}
+
 /// One album on the device, as offered in the folder picker.
 class GalleryAlbum {
   final String id;
@@ -50,7 +76,8 @@ class GalleryAlbum {
 /// Service that monitors the "SmartFin Receipts" gallery album
 /// to detect newly saved PromptPay / mobile banking payment confirmation slips.
 class GalleryWatcherService {
-  static final GalleryWatcherService _instance = GalleryWatcherService._internal();
+  static final GalleryWatcherService _instance =
+      GalleryWatcherService._internal();
   factory GalleryWatcherService() => _instance;
   GalleryWatcherService._internal();
 
@@ -58,7 +85,171 @@ class GalleryWatcherService {
   static const String _watcherEnabledKey = 'smartfin_gallery_watcher_enabled';
   static const String _selectedAlbumsKey = 'smartfin_slip_album_ids';
   static const String _folderPromptSeenKey = 'smartfin_slip_folder_prompt_seen';
+  static const String _firstRunAtKey = 'smartfin_slip_first_run_ms';
+  static const String _cutoffKey = 'smartfin_slip_cutoff_ms';
+  static const String _queueTotalKey = 'smartfin_slip_queue_total';
   static const String targetAlbumName = 'SmartFin Receipts';
+
+  /// Assets read per album when walking back to the cutoff.
+  static const int _pageSize = 50;
+  static const int _maxAssetsPerAlbum = 300;
+
+  /// Thailand has a fixed offset and no daylight saving.
+  static const Duration _thaiOffset = Duration(hours: 7);
+
+  /// Midnight on the first day of [t]'s month in Thai time (+07:00), as an
+  /// instant. A phone set to another timezone still gets the Thai month, which
+  /// is the month the backend files the spending under.
+  static DateTime thaiMonthStart(DateTime t) {
+    final thai = t.toUtc().add(_thaiOffset);
+    return DateTime.utc(thai.year, thai.month).subtract(_thaiOffset);
+  }
+
+  /// When a slip was saved. Some Android folders report no creation date.
+  static DateTime _savedAt(AssetEntity asset) =>
+      asset.createDateTime.year < 2000
+      ? asset.modifiedDateTime
+      : asset.createDateTime;
+
+  /// When Auto-Detect first ran on this phone, recorded on the first call.
+  Future<DateTime> _firstRunAt(SharedPreferences prefs) async {
+    final stored = prefs.getInt(_firstRunAtKey);
+    if (stored != null) return DateTime.fromMillisecondsSinceEpoch(stored);
+    final now = DateTime.now();
+    await prefs.setInt(_firstRunAtKey, now.millisecondsSinceEpoch);
+    return now;
+  }
+
+  /// Slips saved before this are never offered. Until the user has answered the
+  /// earlier-slips question it is the first run itself, so a new install is not
+  /// walked backwards through every old slip in the gallery.
+  Future<DateTime> _cutoff(SharedPreferences prefs) async {
+    final stored = prefs.getInt(_cutoffKey);
+    if (stored != null) return DateTime.fromMillisecondsSinceEpoch(stored);
+    return _firstRunAt(prefs);
+  }
+
+  /// Unprocessed slips in [album] saved in [from, to), newest first.
+  Future<List<AssetEntity>> _unprocessedBetween(
+    AssetPathEntity album,
+    Set<String> processedIds,
+    DateTime from,
+    DateTime? to,
+  ) async {
+    final found = <AssetEntity>[];
+    for (var start = 0; start < _maxAssetsPerAlbum; start += _pageSize) {
+      final page = await album.getAssetListRange(
+        start: start,
+        end: start + _pageSize,
+      );
+      for (final asset in page) {
+        final savedAt = _savedAt(asset);
+        // Assets come back newest-first, so everything after this is older.
+        if (savedAt.isBefore(from)) return found;
+        if (to != null && !savedAt.isBefore(to)) continue;
+        if (!processedIds.contains(asset.id)) found.add(asset);
+      }
+      if (page.length < _pageSize) break;
+    }
+    return found;
+  }
+
+  /// The one-time question for a new install: slips saved earlier this month,
+  /// before Auto-Detect first ran. Null once answered, when there are none, or
+  /// while there is no photo access or watched folder to look in yet.
+  ///
+  /// Older months are never offered: adding them would file spending under
+  /// months the user was not tracking.
+  Future<EarlierSlipsOffer?> pendingEarlierSlipsOffer() async {
+    try {
+      if (!await isWatcherEnabled()) return null;
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getInt(_cutoffKey) != null) return null;
+      final firstRunAt = await _firstRunAt(prefs);
+
+      if (!await requestPermission()) return null;
+      final albums = await findSlipAlbums();
+      if (albums.isEmpty) return null;
+
+      final processedIds = (prefs.getStringList(_processedSlipsKey) ?? [])
+          .toSet();
+      final monthStart = thaiMonthStart(firstRunAt);
+      var count = 0;
+      for (final album in albums.take(_maxWatchedAlbums)) {
+        count += (await _unprocessedBetween(
+          album,
+          processedIds,
+          monthStart,
+          firstRunAt,
+        )).length;
+      }
+      if (count == 0) {
+        // Nothing to ask about: settle on "from the first run" for good.
+        await prefs.setInt(_cutoffKey, firstRunAt.millisecondsSinceEpoch);
+        return null;
+      }
+      return EarlierSlipsOffer(
+        count: count,
+        monthStart: monthStart,
+        firstRunAt: firstRunAt,
+      );
+    } catch (e) {
+      debugPrint('Error checking for earlier slips: $e');
+      return null;
+    }
+  }
+
+  /// Records the answer to [pendingEarlierSlipsOffer]: include this month's
+  /// earlier slips, or only those saved since Auto-Detect first ran.
+  Future<void> answerEarlierSlipsOffer(
+    EarlierSlipsOffer offer, {
+    required bool include,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final cutoff = include ? offer.monthStart : offer.firstRunAt;
+    await prefs.setInt(_cutoffKey, cutoff.millisecondsSinceEpoch);
+    if (include) await prefs.setInt(_queueTotalKey, offer.count);
+  }
+
+  /// [slip]'s place in the review queue, or null when it is an ordinary new
+  /// slip or the queue is finished.
+  ///
+  /// The position is derived from how many earlier slips are still unprocessed
+  /// rather than stored, so it stays right across restarts and whether a slip
+  /// left the queue by being saved or skipped.
+  Future<SlipQueueProgress?> queueProgressFor(DetectedSlip slip) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final total = prefs.getInt(_queueTotalKey);
+      if (total == null) return null;
+      final firstRunAt = await _firstRunAt(prefs);
+      if (!slip.createDateTime.isBefore(firstRunAt)) return null;
+
+      final processedIds = (prefs.getStringList(_processedSlipsKey) ?? [])
+          .toSet();
+      final monthStart = thaiMonthStart(firstRunAt);
+      var remaining = 0;
+      for (final album in (await findSlipAlbums()).take(_maxWatchedAlbums)) {
+        remaining += (await _unprocessedBetween(
+          album,
+          processedIds,
+          monthStart,
+          firstRunAt,
+        )).length;
+      }
+      if (remaining == 0) {
+        await prefs.remove(_queueTotalKey);
+        return null;
+      }
+      return SlipQueueProgress(
+        position: (total - remaining + 1).clamp(1, total),
+        total: total,
+      );
+    } catch (e) {
+      debugPrint('Error reading slip queue progress: $e');
+      return null;
+    }
+  }
 
   /// Ceiling on albums read per check. The watcher runs on every dashboard load,
   /// and each album costs a MediaStore query.
@@ -69,20 +260,39 @@ class GalleryWatcherService {
   /// phones show "KPLUS", "K PLUS" and "K+ Plus" for the same app, and matching
   /// the literal string 'k plus' missed every one of them but the middle.
   static const List<String> bankAlbumAliases = [
-    'kplus', 'kasikorn', 'kbank',
-    'scbeasy', 'scb',
-    'krungthai', 'ktb', 'next',
-    'bualuang', 'bangkokbank', 'bbl',
-    'krungsri', 'kma',
-    'ttb', 'tmb',
-    'promptpay', 'truemoney', 'truewallet',
-    'mymo', 'gsb',
-    'uob', 'cimb', 'lhbank', 'baac',
+    'kplus',
+    'kasikorn',
+    'kbank',
+    'scbeasy',
+    'scb',
+    'krungthai',
+    'ktb',
+    'next',
+    'bualuang',
+    'bangkokbank',
+    'bbl',
+    'krungsri',
+    'kma',
+    'ttb',
+    'tmb',
+    'promptpay',
+    'truemoney',
+    'truewallet',
+    'mymo',
+    'gsb',
+    'uob',
+    'cimb',
+    'lhbank',
+    'baac',
   ];
 
   /// Keywords that mark a folder as slip-specific whatever the bank.
   static const List<String> slipKeywordAliases = [
-    'smartfin', 'receipt', 'slip', 'สลิป', 'ใบเสร็จ',
+    'smartfin',
+    'receipt',
+    'slip',
+    'สลิป',
+    'ใบเสร็จ',
   ];
 
   /// Lower-cases and drops everything that is not a letter, digit or combining
@@ -135,7 +345,8 @@ class GalleryWatcherService {
   /// Screenshots gets watched.
   Future<Set<String>> selectedAlbumIds() async {
     final prefs = await SharedPreferences.getInstance();
-    return (prefs.getStringList(_selectedAlbumsKey) ?? const <String>[]).toSet();
+    return (prefs.getStringList(_selectedAlbumsKey) ?? const <String>[])
+        .toSet();
   }
 
   Future<void> setSelectedAlbumIds(Set<String> ids) async {
@@ -192,13 +403,15 @@ class GalleryWatcherService {
       );
 
       debugPrint(
-          "GalleryWatcher: Available albums in gallery (${albums.length}): ${albums.map((a) => a.name).toList()}");
+        "GalleryWatcher: Available albums in gallery (${albums.length}): ${albums.map((a) => a.name).toList()}",
+      );
 
       final chosen = await selectedAlbumIds();
       if (chosen.isNotEmpty) {
         final picked = albums.where((a) => chosen.contains(a.id)).toList();
         debugPrint(
-            "GalleryWatcher: Using ${picked.length} user-selected album(s): ${picked.map((a) => a.name).toList()}");
+          "GalleryWatcher: Using ${picked.length} user-selected album(s): ${picked.map((a) => a.name).toList()}",
+        );
         // Every selected album is gone (uninstalled app, cleared folder): fall
         // through to the cascade rather than silently watching nothing.
         if (picked.isNotEmpty) return picked;
@@ -222,7 +435,8 @@ class GalleryWatcherService {
         debugPrint("GalleryWatcher: No slip-specific album found.");
       } else {
         debugPrint(
-            "GalleryWatcher: Matched ${matches.length} album(s): ${matches.map((a) => a.name).toList()}");
+          "GalleryWatcher: Matched ${matches.length} album(s): ${matches.map((a) => a.name).toList()}",
+        );
       }
       return matches;
     } catch (e) {
@@ -246,15 +460,19 @@ class GalleryWatcherService {
       final permitted = await requestPermission();
       if (!permitted) return const [];
 
-      final albums = await PhotoManager.getAssetPathList(type: RequestType.image);
+      final albums = await PhotoManager.getAssetPathList(
+        type: RequestType.image,
+      );
       final result = <GalleryAlbum>[];
       for (final album in albums) {
-        result.add(GalleryAlbum(
-          id: album.id,
-          name: album.name,
-          count: await album.assetCountAsync,
-          autoMatched: looksLikeSlipAlbum(album.name),
-        ));
+        result.add(
+          GalleryAlbum(
+            id: album.id,
+            name: album.name,
+            count: await album.assetCountAsync,
+            autoMatched: looksLikeSlipAlbum(album.name),
+          ),
+        );
       }
       result.sort((a, b) {
         if (a.autoMatched != b.autoMatched) return a.autoMatched ? -1 : 1;
@@ -289,7 +507,9 @@ class GalleryWatcherService {
       }
 
       final prefs = await SharedPreferences.getInstance();
-      final processedIds = (prefs.getStringList(_processedSlipsKey) ?? []).toSet();
+      final processedIds = (prefs.getStringList(_processedSlipsKey) ?? [])
+          .toSet();
+      final cutoff = await _cutoff(prefs);
 
       // Newest unprocessed slip across every watched album, not merely the first
       // album's: with two banking apps installed, whichever album happened to
@@ -297,16 +517,17 @@ class GalleryWatcherService {
       AssetEntity? newest;
       AssetPathEntity? newestAlbum;
       for (final album in albums.take(_maxWatchedAlbums)) {
-        final assets = await album.getAssetListRange(start: 0, end: 10);
-        for (final asset in assets) {
-          if (processedIds.contains(asset.id)) continue;
-          if (newest == null || asset.createDateTime.isAfter(newest.createDateTime)) {
-            newest = asset;
-            newestAlbum = album;
-          }
-          // Assets come back newest-first, so the rest of this album is older
-          // than the one just considered.
-          break;
+        final unprocessed = await _unprocessedBetween(
+          album,
+          processedIds,
+          cutoff,
+          null,
+        );
+        if (unprocessed.isEmpty) continue;
+        final asset = unprocessed.first;
+        if (newest == null || _savedAt(asset).isAfter(_savedAt(newest))) {
+          newest = asset;
+          newestAlbum = album;
         }
       }
 
@@ -319,7 +540,7 @@ class GalleryWatcherService {
               asset: newest,
               file: file,
               albumName: newestAlbum?.name ?? '',
-              createDateTime: newest.createDateTime,
+              createDateTime: _savedAt(newest),
             ),
           );
         }
@@ -336,7 +557,8 @@ class GalleryWatcherService {
   Future<void> markSlipAsProcessed(String assetId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final processedIds = (prefs.getStringList(_processedSlipsKey) ?? []).toSet();
+      final processedIds = (prefs.getStringList(_processedSlipsKey) ?? [])
+          .toSet();
       processedIds.add(assetId);
 
       // Keep set size reasonable (last 300 IDs)

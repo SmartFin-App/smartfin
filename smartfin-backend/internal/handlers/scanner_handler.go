@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -11,9 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/SmartFin-App/smartfin-backend/config"
+	"github.com/SmartFin-App/smartfin-backend/internal/models"
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/generative-ai-go/genai"
-	"google.golang.org/api/option"
+	"google.golang.org/genai"
 )
 
 // ScannerHandler handles receipt scanning via Gemini Vision
@@ -72,16 +72,11 @@ func (h *ScannerHandler) ProcessReceipt(c *fiber.Ctx) error {
 
 	// Create Gemini client
 	ctx := context.Background()
-	client, err := genai.NewClient(ctx, option.WithAPIKey(os.Getenv("GEMINI_API_KEY")))
+	client, err := genai.NewClient(ctx, &genai.ClientConfig{APIKey: os.Getenv("GEMINI_API_KEY"), Backend: genai.BackendGeminiAPI})
 	if err != nil {
 		log.Printf("Error creating Gemini client: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create AI client"})
 	}
-	defer client.Close()
-
-	// Use gemini-1.5-flash model
-	model := client.GenerativeModel("gemini-2.5-flash")
-	model.SetTemperature(0)
 
 	// Build the prompt
 	prompt := `Analyze this image, which is either a retail receipt or a Thai mobile banking payment confirmation slip (e-slip from PromptPay, K PLUS, SCB EASY, Krungthai NEXT, Bangkok Bank, etc.).
@@ -91,26 +86,33 @@ Extract:
 - merchant_name: the store, merchant, or recipient name (if written in Thai, transliterate to clear English, e.g. "Somchai Market" or "KFC Central World")
 - total_amount: the final transaction or payment amount as an integer number only (no currency symbols, no decimals, e.g. 150)
 - date: the date in YYYY-MM-DD format (if only DD/MM/YYYY or Thai Buddhist year like 2567/2569 is shown, convert properly to Gregorian YYYY-MM-DD; if not found use today's date)
+- category: what the money was spent on, as exactly one of: Food, Transport, Groceries, Shopping, Bills, Health, Entertainment, Other. Judge it from what the merchant sells: restaurants, cafes, street food and food delivery are Food; BTS, MRT, taxis, ride-hailing, fuel and tolls are Transport; supermarkets, convenience stores and fresh markets are Groceries; clothing, electronics, department stores and online marketplaces are Shopping; electricity, water, internet, phone, rent and condo fees are Bills; pharmacies, clinics and hospitals are Health; cinemas, streaming, games and events are Entertainment. If the recipient is a person's name, or nothing shows what was bought, use Other rather than guessing.
 - confidence: your confidence score from 0.0 to 1.0
 
 Example response:
-{"merchant_name":"Lotus's","total_amount":350,"date":"2026-04-01","confidence":0.95}
+{"merchant_name":"Lotus's","total_amount":350,"date":"2026-04-01","category":"Groceries","confidence":0.95}
 
 If you cannot read the image clearly, still return your best guess with a lower confidence score.`
 
 	// Send image + prompt to Gemini
-	imageData := genai.Blob{MIMEType: mimeType, Data: imageBytes}
-	resp, err := model.GenerateContent(ctx, genai.Text(prompt), imageData)
+	contents := []*genai.Content{
+		genai.NewContentFromParts([]*genai.Part{
+			genai.NewPartFromText(prompt),
+			genai.NewPartFromBytes(imageBytes, mimeType),
+		}, genai.RoleUser),
+	}
+	resp, err := client.Models.GenerateContent(ctx, config.GeminiModel, contents,
+		&genai.GenerateContentConfig{Temperature: genai.Ptr[float32](0)})
 	if err != nil {
 		log.Printf("Error calling Gemini: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to analyze receipt"})
 	}
 
 	// Extract the response text
-	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+	responseText := resp.Text()
+	if responseText == "" {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "No response from AI"})
 	}
-	responseText := fmt.Sprintf("%v", resp.Candidates[0].Content.Parts[0])
 	log.Printf("Gemini response: %s", responseText)
 
 	// Clean the response and parse JSON
@@ -129,6 +131,7 @@ If you cannot read the image clearly, still return your best guess with a lower 
 			"merchant":   "Unknown Merchant",
 			"amount":     0,
 			"date":       time.Now().Format("2006-01-02"),
+			"category":   "Other",
 			"confidence": 0.0,
 			"raw_text":   responseText,
 		})
@@ -150,17 +153,22 @@ If you cannot read the image clearly, still return your best guess with a lower 
 		date = d
 	}
 
+	// The verify screen preselects this; the user still confirms it.
+	rawCategory, _ := result["category"].(string)
+	category := models.NormalizeCategory(rawCategory)
+
 	confidence := 0.0
 	if conf, ok := result["confidence"].(float64); ok {
 		confidence = conf
 	}
 
-	log.Printf("Extracted - Merchant: %s, Amount: %d, Date: %s, Confidence: %.2f", merchant, amount, date, confidence)
+	log.Printf("Extracted - Merchant: %s, Amount: %d, Date: %s, Category: %s, Confidence: %.2f", merchant, amount, date, category, confidence)
 
 	return c.JSON(fiber.Map{
 		"merchant":   merchant,
 		"amount":     amount,
 		"date":       date,
+		"category":   category,
 		"confidence": confidence,
 		"raw_text":   responseText,
 	})

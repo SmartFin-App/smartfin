@@ -7,12 +7,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/SmartFin-App/smartfin-backend/config"
 	"github.com/SmartFin-App/smartfin-backend/internal/summaries"
-	"github.com/google/generative-ai-go/genai"
+	"google.golang.org/genai"
 )
 
 const (
-	modelName   = "gemini-2.5-flash"
+	modelName   = config.GeminiModel
 	temperature = 0.5
 )
 
@@ -102,24 +103,29 @@ func OneShotPrompt(d UserData, t Truth, now time.Time) string {
 // askGemini sends one question to a plain chat with the given system prompt,
 // replaying history the same way the orchestrator does.
 func askGemini(ctx context.Context, client *genai.Client, system string, history []Turn, question string) (string, error) {
-	model := client.GenerativeModel(modelName)
-	model.SetTemperature(temperature)
-	model.SystemInstruction = genai.NewUserContent(genai.Text(system))
-	chat := model.StartChat()
+	genConfig := &genai.GenerateContentConfig{
+		Temperature:       genai.Ptr[float32](temperature),
+		SystemInstruction: genai.NewContentFromText(system, genai.RoleUser),
+	}
+	var past []*genai.Content
 	for _, h := range history {
 		if h.Role == "user" || h.Role == "model" {
-			chat.History = append(chat.History, &genai.Content{Role: h.Role, Parts: []genai.Part{genai.Text(h.Content)}})
+			past = append(past, genai.NewContentFromText(h.Content, genai.Role(h.Role)))
 		}
 	}
-	resp, err := chat.SendMessage(ctx, genai.Text(question))
+	chat, err := client.Chats.Create(ctx, modelName, genConfig, past)
+	if err != nil {
+		return "", err
+	}
+	resp, err := chat.Send(ctx, genai.NewPartFromText(question))
 	if err != nil {
 		return "", err
 	}
 	var parts []string
 	if len(resp.Candidates) > 0 && resp.Candidates[0].Content != nil {
 		for _, p := range resp.Candidates[0].Content.Parts {
-			if text, ok := p.(genai.Text); ok {
-				parts = append(parts, string(text))
+			if p != nil && p.Text != "" && !p.Thought {
+				parts = append(parts, p.Text)
 			}
 		}
 	}

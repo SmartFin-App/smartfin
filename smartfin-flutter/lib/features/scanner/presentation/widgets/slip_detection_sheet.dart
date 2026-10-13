@@ -9,16 +9,39 @@ class SlipDetectionSheet extends StatelessWidget {
   final DetectedSlip slip;
   final VoidCallback? onDismissed;
 
-  const SlipDetectionSheet({super.key, required this.slip, this.onDismissed});
+  /// Set when the slip is one of the earlier slips the user chose to add on
+  /// first run; the sheet then shows a counter and offers to stop.
+  final SlipQueueProgress? progress;
 
-  /// Helper to show this sheet
-  static Future<void> show(BuildContext context, DetectedSlip slip) {
-    return showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (ctx) => SlipDetectionSheet(slip: slip),
-    );
+  const SlipDetectionSheet({
+    super.key,
+    required this.slip,
+    this.onDismissed,
+    this.progress,
+  });
+
+  /// Helper to show this sheet.
+  ///
+  /// In the review queue, skipping a slip opens the next one straight away
+  /// rather than waiting for the next app resume. Saving one returns to the
+  /// dashboard, whose own check then carries on with the queue.
+  static Future<void> show(BuildContext context, DetectedSlip slip) async {
+    final watcher = GalleryWatcherService();
+    DetectedSlip? current = slip;
+    while (current != null) {
+      final shown = current;
+      final progress = await watcher.queueProgressFor(shown);
+      if (!context.mounted) return;
+      final skipped = await showModalBottomSheet<bool>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (ctx) => SlipDetectionSheet(slip: shown, progress: progress),
+      );
+      if (skipped != true || progress == null) return;
+      current = await watcher.checkForNewSlips();
+      if (!context.mounted) return;
+    }
   }
 
   @override
@@ -73,7 +96,9 @@ class SlipDetectionSheet extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'New payment slip found',
+              progress == null
+                  ? 'New payment slip found'
+                  : 'Earlier slip ${progress!.position} of ${progress!.total}',
               textAlign: TextAlign.center,
               style: AppTextStyles.title,
             ),
@@ -186,12 +211,21 @@ class SlipDetectionSheet extends StatelessWidget {
                   slip.asset.id,
                 );
                 if (context.mounted) {
-                  Navigator.of(context).pop();
+                  Navigator.of(context).pop(true);
                 }
                 onDismissed?.call();
               },
-              child: const Text('Not this one'),
+              child: Text(progress == null ? 'Not this one' : 'Skip this one'),
             ),
+            if (progress != null)
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.textSecondary,
+                ),
+                // Nothing is marked, so the rest are offered again later.
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Stop for now'),
+              ),
           ],
         ),
       ),

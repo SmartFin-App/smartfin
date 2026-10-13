@@ -9,6 +9,17 @@ abstract class TransactionRepository {
     required String category,
     required String source,
     required DateTime date,
+    int? splitTotal,
+    int? splitPeople,
+  });
+
+  /// Expenses that may already record a payment: the same amount within a day
+  /// of [date], or of today (as the server sees it) when none is given. Used to
+  /// warn before saving, never to block.
+  Future<ApiResponse<List<Map<String, dynamic>>>> findPossibleDuplicates({
+    required String userID,
+    required int amount,
+    DateTime? date,
   });
 
   Future<ApiResponse<List<Map<String, dynamic>>>> getTransactions({

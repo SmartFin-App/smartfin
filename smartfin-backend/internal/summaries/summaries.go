@@ -92,3 +92,14 @@ func Baht(amount int64) string {
 	}
 	return "฿" + string(b)
 }
+
+// DuplicateWindow is the span searched for an expense that may already record
+// the payment on a slip dated day (a Thai calendar day): the day before through
+// the day after. A bill is often marked paid, or a slip scanned, a day away from
+// the date printed on the slip; a wider span would mostly catch unrelated
+// payments of the same amount.
+func DuplicateWindow(day time.Time) (start, end time.Time) {
+	d := day.In(Zone)
+	midnight := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, Zone)
+	return midnight.AddDate(0, 0, -1), midnight.AddDate(0, 0, 2)
+}

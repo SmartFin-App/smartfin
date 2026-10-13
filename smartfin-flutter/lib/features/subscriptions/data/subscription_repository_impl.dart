@@ -107,11 +107,16 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
     required String subscriptionID,
     required String userID,
     required String expectedDueDate,
+    bool skipExpense = false,
   }) async {
     try {
       final response = await DioClient.dio.post(
         '/api/subscriptions/$subscriptionID/pay',
-        data: {'user_id': userID, 'expected_due_date': expectedDueDate},
+        data: {
+          'user_id': userID,
+          'expected_due_date': expectedDueDate,
+          if (skipExpense) 'skip_expense': true,
+        },
       );
       return ApiResponse.success(_asMap(response.data));
     } on DioException catch (e) {

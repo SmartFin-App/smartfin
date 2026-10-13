@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_fin/widgets/ui/ui.dart';
 import 'package:smart_fin/core/network/dio_client.dart';
@@ -51,6 +52,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     'Other': (icon: Icons.attach_money, color: Color(0xFF9E9E9E)),
   };
 
+  /// A resume while the earlier-slips question is open must not stack a second one.
+  bool _checkingSlips = false;
+
   @override
   void initState() {
     super.initState();
@@ -74,10 +78,60 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
   }
 
+  /// Asks a new install, once, whether to add the slips already saved this
+  /// month. Not dismissible: closing it unanswered would ask again on every
+  /// resume.
+  Future<void> _askAboutEarlierSlips(EarlierSlipsOffer offer) async {
+    final since = DateFormat(
+      'd MMMM',
+    ).format(offer.monthStart.toUtc().add(const Duration(hours: 7)));
+    final slips = offer.count == 1 ? '1 slip' : '${offer.count} slips';
+    final include = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          title: const Text('Add earlier slips from this month?'),
+          content: Text(
+            'We found $slips saved since $since, before you set up Auto-Detect. '
+            'Add them to this month, or only track slips from today.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.textSecondary,
+              ),
+              child: const Text('Start from today'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Add them'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (include == null) return;
+    await GalleryWatcherService().answerEarlierSlipsOffer(
+      offer,
+      include: include,
+    );
+  }
+
   Future<void> _checkForNewSlips() async {
-    if (!mounted) return;
+    if (!mounted || _checkingSlips) return;
+    _checkingSlips = true;
     try {
       final watcher = GalleryWatcherService();
+      final offer = await watcher.pendingEarlierSlipsOffer();
+      if (!mounted) return;
+      if (offer != null) {
+        await _askAboutEarlierSlips(offer);
+        if (!mounted) return;
+      }
+
       final result = await watcher.checkForNewSlipsDetailed();
       if (!mounted) return;
 
@@ -109,6 +163,8 @@ class _DashboardScreenState extends State<DashboardScreen>
       }
     } catch (e) {
       debugPrint('Error auto-checking slips: $e');
+    } finally {
+      _checkingSlips = false;
     }
   }
 

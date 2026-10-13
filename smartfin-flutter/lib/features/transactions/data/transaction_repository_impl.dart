@@ -13,6 +13,8 @@ class TransactionRepositoryImpl implements TransactionRepository {
     required String category,
     required String source,
     required DateTime date,
+    int? splitTotal,
+    int? splitPeople,
   }) async {
     try {
       final response = await DioClient.dio.post(
@@ -25,6 +27,9 @@ class TransactionRepositoryImpl implements TransactionRepository {
           'category': category,
           'source': source,
           'date': '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+          // A shared slip: amount is the user's share of split_total.
+          'split_total': ?splitTotal,
+          'split_people': ?splitPeople,
         },
       );
       if (response.data is Map) {
@@ -35,6 +40,31 @@ class TransactionRepositoryImpl implements TransactionRepository {
       debugPrint('CreateTransaction Error Status: ${e.response?.statusCode}');
       debugPrint('CreateTransaction Error Data: ${e.response?.data}');
       debugPrint('CreateTransaction Request Data: ${e.requestOptions.data}');
+      return ApiResponse.error(DioClient.handleError(e));
+    }
+  }
+
+  @override
+  Future<ApiResponse<List<Map<String, dynamic>>>> findPossibleDuplicates({
+    required String userID,
+    required int amount,
+    DateTime? date,
+  }) async {
+    try {
+      final response = await DioClient.dio.get(
+        '/api/transactions/duplicates/$userID',
+        queryParameters: {
+          'amount': amount,
+          if (date != null)
+            'date':
+                '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+        },
+      );
+      final list = List<Map<String, dynamic>>.from(
+        (response.data as List).map((e) => Map<String, dynamic>.from(e)),
+      );
+      return ApiResponse.success(list);
+    } on DioException catch (e) {
       return ApiResponse.error(DioClient.handleError(e));
     }
   }

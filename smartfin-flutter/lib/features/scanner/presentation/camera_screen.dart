@@ -1,9 +1,8 @@
 import 'dart:io';
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:smart_fin/features/scanner/services/gallery_watcher_service.dart';
 import 'package:smart_fin/features/scanner/presentation/widgets/slip_detection_sheet.dart';
 import 'package:smart_fin/features/scanner/presentation/widgets/slip_folders_sheet.dart';
@@ -17,13 +16,24 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _scanAnimationController;
   late CurvedAnimation _curvedAnimation;
+
+  CameraController? _controller;
+  bool _initializing = false;
+  bool _capturing = false;
+
+  /// Why there is no live preview (no permission, no camera), or null.
+  String? _cameraError;
+
+  bool get _cameraReady => _controller?.value.isInitialized ?? false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _initCamera();
     _scanAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2000),
@@ -36,17 +46,121 @@ class _CameraScreenState extends State<CameraScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _controller?.dispose();
     _scanAnimationController.dispose();
     super.dispose();
   }
 
-  /// Copies the bundled sample receipt asset to a temp file and returns it.
-  Future<File> _getReceiptFile() async {
-    final byteData = await rootBundle.load('assets/images/sample_receipt.png');
-    final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/sample_receipt.png');
-    await file.writeAsBytes(byteData.buffer.asUint8List());
-    return file;
+  /// The camera is released while the app is in the background and reopened on
+  /// return. A controller that has not finished initializing is left alone: the
+  /// permission prompt itself makes the app inactive.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      // Coming back from Settings after granting access.
+      if (state == AppLifecycleState.resumed && _cameraError != null) {
+        _initCamera();
+      }
+      return;
+    }
+    if (state == AppLifecycleState.inactive) {
+      setState(() => _controller = null);
+      controller.dispose();
+    } else if (state == AppLifecycleState.resumed) {
+      _initCamera();
+    }
+  }
+
+  Future<void> _initCamera() async {
+    if (_initializing) return;
+    _initializing = true;
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        if (mounted) {
+          setState(
+            () => _cameraError =
+                'No camera found on this device. Pick a slip from your gallery instead.',
+          );
+        }
+        return;
+      }
+      final camera = cameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.back,
+        orElse: () => cameras.first,
+      );
+      // No audio: slips are stills, and it avoids a microphone prompt.
+      final controller = CameraController(
+        camera,
+        ResolutionPreset.high,
+        enableAudio: false,
+      );
+      _controller = controller;
+      await controller.initialize();
+      if (!mounted) {
+        controller.dispose();
+        return;
+      }
+      setState(() => _cameraError = null);
+    } on CameraException catch (e) {
+      debugPrint('Camera init error: ${e.code} ${e.description}');
+      _controller = null;
+      if (!mounted) return;
+      final denied = e.code.startsWith('CameraAccess');
+      setState(
+        () => _cameraError = denied
+            ? 'SmartFin needs camera access to scan slips. Enable it in Settings, or pick a slip from your gallery.'
+            : "We couldn't start the camera. Pick a slip from your gallery instead.",
+      );
+    } finally {
+      _initializing = false;
+    }
+  }
+
+  Future<void> _takePhoto() async {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized || _capturing) {
+      return;
+    }
+    setState(() => _capturing = true);
+    try {
+      final photo = await controller.takePicture();
+      if (mounted) context.go('/processing', extra: File(photo.path));
+    } on CameraException catch (e) {
+      debugPrint('Capture error: ${e.code} ${e.description}');
+      if (mounted) {
+        showAppToast(
+          context,
+          "Couldn't take the photo. Try again.",
+          error: true,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _capturing = false);
+    }
+  }
+
+  /// The live preview, scaled to cover the screen like a viewfinder.
+  Widget _buildPreview() {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return const SizedBox.shrink();
+    }
+    // previewSize is reported in sensor (landscape) orientation.
+    final size = controller.value.previewSize;
+    if (size == null) return CameraPreview(controller);
+    return ClipRect(
+      child: FittedBox(
+        fit: BoxFit.cover,
+        child: SizedBox(
+          width: size.height,
+          height: size.width,
+          child: CameraPreview(controller),
+        ),
+      ),
+    );
   }
 
   String _slipCheckMessage(SlipCheckStatus status) {
@@ -74,54 +188,63 @@ class _CameraScreenState extends State<CameraScreen>
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1. Static Receipt Image (demo mode — replaces live camera)
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/sample_receipt.png',
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
-            ),
-          ),
+          // 1. Live camera preview
+          Positioned.fill(child: _buildPreview()),
 
-          // 2. Overlay Scanning Frame
-          Center(
-            child: SizedBox(
-              width: frameWidth,
-              height: frameHeight,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: CustomPaint(painter: ScannerOverlayPainter()),
-                  ),
-                  AnimatedBuilder(
-                    animation: _curvedAnimation,
-                    builder: (context, child) {
-                      return Positioned(
-                        top: _curvedAnimation.value * frameHeight,
-                        left: 0,
-                        right: 0,
-                        child: Container(
-                          height: 2,
-                          decoration: const BoxDecoration(
-                            color: Color.fromRGBO(255, 159, 41, 0.6),
-                            // Subtle glow
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color.fromRGBO(255, 159, 41, 0.6),
-                                blurRadius: 10,
-                                blurStyle: BlurStyle.outer,
-                              ),
-                            ],
+          // 2. Overlay Scanning Frame, or why the camera is unavailable
+          if (_cameraError != null)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: Text(
+                  _cameraError!,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.label.copyWith(color: Colors.white),
+                ),
+              ),
+            )
+          else if (!_cameraReady)
+            const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
+          else
+            Center(
+              child: SizedBox(
+                width: frameWidth,
+                height: frameHeight,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: CustomPaint(painter: ScannerOverlayPainter()),
+                    ),
+                    AnimatedBuilder(
+                      animation: _curvedAnimation,
+                      builder: (context, child) {
+                        return Positioned(
+                          top: _curvedAnimation.value * frameHeight,
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            height: 2,
+                            decoration: const BoxDecoration(
+                              color: Color.fromRGBO(255, 159, 41, 0.6),
+                              // Subtle glow
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Color.fromRGBO(255, 159, 41, 0.6),
+                                  blurRadius: 10,
+                                  blurStyle: BlurStyle.outer,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
 
           // 3. Top Header navigation
           Positioned(
@@ -258,36 +381,31 @@ class _CameraScreenState extends State<CameraScreen>
                           },
                         ),
 
-                        // Center Shutter Button (uses sample receipt in demo mode)
+                        // Center Shutter Button
                         Semantics(
                           button: true,
+                          enabled: _cameraReady && !_capturing,
                           label: 'Take photo',
                           child: GestureDetector(
-                            onTap: () async {
-                              try {
-                                final file = await _getReceiptFile();
-                                if (context.mounted) {
-                                  context.go('/processing', extra: file);
-                                }
-                              } catch (e) {
-                                debugPrint('Demo capture error: $e');
-                              }
-                            },
-                            child: Container(
-                              width: 80,
-                              height: 80,
-                              padding: const EdgeInsets.all(5),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.5),
-                                  width: 3,
-                                ),
-                              ),
-                              child: const DecoratedBox(
+                            onTap: _takePhoto,
+                            child: Opacity(
+                              opacity: _cameraReady && !_capturing ? 1 : 0.4,
+                              child: Container(
+                                width: 80,
+                                height: 80,
+                                padding: const EdgeInsets.all(5),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
                                   shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.5),
+                                    width: 3,
+                                  ),
+                                ),
+                                child: const DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
                                 ),
                               ),
                             ),

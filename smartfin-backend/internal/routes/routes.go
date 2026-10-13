@@ -44,6 +44,7 @@ func SetupRoutes(app *fiber.App) {
 	transactions.Get("/:user_id", transactionHandler.GetTransactions)
 	transactions.Get("/detail/:id", transactionHandler.GetTransactionByID)
 	transactions.Get("/summary/:user_id", transactionHandler.GetTransactionSummary)
+	transactions.Get("/duplicates/:user_id", transactionHandler.FindPossibleDuplicates)
 	transactions.Put("/:id", transactionHandler.UpdateTransaction)
 	transactions.Delete("/:id", transactionHandler.DeleteTransaction)
 

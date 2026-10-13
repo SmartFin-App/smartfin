@@ -62,6 +62,7 @@ func main() {
 	repeats := flag.Int("repeats", 2, "scans per image")
 	concurrency := flag.Int("concurrency", 3, "scans in parallel")
 	timeout := flag.Duration("timeout", 90*time.Second, "per-scan timeout")
+	interval := flag.Duration("interval", 0, "pause before each scan, to stay under a model's requests-per-minute limit")
 	rescoreDir := flag.String("rescore", "", "re-score an existing run with the current labels.csv")
 	flag.Parse()
 	log.SetFlags(0)
@@ -114,6 +115,9 @@ func main() {
 	sem := make(chan struct{}, *concurrency)
 	var wg sync.WaitGroup
 	for i, j := range jobs {
+		if i > 0 {
+			time.Sleep(*interval)
+		}
 		wg.Add(1)
 		sem <- struct{}{}
 		go func() {

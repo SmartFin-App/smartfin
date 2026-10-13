@@ -465,7 +465,11 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
     return ListRow(
       leading: IconTile(icon: style.icon, color: style.color),
       title: tx['merchant'] as String? ?? '-',
-      subtitle: category,
+      // A shared slip is marked, because its amount here is the user's share
+      // and will not match what the bank shows for the payment.
+      subtitle: ((tx['split_people'] as num?) ?? 0) > 1
+          ? '$category · Split'
+          : category,
       trailing: Text(
         tx['formatted_amount'] as String? ?? '',
         style: AppTextStyles.amount,

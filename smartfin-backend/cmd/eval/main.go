@@ -32,10 +32,9 @@ import (
 
 	"github.com/SmartFin-App/smartfin-backend/config"
 	"github.com/SmartFin-App/smartfin-backend/internal/summaries"
-	"github.com/google/generative-ai-go/genai"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
-	"google.golang.org/api/option"
+	"google.golang.org/genai"
 )
 
 var allSystems = []string{"agentic", "oneshot", "noretrieval"}
@@ -117,11 +116,10 @@ func main() {
 	if key == "" {
 		log.Fatal("GEMINI_API_KEY is not set (it is read from smartfin-backend/.env)")
 	}
-	gem, err := genai.NewClient(ctx, option.WithAPIKey(key))
+	gem, err := genai.NewClient(ctx, &genai.ClientConfig{APIKey: key, Backend: genai.BackendGeminiAPI})
 	if err != nil {
 		log.Fatalf("Gemini client: %v", err)
 	}
-	defer gem.Close()
 	pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	if _, err := askGemini(pctx, gem, "Reply with the single word OK.", nil, "ping"); err != nil {
 		cancel()

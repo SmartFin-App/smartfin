@@ -7,6 +7,88 @@ import 'package:smart_fin/widgets/ui/ui.dart';
 import 'package:smart_fin/features/transactions/data/transaction_repository_impl.dart';
 import 'package:smart_fin/features/scanner/services/gallery_watcher_service.dart';
 
+/// One person's part of a slip shared evenly, to the nearest whole baht:
+/// money is integer ฿, so ฿1,000 between three is ฿333.
+int evenShare(int total, int people) {
+  if (total <= 0 || people <= 0) return 0;
+  return (total + people ~/ 2) ~/ people;
+}
+
+/// What the user decided about a slip that matches an expense they already have.
+enum DuplicateChoice { saveAnyway, skip }
+
+String _duplicateSourceLabel(String? source) {
+  switch (source) {
+    case 'subscription':
+      return 'Bill marked paid';
+    case 'scanner':
+      return 'Scanned slip';
+    case 'coach_agent':
+      return 'AI Coach';
+    default:
+      return 'Entered manually';
+  }
+}
+
+/// Warns that [matches] may already record this slip's payment — a bill marked
+/// paid, or the same slip scanned earlier. It asks rather than blocks, because
+/// two real payments can share an amount. Returns null when dismissed.
+Future<DuplicateChoice?> showPossibleDuplicateDialog(
+  BuildContext context,
+  List<Map<String, dynamic>> matches,
+) {
+  return showDialog<DuplicateChoice>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      // Up to three matches: scroll rather than overflow on a small phone.
+      scrollable: true,
+      title: const Text('Already added?'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            matches.length == 1
+                ? 'This slip matches an expense in your history:'
+                : 'This slip matches expenses in your history:',
+            style: AppTextStyles.body,
+          ),
+          for (final tx in matches) ...[
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              tx['merchant'] as String? ?? '-',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.bodyStrong,
+            ),
+            Text(
+              [
+                tx['formatted_amount'] as String? ?? '',
+                tx['formatted_date'] as String? ?? '',
+                _duplicateSourceLabel(tx['source'] as String?),
+              ].where((part) => part.isNotEmpty).join(' · '),
+              style: AppTextStyles.caption,
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, DuplicateChoice.skip),
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.textSecondary,
+          ),
+          child: const Text('Skip this slip'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, DuplicateChoice.saveAnyway),
+          child: const Text('Save anyway'),
+        ),
+      ],
+    ),
+  );
+}
+
 class VerifyScreen extends StatefulWidget {
   final Map<String, dynamic>? extractedData;
 
@@ -22,6 +104,13 @@ class _VerifyScreenState extends State<VerifyScreen> {
   DateTime _selectedDate = DateTime.now();
   String _selectedCategory = 'Food';
   bool _isLoading = false;
+
+  // Splitting: the slip was paid for a group, and only the user's share is
+  // their spending. The amount field then holds the slip total.
+  static const int _maxSplitPeople = 100;
+  final TextEditingController _shareController = TextEditingController();
+  bool _isSplit = false;
+  int _splitPeople = 2;
 
   final List<Map<String, dynamic>> _categories = [
     {
@@ -107,12 +196,36 @@ class _VerifyScreenState extends State<VerifyScreen> {
         _selectedCategory = cat;
       }
     }
+    _amountController.addListener(_fillEvenShare);
+  }
+
+  int? get _enteredTotal =>
+      int.tryParse(_amountController.text.trim().replaceAll(',', ''));
+
+  /// Refills the share whenever the total or the head count changes. A share
+  /// typed by hand (an uneven split) stays until one of those changes again.
+  void _fillEvenShare() {
+    if (!_isSplit) return;
+    final share = evenShare(_enteredTotal ?? 0, _splitPeople);
+    _shareController.text = share > 0 ? share.toString() : '';
+  }
+
+  void _setSplit(bool on) {
+    setState(() => _isSplit = on);
+    _fillEvenShare();
+  }
+
+  void _setSplitPeople(int people) {
+    if (people < 2 || people > _maxSplitPeople) return;
+    setState(() => _splitPeople = people);
+    _fillEvenShare();
   }
 
   @override
   void dispose() {
     _merchantController.dispose();
     _amountController.dispose();
+    _shareController.dispose();
     super.dispose();
   }
 
@@ -121,27 +234,72 @@ class _VerifyScreenState extends State<VerifyScreen> {
   void _toast(String message, {bool error = false}) =>
       showAppToast(context, message, error: error);
 
+  Future<void> _markSlipProcessed() async {
+    final assetId = widget.extractedData?['asset_id'] as String?;
+    if (assetId != null) {
+      await GalleryWatcherService().markSlipAsProcessed(assetId);
+    }
+  }
+
   Future<void> _saveTransaction() async {
     if (_isLoading) return;
     final merchant = _merchantController.text.trim();
-    final amount = int.tryParse(
-      _amountController.text.trim().replaceAll(',', ''),
-    );
+    final total = _enteredTotal;
 
     if (merchant.isEmpty) {
       _toast('Please enter a merchant name', error: true);
       return;
     }
-    if (amount == null || amount <= 0) {
+    if (total == null || total <= 0) {
       _toast('Please enter a valid amount', error: true);
       return;
+    }
+
+    // What is saved as spending: the whole slip, or only the user's share.
+    var amount = total;
+    if (_isSplit) {
+      final share = int.tryParse(_shareController.text.trim());
+      if (share == null || share <= 0) {
+        _toast('Please enter your share', error: true);
+        return;
+      }
+      if (share > total) {
+        _toast("Your share can't be more than the slip total", error: true);
+        return;
+      }
+      amount = share;
     }
 
     setState(() => _isLoading = true);
 
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-      final result = await TransactionRepositoryImpl().createTransaction(
+      final repository = TransactionRepositoryImpl();
+
+      // The payment may already be recorded: a bill marked paid, or this slip
+      // scanned before. Checked against the slip total, which is what a split
+      // slip was saved from. A failed check never holds up a save.
+      final existing = await repository.findPossibleDuplicates(
+        userID: uid,
+        amount: total,
+        date: _selectedDate,
+      );
+      if (!mounted) return;
+      final matches = existing.data ?? const <Map<String, dynamic>>[];
+      if (existing.success && matches.isNotEmpty) {
+        final choice = await showPossibleDuplicateDialog(context, matches);
+        if (!mounted || choice == null) return;
+        if (choice == DuplicateChoice.skip) {
+          // Handled, so Auto-Detect stops offering it.
+          await _markSlipProcessed();
+          if (!mounted) return;
+          _toast('Slip skipped');
+          context.go('/home');
+          return;
+        }
+      }
+
+      final result = await repository.createTransaction(
         userID: uid,
         merchant: merchant,
         amount: amount,
@@ -149,16 +307,15 @@ class _VerifyScreenState extends State<VerifyScreen> {
         category: _selectedCategory,
         source: 'scanner',
         date: _selectedDate,
+        splitTotal: _isSplit ? total : null,
+        splitPeople: _isSplit ? _splitPeople : null,
       );
 
       if (!mounted) return;
 
       if (result.success) {
         // Only now is it safe to stop the watcher re-offering this slip.
-        final assetId = widget.extractedData?['asset_id'] as String?;
-        if (assetId != null) {
-          await GalleryWatcherService().markSlipAsProcessed(assetId);
-        }
+        await _markSlipProcessed();
         if (!mounted) return;
         _toast('Expense saved');
         context.go('/home');
@@ -181,6 +338,115 @@ class _VerifyScreenState extends State<VerifyScreen> {
       style: AppTextStyles.label.copyWith(color: AppColors.textSecondary),
     ),
   );
+
+  Widget _stepButton(IconData icon, String label, VoidCallback? onPressed) =>
+      IconButton(
+        onPressed: onPressed,
+        tooltip: label,
+        icon: Icon(icon, size: 22),
+        color: AppColors.primaryText,
+        disabledColor: AppColors.textMuted,
+      );
+
+  /// The split switch and, once on, the head count and the user's share.
+  List<Widget> _buildSplit() {
+    return [
+      AppCard(
+        flat: true,
+        padding: EdgeInsets.zero,
+        child: Column(
+          children: [
+            ListRow(
+              leading: const Icon(
+                Icons.group_outlined,
+                size: 20,
+                color: AppColors.textSecondary,
+              ),
+              title: 'Split with others',
+              subtitle: 'Save only your share as spending',
+              trailing: Switch(value: _isSplit, onChanged: _setSplit),
+              onTap: () => _setSplit(!_isSplit),
+            ),
+            if (_isSplit) ...[
+              ListRow.divider(indent: AppSpacing.lg),
+              ListRow(
+                title: 'People sharing',
+                subtitle: 'Including you',
+                padding: const EdgeInsets.only(
+                  left: AppSpacing.lg,
+                  right: AppSpacing.xs,
+                  top: AppSpacing.xs,
+                  bottom: AppSpacing.xs,
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _stepButton(
+                      Icons.remove_circle_outline_rounded,
+                      'Fewer people',
+                      _splitPeople > 2
+                          ? () => _setSplitPeople(_splitPeople - 1)
+                          : null,
+                    ),
+                    SizedBox(
+                      width: 28,
+                      child: Text(
+                        '$_splitPeople',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.bodyStrong,
+                      ),
+                    ),
+                    _stepButton(
+                      Icons.add_circle_outline_rounded,
+                      'More people',
+                      _splitPeople < _maxSplitPeople
+                          ? () => _setSplitPeople(_splitPeople + 1)
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      if (_isSplit) ...[
+        const SizedBox(height: AppSpacing.xl),
+        _fieldLabel('Your share'),
+        TextFormField(
+          controller: _shareController,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          style: AppTextStyles.body,
+          decoration: InputDecoration(
+            hintText: '0',
+            prefixIcon: SizedBox(
+              width: 48,
+              child: Center(
+                child: Text(
+                  '฿',
+                  style: AppTextStyles.bodyStrong.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(
+            left: AppSpacing.xs,
+            top: AppSpacing.sm,
+          ),
+          child: Text(
+            'Split evenly to the nearest baht. Change it if you paid a '
+            'different share.',
+            style: AppTextStyles.caption,
+          ),
+        ),
+      ],
+    ];
+  }
 
   // ── Build ─────────────────────────────────────────────────────────────────
 
@@ -254,7 +520,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                 const SizedBox(height: AppSpacing.xl),
 
                 // ── Amount ──────────────────────────────────────────────
-                _fieldLabel('Amount'),
+                _fieldLabel(_isSplit ? 'Slip total' : 'Amount'),
                 TextFormField(
                   controller: _amountController,
                   // Whole baht only: money is integer ฿.
@@ -277,6 +543,8 @@ class _VerifyScreenState extends State<VerifyScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(height: AppSpacing.md),
+                ..._buildSplit(),
                 const SizedBox(height: AppSpacing.xl),
 
                 // ── Date ────────────────────────────────────────────────

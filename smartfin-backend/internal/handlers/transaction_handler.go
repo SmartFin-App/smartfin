@@ -106,6 +106,9 @@ func (h *TransactionHandler) CreateTransaction(c *fiber.Ctx) error {
 		Category string `json:"category"`
 		Source   string `json:"source"`
 		Date     string `json:"date"`
+		// Optional: the slip was shared, and Amount is the user's share of it.
+		SplitTotal  int64 `json:"split_total"`
+		SplitPeople int   `json:"split_people"`
 	}
 
 	if err := c.BodyParser(&req); err != nil {
@@ -127,6 +130,10 @@ func (h *TransactionHandler) CreateTransaction(c *fiber.Ctx) error {
 
 	if req.Amount <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Amount must be greater than 0"})
+	}
+
+	if err := models.ValidateSplit(req.Amount, req.SplitTotal, req.SplitPeople); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	txDate := time.Now()
@@ -156,6 +163,8 @@ func (h *TransactionHandler) CreateTransaction(c *fiber.Ctx) error {
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
+	tx.SplitTotal = req.SplitTotal
+	tx.SplitPeople = req.SplitPeople
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -232,6 +241,64 @@ func (h *TransactionHandler) GetTransactions(c *fiber.Ctx) error {
 		})
 	}
 
+	return c.Status(fiber.StatusOK).JSON(responses)
+}
+
+// FindPossibleDuplicates lists expenses that may already record the payment on a
+// slip: the same amount, within a day of the slip's date. It only informs a
+// warning — two real payments can share an amount, so nothing is refused here.
+func (h *TransactionHandler) FindPossibleDuplicates(c *fiber.Ctx) error {
+	userID := c.Params("user_id")
+	amount := int64(c.QueryInt("amount", 0))
+	if userID == "" || amount <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "user_id and a positive amount are required"})
+	}
+	// A Thai calendar day, like a due date — parseTxDate would read it as UTC.
+	// No date means today, decided here rather than by the device's clock.
+	day := summaries.DateOf(time.Now())
+	if raw := c.Query("date"); raw != "" {
+		parsed, err := summaries.ParseDueDate(raw)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid date format, expected YYYY-MM-DD"})
+		}
+		day = parsed
+	}
+	start, end := summaries.DuplicateWindow(day)
+
+	// split_total too: a slip saved as a share is still the same slip.
+	filter := bson.M{
+		"user_id": userID,
+		"type":    "expense",
+		"date":    bson.M{"$gte": start, "$lt": end},
+		"$or": bson.A{
+			bson.M{"amount": amount},
+			bson.M{"split_total": amount},
+		},
+	}
+	opts := options.Find().SetSort(bson.D{{Key: "date", Value: -1}}).SetLimit(3)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cursor, err := h.collection.Find(ctx, filter, opts)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to check for duplicates"})
+	}
+	defer cursor.Close(ctx)
+
+	var transactions []models.Transaction
+	if err = cursor.All(ctx, &transactions); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Error parsing transactions"})
+	}
+
+	responses := make([]models.TransactionResponse, 0, len(transactions))
+	for _, tx := range transactions {
+		responses = append(responses, models.TransactionResponse{
+			Transaction:     tx,
+			FormattedAmount: formatAmount(tx.Amount, tx.Type),
+			FormattedDate:   formatDate(tx.Date),
+		})
+	}
 	return c.Status(fiber.StatusOK).JSON(responses)
 }
 
@@ -327,6 +394,11 @@ func (h *TransactionHandler) UpdateTransaction(c *fiber.Ctx) error {
 
 	updateData["updated_at"] = time.Now()
 	update := bson.M{"$set": updateData}
+	// A share edited above the slip it was split from no longer describes a
+	// split, so the note goes rather than reading "฿1,200 of ฿900".
+	if req.Amount != nil && existing.SplitTotal > 0 && *req.Amount > existing.SplitTotal {
+		update["$unset"] = bson.M{"split_total": "", "split_people": ""}
+	}
 
 	res, err := h.collection.UpdateOne(ctx, bson.M{"_id": objID, "user_id": userID}, update)
 	if err != nil {
