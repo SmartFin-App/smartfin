@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SmartFin Poster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=block" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FFF7EC;
+    --ink: #1C1917;
+    --ink-2: #57534E;
+    --ink-3: #8A817A;
+    --orange: #FF9F29;
+    --orange-text: #C2680A;
+    --kmutt: #E5401A;
+    --card: #FFFFFF;
+    --line: #EFE6D8;
+    --teal: #0D9488;
+    --green: #16A34A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+  body {
+    position: relative;
+    background: var(--cream);
+    font-family: Inter, system-ui, sans-serif;
+    color: var(--ink);
+  }
+
+  /* ---------- background ---------- */
+  .bg { position: absolute; inset: 0; pointer-events: none; }
+  .glow {
+    position: absolute; border-radius: 50%; filter: blur(10px);
+  }
+  .glow.a { width: 1100px; height: 1100px; left: 410px; top: 160px;
+    background: radial-gradient(circle, rgba(255,159,41,.30) 0%, rgba(255,159,41,.10) 40%, rgba(255,159,41,0) 70%); }
+  .glow.b { width: 900px; height: 900px; left: -300px; top: 420px;
+    background: radial-gradient(circle, rgba(13,148,136,.12) 0%, rgba(13,148,136,0) 65%); }
+  .glow.c { width: 900px; height: 900px; right: -300px; top: 380px;
+    background: radial-gradient(circle, rgba(229,64,26,.12) 0%, rgba(229,64,26,0) 65%); }
+  .dots {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(28,25,23,.07) 1.6px, transparent 1.8px);
+    background-size: 34px 34px;
+    -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 45%, transparent 35%, #000 80%);
+            mask-image: radial-gradient(ellipse 75% 70% at 50% 45%, transparent 35%, #000 80%);
+  }
+  .waves { position: absolute; left: 0; bottom: 0; width: 1920px; height: 520px; }
+
+  /* ---------- header: logos ---------- */
+  .logos {
+    position: absolute; left: 56px; top: 40px;
+    display: flex; align-items: center; gap: 26px;
+  }
+  .logos .kmutt {
+    height: 84px; width: 73px;
+    object-fit: contain;
+    object-view-box: inset(12.5% 11% 20.8% 23%);
+  }
+  .logos .divider { width: 2px; height: 64px; background: rgba(28,25,23,.25); border-radius: 2px; }
+  .logos .sit { height: 66px; }
+
+  /* ---------- title ---------- */
+  .title {
+    position: absolute; left: 0; right: 0; top: 54px;
+    text-align: center;
+  }
+  .wordmark {
+    display: inline-flex; align-items: flex-start;
+    font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800;
+    font-size: 148px; line-height: 1; letter-spacing: -4px;
+  }
+  .wordmark .fin {
+    background: linear-gradient(180deg, #FFB347 0%, #FF8A00 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .subtitle {
+    margin-top: 14px;
+    font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700;
+    font-size: 46px; line-height: 1.12; letter-spacing: -.6px;
+  }
+  .subtitle2 {
+    margin-top: 6px;
+    font-family: 'Bricolage Grotesque', sans-serif; font-weight: 500;
+    font-size: 34px; color: var(--ink-2); letter-spacing: -.3px;
+  }
+  .subtitle2 b { color: var(--orange-text); font-weight: 700; }
+
+  /* ---------- phone ---------- */
+  .phone {
+    position: absolute; left: 50%; top: 372px; transform: translateX(-50%);
+    width: 476px; height: 1000px;
+    border-radius: 74px; padding: 14px;
+    background: linear-gradient(145deg, #3a3633, #121110 45%, #2a2725);
+    box-shadow:
+      0 0 0 2px #4a4541 inset,
+      0 50px 90px -20px rgba(120,60,0,.45),
+      0 20px 40px -10px rgba(0,0,0,.25);
+  }
+  .phone .screen {
+    width: 100%; height: 100%; border-radius: 60px; overflow: hidden;
+    background: #FFF6EA url('Dashboard.PNG') top center / cover no-repeat;
+    position: relative;
+  }
+  .phone .island {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    width: 128px; height: 36px; border-radius: 20px; background: #0b0b0b;
+  }
+  .phone .btn { position: absolute; width: 5px; background: #2a2725; border-radius: 3px; }
+  .phone .btn.l1 { left: -5px; top: 190px; height: 64px; }
+  .phone .btn.l2 { left: -5px; top: 270px; height: 64px; }
+  .phone .btn.r1 { right: -5px; top: 240px; height: 100px; }
+
+  /* ---------- floating cards ---------- */
+  .card {
+    position: absolute;
+    background: var(--card);
+    border-radius: 26px;
+    box-shadow: 0 24px 50px -18px rgba(90,50,10,.28), 0 2px 6px rgba(90,50,10,.06);
+    border: 1px solid rgba(239,230,216,.9);
+  }
+  .card-head { display: flex; align-items: center; gap: 14px; }
+  .icon {
+    width: 52px; height: 52px; border-radius: 16px;
+    display: grid; place-items: center; flex: none;
+  }
+  .icon svg { width: 28px; height: 28px; }
+  .card h3 {
+    font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700;
+    font-size: 27px; letter-spacing: -.3px; line-height: 1.1;
+  }
+  .card .sub { font-size: 16px; color: var(--ink-3); margin-top: 3px; font-weight: 500; }
+
+  /* slip card */
+  .slip { left: 90px; top: 470px; width: 440px; padding: 26px 28px 28px; }
+  .slip .result {
+    margin-top: 20px; border-radius: 18px; background: #FBF6EE; padding: 18px 20px;
+    border: 1px dashed #E7D9C3;
+  }
+  .slip .row { display: flex; justify-content: space-between; align-items: baseline; font-size: 18px; padding: 7px 0; }
+  .slip .row span:first-child { color: var(--ink-3); font-weight: 500; }
+  .slip .row span:last-child { font-weight: 600; }
+  .slip .amt { font-family: 'Bricolage Grotesque', sans-serif; font-size: 30px !important; font-weight: 800 !important; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 15px; font-weight: 600; padding: 5px 12px; border-radius: 999px;
+  }
+  .banks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .banks .chip { background: #F4EEE4; color: var(--ink-2); }
+
+  /* coach card */
+  .coach { right: 90px; top: 500px; width: 440px; padding: 26px 28px 26px; }
+  .coach .avatar { width: 52px; height: 52px; border-radius: 16px; background: #FFF1DE; display: grid; place-items: center; }
+  .coach .avatar img { width: 40px; height: 40px; }
+  .bubble { margin-top: 16px; font-size: 18px; line-height: 1.45; padding: 14px 18px; border-radius: 20px; }
+  .bubble.user { margin-left: 50px; background: #FFE9CC; border-bottom-right-radius: 6px; color: var(--ink); font-weight: 500; }
+  .bubble.bot { margin-right: 16px; background: #F5F1EB; border-bottom-left-radius: 6px; color: var(--ink); }
+  .bubble.bot b { font-weight: 700; }
+
+  /* notification on phone edge */
+  .notif {
+    position: absolute; left: 1072px; top: 552px; width: 312px;
+    padding: 16px 18px; border-radius: 22px;
+    background: rgba(255,255,255,.92);
+    backdrop-filter: blur(10px);
+    display: flex; gap: 14px; align-items: center;
+  }
+  .notif .icon { width: 46px; height: 46px; border-radius: 13px; }
+  .notif .t { font-size: 15px; color: var(--ink-3); font-weight: 600; }
+  .notif .m { white-space: nowrap; font-size: 17px; font-weight: 600; margin-top: 2px; line-height: 1.3; }
+
+  /* auto-detect pill on phone left edge */
+  .pill {
+    position: absolute; left: 548px; top: 700px;
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px 14px 14px; border-radius: 999px;
+  }
+  .pill .icon { width: 42px; height: 42px; border-radius: 50%; }
+  .pill .icon svg { width: 22px; height: 22px; }
+  .pill span { font-size: 17px; font-weight: 600; }
+
+</style>
+</head>
+<body>
+
+<div class="bg">
+  <div class="glow a"></div>
+  <div class="glow b"></div>
+  <div class="glow c"></div>
+  <div class="dots"></div>
+  <svg class="waves" viewBox="0 0 1920 520" preserveAspectRatio="none" aria-hidden="true">
+    <defs>
+      <linearGradient id="w1" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#FF9F29" stop-opacity=".40"/>
+        <stop offset=".45" stop-color="#FF9F29" stop-opacity=".05"/>
+        <stop offset=".55" stop-color="#FF9F29" stop-opacity=".05"/>
+        <stop offset="1" stop-color="#E5401A" stop-opacity=".35"/>
+      </linearGradient>
+      <linearGradient id="w2" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#0D9488" stop-opacity=".22"/>
+        <stop offset=".5" stop-color="#0D9488" stop-opacity="0"/>
+        <stop offset="1" stop-color="#FF9F29" stop-opacity=".28"/>
+      </linearGradient>
+      <linearGradient id="ln" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#FF9F29" stop-opacity=".9"/>
+        <stop offset=".4" stop-color="#FF9F29" stop-opacity="0"/>
+        <stop offset=".6" stop-color="#E5401A" stop-opacity="0"/>
+        <stop offset="1" stop-color="#E5401A" stop-opacity=".8"/>
+      </linearGradient>
+    </defs>
+    <path d="M0 300 C 260 200, 480 380, 760 300 S 1240 220, 1500 320 S 1800 260, 1920 200 L1920 520 L0 520 Z" fill="url(#w2)"/>
+    <path d="M0 380 C 300 290, 520 460, 820 390 S 1280 300, 1540 400 S 1820 330, 1920 300 L1920 520 L0 520 Z" fill="url(#w1)"/>
+    <path d="M0 360 C 300 270, 520 440, 820 370 S 1280 280, 1540 380 S 1820 310, 1920 280" fill="none" stroke="url(#ln)" stroke-width="3"/>
+    <path d="M0 410 C 300 330, 540 480, 840 420 S 1300 340, 1560 430 S 1830 360, 1920 340" fill="none" stroke="url(#ln)" stroke-width="1.5" opacity=".7"/>
+  </svg>
+</div>
+
+<!-- logos -->
+<div class="logos">
+  <img class="kmutt" src="kmutt_logo.png" alt="KMUTT">
+  <div class="divider"></div>
+  <img class="sit" src="sit_logo.png" alt="SIT, KMUTT">
+</div>
+
+<!-- title -->
+<div class="title">
+  <div class="wordmark">
+    <span>Smart</span><span class="fin">Fin</span>
+  </div>
+  <div class="subtitle">Automatic Expense Tracking with Thai E-Slip Recognition</div>
+  <div class="subtitle2">and an <b>AI Financial Coach</b> that reads your own spending</div>
+</div>
+
+<!-- left: slip scanning -->
+<div class="card slip">
+  <div class="card-head">
+    <div class="icon" style="background:#FFF1DE">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#E07F0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
+    </div>
+    <div>
+      <h3>Scan e-slips &amp; receipts</h3>
+      <div class="sub">Vision model reads it, you confirm it</div>
+    </div>
+  </div>
+  <div class="result">
+    <div class="row"><span>Merchant</span><span>A Space Asoke Ratchada</span></div>
+    <div class="row"><span>Amount</span><span class="amt">฿90</span></div>
+    <div class="row"><span>Date</span><span>13 Sep 2026 <span style="color:var(--ink-3);font-weight:500">(พ.ศ. 2569)</span></span></div>
+    <div class="row"><span>Category</span><span><span class="chip" style="background:#E6F4F2;color:var(--teal);padding:3px 10px">Bills</span></span></div>
+  </div>
+  <div class="banks">
+    <span class="chip">PromptPay</span><span class="chip">K PLUS</span><span class="chip">SCB EASY</span><span class="chip">Krungthai NEXT</span><span class="chip">Bualuang</span><span class="chip" style="background:#FFF1DE;color:#C2680A">Physical receipts</span>
+  </div>
+</div>
+
+<!-- right: AI coach -->
+<div class="card coach">
+  <div class="card-head">
+    <div class="avatar"><img src="../../smartfin-flutter/assets/images/lucky_cat.png" alt=""></div>
+    <div>
+      <h3>AI Coach</h3>
+      <div class="sub">Answers from your own records</div>
+    </div>
+  </div>
+  <div class="bubble user">How much did I spend on food this month?</div>
+  <div class="bubble bot">You've spent <b>฿3,281</b> on food in October, 24% of your total. You have <b>฿1,411</b> left in your budget 🐾</div>
+</div>
+
+
+<!-- phone -->
+<div class="phone">
+  <div class="btn l1"></div><div class="btn l2"></div><div class="btn r1"></div>
+  <div class="screen"><div class="island"></div></div>
+</div>
+
+<!-- floating accents on the phone -->
+<div class="card pill">
+  <div class="icon" style="background:#E3EDFF">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>
+  </div>
+  <span>Auto-Detect from gallery</span>
+</div>
+
+<div class="card notif">
+  <div class="icon" style="background:#FFF1DE">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#E07F0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+  </div>
+  <div>
+    <div class="t">Bill reminder · 09:00</div>
+    <div class="m">฿599 bill is due tomorrow</div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SmartFin Sticker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=block" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 1200px; background: transparent; overflow: hidden; }
+  body { font-family: 'Bricolage Grotesque', sans-serif; }
+
+  /* The whole sticker gets a thick white die-cut edge that follows its outline,
+     built from stacked drop-shadows, plus one soft shadow underneath. */
+  .sticker {
+    position: absolute; inset: 0;
+    filter:
+      drop-shadow(7px 0 0 #fff) drop-shadow(-7px 0 0 #fff)
+      drop-shadow(0 7px 0 #fff) drop-shadow(0 -7px 0 #fff)
+      drop-shadow(5px 5px 0 #fff) drop-shadow(-5px -5px 0 #fff)
+      drop-shadow(5px -5px 0 #fff) drop-shadow(-5px 5px 0 #fff)
+      drop-shadow(0 10px 18px rgba(80,40,0,.28));
+  }
+
+  .badge {
+    position: absolute; left: 150px; top: 250px; width: 900px; height: 900px; border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 38%, #FFE3B8 0%, #FFC46B 38%, #FF9F29 70%, #F2780C 100%);
+    overflow: hidden;
+  }
+  .rays {
+    position: absolute; inset: 0; border-radius: 50%;
+    background: repeating-conic-gradient(from 0deg at 50% 40%, rgba(255,255,255,.20) 0deg 7deg, rgba(255,255,255,0) 7deg 18deg);
+    -webkit-mask-image: radial-gradient(circle at 50% 40%, #000 20%, transparent 72%);
+            mask-image: radial-gradient(circle at 50% 40%, #000 20%, transparent 72%);
+  }
+  .ring { position: absolute; inset: 26px; border-radius: 50%; border: 6px dashed rgba(255,255,255,.55); }
+
+  .cat {
+    position: absolute; left: 330px; top: 95px; width: 540px; height: 544px;
+  }
+
+  /* floating slips and coins around the cat */
+  .slip {
+    position: absolute; width: 150px; padding: 16px 14px 18px; background: #fff; border-radius: 14px;
+    box-shadow: 0 8px 16px rgba(120,60,0,.25);
+  }
+  .slip .ok { width: 34px; height: 34px; border-radius: 50%; background: #16A34A; margin: 0 auto 8px; display: grid; place-items: center; }
+  .slip .ok svg { width: 20px; height: 20px; }
+  .slip .bar { height: 9px; border-radius: 5px; background: #EFE6D8; margin: 7px auto 0; }
+  .slip .amt { text-align: center; font-weight: 800; font-size: 34px; color: #1C1917; letter-spacing: -1px; margin-top: 2px; }
+  .slip.s1 { left: 175px; top: 430px; transform: rotate(-14deg); }
+  .slip.s2 { left: 880px; top: 470px; transform: rotate(12deg); }
+
+  .coin {
+    position: absolute; width: 92px; height: 92px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #FFE08A, #FFB800 60%, #E08E00);
+    border: 6px solid #C97A00; display: grid; place-items: center;
+    font-weight: 800; font-size: 48px; color: #8A4B00;
+  }
+  .coin.c1 { left: 250px; top: 690px; transform: rotate(-10deg); }
+  .coin.c2 { left: 880px; top: 665px; width: 76px; height: 76px; font-size: 40px; transform: rotate(14deg); }
+
+  .ribbon {
+    position: absolute; left: 70px; top: 780px; width: 1060px; height: 180px;
+  }
+  .ribbon svg { position: absolute; inset: 0; }
+  .ribbon .word {
+    position: absolute; left: 0; right: 0; top: 18px; text-align: center;
+    font-weight: 800; font-size: 128px; letter-spacing: -3px; line-height: 1; color: #fff;
+  }
+  .ribbon .word .fin { color: #FF9F29; }
+
+  .tag {
+    position: absolute; left: 0; right: 0; top: 985px; text-align: center;
+    font-weight: 700; font-size: 42px; color: #fff; letter-spacing: -.3px;
+    text-shadow: 0 2px 0 rgba(150,70,0,.35);
+  }
+</style>
+</head>
+<body>
+<div class="sticker">
+  <div class="badge"><div class="rays"></div><div class="ring"></div></div>
+
+  <div class="slip s1">
+    <div class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <div class="amt">฿90</div>
+    <div class="bar" style="width:80%"></div><div class="bar" style="width:60%"></div>
+  </div>
+  <div class="slip s2">
+    <div class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <div class="amt">฿599</div>
+    <div class="bar" style="width:80%"></div><div class="bar" style="width:55%"></div>
+  </div>
+
+  <div class="coin c1">฿</div>
+  <div class="coin c2">฿</div>
+
+  <!-- the PNG's white areas are transparent, so a white silhouette of it sits underneath -->
+  <img class="cat" src="cat-fill.png" alt="">
+  <img class="cat" src="../../smartfin-flutter/assets/images/lucky_cat.png" alt="">
+
+  <div class="ribbon">
+    <svg viewBox="0 0 1060 180" aria-hidden="true">
+      <path d="M0 40 L120 40 L120 150 L0 150 L45 95 Z" fill="#0F0D0C" stroke="#fff" stroke-width="10" stroke-linejoin="round"/>
+      <path d="M1060 40 L940 40 L940 150 L1060 150 L1015 95 Z" fill="#0F0D0C" stroke="#fff" stroke-width="10" stroke-linejoin="round"/>
+      <rect x="80" y="0" width="900" height="150" rx="22" fill="#1C1917"/>
+    </svg>
+    <div class="word">Smart<span class="fin">Fin</span></div>
+  </div>
+
+  <div class="tag">Snap the slip. Skip the typing.</div>
+</div>
+</body>
+</html>

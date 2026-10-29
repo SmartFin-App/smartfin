@@ -95,9 +95,14 @@ class DioClient {
   }
 
   static String handleError(DioException e) {
-    if (e.type == DioExceptionType.connectionTimeout || 
-        e.type == DioExceptionType.receiveTimeout) {
-      return "Connection timed out. Please check your internet.";
+    // Kept apart because they mean different things: a connect timeout is an
+    // unreachable address, a receive timeout is a server that answered too slowly.
+    if (e.type == DioExceptionType.connectionTimeout) {
+      debugPrint("Could not reach ${e.requestOptions.baseUrl} within the connect timeout");
+      return "Can't reach the server. Check your connection and try again.";
+    }
+    if (e.type == DioExceptionType.receiveTimeout) {
+      return "The server took too long to respond. Please try again.";
     }
     
     if (e.type == DioExceptionType.connectionError) {
