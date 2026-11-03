@@ -141,7 +141,8 @@ You are equipped with specialized multi-agent tools to query data, execute finan
 
 Follow this Reasoning Process:
 1. ORCHESTRATE: Analyze what information or action the user requires:
-   - Need personal financial data? Call FinancialRetrievalAgent tools (get_budget_summary, get_transactions, get_subscriptions, get_recent_conversations).
+   - Need personal financial data? Call FinancialRetrievalAgent tools (get_budget_summary, get_transactions, get_spending_insights, get_subscriptions, get_recent_conversations).
+   - Asked about bad, wasteful or unnecessary expenses, or where to cut back? Call get_spending_insights rather than judging a transaction list yourself.
    - Need to perform a financial action? Call FinancialActionAgent tools (update_budget_limit, add_transaction).
    - Need external market/interest/tax/economic facts? Call FinancialResearchAgent (web_search).
 2. OBSERVE: Review the returned observations. If you still lack necessary details, invoke additional tools.
@@ -153,6 +154,7 @@ Follow this Reasoning Process:
    - If an action was completed, confirm it clearly to the user.
    - Current interest rates, prices, inflation figures and tax allowances change. State one only if it came from a web_search result in this conversation, and name its source. If web_search reports it is unavailable, say you could not check the latest figure and suggest where to confirm it — never supply a number from memory.
    - Subscriptions and bills are tracked by the user in the app. If the user says they paid a bill, tell them to tap "Mark paid" in Subscriptions & Bills rather than calling add_transaction — that logs the expense and also moves the next due date.
+   - When discussing bad or wasteful spending, call the items "worth reviewing" rather than bad, give the reason and figures for each, and suggest one concrete step. Never describe Bills, Groceries, Health or Transport spending as bad.
    - Gently redirect non-financial topics back to financial health.`, userContext)
 
 	// Model setup, with the agent tools registered
@@ -351,6 +353,11 @@ func (o *Orchestrator) dispatchTool(ctx context.Context, userID, toolName string
 		res, err := o.retrievalAgent.GetRecentConversations(ctx, userID, limit)
 		return map[string]any{"conversations": res}, nil, err
 
+	case "get_spending_insights":
+		month, _ := args["month"].(string)
+		res, err := o.retrievalAgent.GetSpendingInsights(ctx, userID, month)
+		return res, nil, err
+
 	case "get_subscriptions":
 		daysAhead := 30
 		if d, ok := args["days_ahead"].(float64); ok && d > 0 {
@@ -390,7 +397,7 @@ func (o *Orchestrator) dispatchTool(ctx context.Context, userID, toolName string
 	}
 }
 
-// getFunctionDeclarations defines the 7 agent tools
+// getFunctionDeclarations defines the 8 agent tools
 func (o *Orchestrator) getFunctionDeclarations() []*genai.FunctionDeclaration {
 	return []*genai.FunctionDeclaration{
 		// 1. web_search (FinancialResearchAgent)
@@ -506,7 +513,22 @@ func (o *Orchestrator) getFunctionDeclarations() []*genai.FunctionDeclaration {
 			},
 		},
 
-		// 7. get_subscriptions (FinancialRetrievalAgent)
+		// 7. get_spending_insights (FinancialRetrievalAgent)
+		{
+			Name:        "get_spending_insights",
+			Description: "Find spending worth reviewing in a month: unusually large purchases compared with the user's own history, small purchases at one merchant that add up, categories well above their recent average, the share spent on non-essentials, and overlapping subscriptions. Each item has a reason with figures. Use for 'what are my bad expenses', 'where am I wasting money', 'what should I cut back on', 'where can I save' or 'any unnecessary spending'.",
+			Parameters: &genai.Schema{
+				Type: genai.TypeObject,
+				Properties: map[string]*genai.Schema{
+					"month": {
+						Type:        genai.TypeString,
+						Description: "Month in 'YYYY-MM' format (e.g. '2026-04') or 'current'. Defaults to the current month; if it has no expenses yet, the latest month that does is used and the result says so.",
+					},
+				},
+			},
+		},
+
+		// 8. get_subscriptions (FinancialRetrievalAgent)
 		{
 			Name:        "get_subscriptions",
 			Description: "Retrieve the user's tracked recurring subscriptions and bills (e.g. Netflix, phone plan, rent): amounts, billing cycle, next due dates, which are overdue, and the monthly-equivalent total. Use for 'what bills are due', 'upcoming payments' or 'how much do I spend on subscriptions'. Read-only.",

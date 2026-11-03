@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/SmartFin-App/smartfin-backend/config"
+	"github.com/SmartFin-App/smartfin-backend/internal/insights"
 	"github.com/SmartFin-App/smartfin-backend/internal/models"
 	"github.com/SmartFin-App/smartfin-backend/internal/summaries"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -389,4 +390,33 @@ func abs64(v int64) int64 {
 		return -v
 	}
 	return v
+}
+
+// WithInsightFigures adds every figure get_spending_insights states for any
+// month (typical amounts, yearly paces, averages, increases) to the allowed set.
+// Those come from the user's records by a fixed rule, so quoting one is
+// grounded, not invented.
+func WithInsightFigures(base []int64, d UserData, t Truth) []int64 {
+	var txs []models.Transaction
+	for _, tx := range d.Txs {
+		txs = append(txs, models.Transaction{Merchant: tx.Merchant, Amount: tx.Amount, Type: tx.Type, Category: tx.Category, Date: tx.Date})
+	}
+	var subs []models.Subscription
+	for _, b := range d.Bills {
+		subs = append(subs, models.Subscription{Name: b.Name, Amount: b.Amount, BillingCycle: b.Cycle, Category: b.Category, Active: true})
+	}
+	set := map[int64]bool{}
+	for _, v := range base {
+		set[v] = true
+	}
+	for _, m := range t.Months {
+		r, err := insights.Analyze(txs, subs, m)
+		if err != nil {
+			continue
+		}
+		for _, v := range r.Figures() {
+			set[abs64(v)] = true
+		}
+	}
+	return sortedKeys(set)
 }

@@ -236,8 +236,40 @@ func TestCasesAreWellFormed(t *testing.T) {
 		}
 	}
 	// 28 since A5 ("how much did I save") and W2 ("set a savings goal") were
-	// retired with income and savings goals.
-	if len(allCases) != 28 {
-		t.Errorf("want 28 cases, have %d", len(allCases))
+	// retired with income and savings goals; 30 with I1 and I2 ("bad expenses").
+	if len(allCases) != 30 {
+		t.Errorf("want 30 cases, have %d", len(allCases))
+	}
+}
+
+// The insights cases quote figures (a typical amount, a yearly pace) that are not
+// sums of records; they must still count as grounded.
+func TestInsightFiguresAreAllowed(t *testing.T) {
+	d := UserData{Budget: 15000}
+	add := func(m time.Month, day int, merchant string, amount int64, cat string) {
+		d.Txs = append(d.Txs, TxRow{Date: time.Date(2026, m, day, 5, 0, 0, 0, time.UTC), Merchant: merchant, Type: "expense", Category: cat, Amount: amount})
+	}
+	for _, m := range []time.Month{1, 2, 3, 4} {
+		add(m, 10, "Netflix", 419, "Entertainment")
+	}
+	add(4, 18, "Thai Ticket Major", 4500, "Entertainment")
+	for _, day := range []int{2, 9, 15, 22, 28} {
+		add(4, day, "Starbucks Coffee", 300, "Food")
+	}
+	tr := BuildTruth(d)
+	allowed := WithInsightFigures(tr.AllowedBase(d.Txs), d, tr)
+	has := func(v int64) bool {
+		for _, a := range allowed {
+			if a == v {
+				return true
+			}
+		}
+		return false
+	}
+	// ฿18,000 a year at this pace; ฿4,081 above the typical ฿419.
+	for _, v := range []int64{18000, 4081} {
+		if !has(v) {
+			t.Errorf("%d should be allowed", v)
+		}
 	}
 }

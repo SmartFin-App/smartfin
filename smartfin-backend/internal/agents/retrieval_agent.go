@@ -2,6 +2,7 @@ package agents
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"regexp"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/SmartFin-App/smartfin-backend/config"
+	"github.com/SmartFin-App/smartfin-backend/internal/insights"
 	"github.com/SmartFin-App/smartfin-backend/internal/models"
 	"github.com/SmartFin-App/smartfin-backend/internal/summaries"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -281,4 +283,63 @@ func (a *RetrievalAgent) GetSubscriptions(ctx context.Context, userID string, da
 		"due_in_window_total": windowTotal,
 		"bills":               bills,
 	}, nil
+}
+
+// insightsGuide tells the model how to present get_spending_insights. "Bad" is
+// the user's word, not a finding: every item comes with a reason it can quote.
+const insightsGuide = "These are items worth reviewing, not mistakes; call them that rather than 'bad'. " +
+	"Lead with the two or three biggest, quote each reason with its figures, and suggest one concrete step for each " +
+	"(a category budget, a cheaper habit, pausing a subscription). Never describe Bills, Groceries, Health or Transport spending as bad. " +
+	"If nothing is flagged, say the month looks steady and give the discretionary share."
+
+// GetSpendingInsights answers "what are my bad expenses?" with the rule-based
+// checks in internal/insights: unusual purchases, small habits that add up,
+// growing categories, the discretionary share and overlapping subscriptions.
+func (a *RetrievalAgent) GetSpendingInsights(ctx context.Context, userID, month string) (map[string]any, error) {
+	// Every expense, because each check compares the month with the user's own
+	// history. Served by the {user_id, date} index.
+	opts := options.Find().SetSort(bson.D{{Key: "date", Value: -1}}).SetLimit(3000)
+	cursor, err := a.transactionsCol.Find(ctx, bson.M{"user_id": userID, "type": "expense"}, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query transactions: %w", err)
+	}
+	defer cursor.Close(ctx)
+	var txs []models.Transaction
+	if err := cursor.All(ctx, &txs); err != nil {
+		return nil, fmt.Errorf("failed to decode transactions: %w", err)
+	}
+
+	subCursor, err := a.subscriptionsCol.Find(ctx, bson.M{"user_id": userID, "active": true}, options.Find().SetLimit(100))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query subscriptions: %w", err)
+	}
+	defer subCursor.Close(ctx)
+	var subs []models.Subscription
+	if err := subCursor.All(ctx, &subs); err != nil {
+		return nil, fmt.Errorf("failed to decode subscriptions: %w", err)
+	}
+
+	resolved, note := insights.ResolveMonth(txs, month, time.Now())
+	report, err := insights.Analyze(txs, subs, resolved)
+	if err != nil {
+		return nil, err
+	}
+
+	out := map[string]any{}
+	b, err := json.Marshal(report)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(b, &out); err != nil {
+		return nil, err
+	}
+	switch {
+	case report.TransactionCount == 0:
+		out["note"] = fmt.Sprintf("No expenses are recorded in %s, so there is nothing to review.", resolved)
+	case note != "":
+		out["note"] = note
+	}
+	out["items_to_review"] = report.FindingCount()
+	out["how_to_answer"] = insightsGuide
+	return out, nil
 }

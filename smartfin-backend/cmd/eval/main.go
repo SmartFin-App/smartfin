@@ -1,7 +1,7 @@
 // Command eval scores the SmartFin AI coach against answers that can be checked.
 //
-// It creates throwaway eval users through the API (profile, the 44 seeded demo
-// expenses and three bills), asks 28 scripted questions, and scores every
+// It creates throwaway eval users through the API (profile, the 53 seeded demo
+// expenses and three bills), asks 30 scripted questions, and scores every
 // answer by rule against figures recomputed from MongoDB. The agentic coach is
 // compared with two baselines on the same model: no retrieval, and one-shot RAG
 // with the user's complete records pasted into the prompt.
@@ -42,7 +42,7 @@ var allSystems = []string{"agentic", "oneshot", "noretrieval"}
 const (
 	seededBudget  = 15000
 	emptyBudget   = 12000
-	seededTxCount = 44
+	seededTxCount = 53
 )
 
 type billSpec struct {
@@ -165,6 +165,7 @@ func main() {
 	emptyData := UserData{Name: "Eval User", Budget: emptyBudget}
 	empty := BuildTruth(emptyData)
 	seededBase, emptyBase := seeded.AllowedBase(refData.Txs), empty.AllowedBase(nil)
+	seededBase = WithInsightFigures(seededBase, refData, seeded)
 
 	res := &Results{Resolved: map[string][]int64{}, Allowed: map[string][]int64{}}
 	var ids []string

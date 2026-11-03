@@ -1,0 +1,11 @@
+# Secrets come from Cloud Run / Secret Manager, never from the image.
+.env
+*.env
+smartfin-credentials.json
+
+# Evaluation data: real slips carry names and account numbers.
+eval-slips/
+eval-results/
+
+.git
+.DS_Store

@@ -114,6 +114,29 @@ var allCases = []Case{
 		NoneOf:     negativeBudget,
 		ToolGroups: [][]string{readTools}, Months: []string{"2026-01"}},
 
+	// ── Spending to review ("bad expenses") ────────────────────────────────
+	// The seed's April has a concert ticket about 11× the usual Entertainment
+	// spend and a run of small Starbucks orders. Both figures are recomputed
+	// from the records, independent of the insights rules that flag them.
+	{ID: "I1", Category: "insights", Scope: "shared",
+		Question: "Can you tell me my bad expenses in April 2026?",
+		Required: []NumSpec{
+			{Kind: "merchant_total", Name: "Thai Ticket Major"},
+			{Kind: "merchant_month", Name: "Starbucks Coffee", Month: "2026-04"},
+		},
+		ToolGroups: [][]string{{"get_spending_insights"}},
+		Acceptable: []string{"get_budget_summary", "get_transactions", "get_subscriptions"},
+		Months:     []string{"2026-04"}},
+	{ID: "I2", Category: "insights", Scope: "shared",
+		Question: "เดือนเมษายน 2026 ฉันมีรายจ่ายที่ไม่จำเป็นหรือฟุ่มเฟือยอะไรบ้าง",
+		Required: []NumSpec{
+			{Kind: "merchant_total", Name: "Thai Ticket Major"},
+			{Kind: "merchant_month", Name: "Starbucks Coffee", Month: "2026-04"},
+		},
+		ToolGroups: [][]string{{"get_spending_insights"}},
+		Acceptable: []string{"get_budget_summary", "get_transactions", "get_subscriptions"},
+		Months:     []string{"2026-04"}},
+
 	// ── Bills (due dates are relative to the run day) ──────────────────────
 	{ID: "B1", Category: "bills", Scope: "shared",
 		Question:   "Which of my bills are overdue?",

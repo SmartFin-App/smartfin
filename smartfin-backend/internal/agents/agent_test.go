@@ -20,6 +20,7 @@ func TestFunctionDeclarations(t *testing.T) {
 		"get_transactions":         false,
 		"get_recent_conversations": false,
 		"get_subscriptions":        false,
+		"get_spending_insights":    false,
 	}
 
 	for _, d := range decls {
@@ -36,8 +37,8 @@ func TestFunctionDeclarations(t *testing.T) {
 		}
 	}
 
-	if len(decls) != 7 {
-		t.Errorf("Expected 7 declared tools, got %d", len(decls))
+	if len(decls) != 8 {
+		t.Errorf("Expected 8 declared tools, got %d", len(decls))
 	}
 }
 

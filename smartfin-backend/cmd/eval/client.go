@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 )
@@ -59,6 +60,11 @@ func (c *Client) send(ctx context.Context, method, path string, body any) (int, 
 	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
+	}
+	// The seed route is guarded by the server's ADMIN_API_KEY; the harness
+	// sends the same key from its own environment.
+	if strings.HasPrefix(path, "/admin/") {
+		req.Header.Set("X-Admin-Key", os.Getenv("ADMIN_API_KEY"))
 	}
 	resp, err := c.http.Do(req)
 	if err != nil {

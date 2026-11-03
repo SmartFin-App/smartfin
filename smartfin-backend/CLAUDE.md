@@ -17,9 +17,9 @@ go test ./internal/agents -run TestFunctionDeclarations -v   # single test
 go test ./cmd/eval                        # evaluation scoring rules (offline)
 ```
 
-`.env` is loaded by godotenv at startup; a missing `MONGODB_URI` or `DB_NAME` is a `log.Fatal`. Variables: `MONGODB_URI`, `DB_NAME`, `PORT`, `GEMINI_API_KEY`, optional `SERPAPI_API_KEY`.
+`.env` is loaded by godotenv at startup; a missing `MONGODB_URI` or `DB_NAME` is a `log.Fatal`. Variables: `MONGODB_URI`, `DB_NAME`, `PORT`, `GEMINI_API_KEY`, optional `SERPAPI_API_KEY`, and `ADMIN_API_KEY` (unset = the `/admin` routes are off).
 
-Tests live in `internal/agents`, `internal/models` and `internal/summaries` (the date and projection rules are pure functions tested against a fixed clock). The whole suite runs offline in about a second.
+Tests live in `internal/agents`, `internal/insights`, `internal/models`, `internal/routes` and `internal/summaries` (the date, projection and insight rules are pure functions tested against fixed data). The whole suite runs offline in about a second.
 
 ## Stack details that are easy to guess wrong
 
@@ -42,22 +42,22 @@ Tests live in `internal/agents`, `internal/models` and `internal/summaries` (the
 
 The single-transaction routes (`GET /api/transactions/detail/:id`, `PUT`, `DELETE`) additionally require a `user_id` (query string or body) and filter on it via `ownerFromRequest` — without that they had no notion of an owner at all, so a guessed ObjectID reached another user's record. That helper is the one place to swap for a verified token.
 
-`routes.go` also holds the admin endpoints inline (see below), which is why that file is much longer than the route list suggests.
+`routes.go` also holds the admin endpoints inline (see below); the demo expenses they seed are in `seed.go`.
 
 ## The coach is an agentic loop, not one-shot RAG
 
-`internal/agents/orchestrator.go` backs `POST /api/coach/ask` (45s handler timeout). It builds a system prompt grounded in the user's profile, declares **7 tools**, then runs a **max-5-iteration** Gemini function-calling loop, dispatching through `dispatchTool` to three sub-agents:
+`internal/agents/orchestrator.go` backs `POST /api/coach/ask` (45s handler timeout). It builds a system prompt grounded in the user's profile, declares **8 tools**, then runs a **max-5-iteration** Gemini function-calling loop, dispatching through `dispatchTool` to three sub-agents:
 
 | Agent | Tools |
 | --- | --- |
-| `retrieval_agent.go` | `get_budget_summary`, `get_transactions`, `get_subscriptions`, `get_recent_conversations` |
+| `retrieval_agent.go` | `get_budget_summary`, `get_transactions`, `get_spending_insights`, `get_subscriptions`, `get_recent_conversations` |
 | `action_agent.go` | `update_budget_limit`, `add_transaction` (expenses only) — these **write** to Mongo and are echoed back to the client as `actions_taken` |
 | `research_agent.go` | `web_search` — SerpAPI if `SERPAPI_API_KEY` is set, else scrapes DuckDuckGo HTML, else `searchUnavailable`: no results and no figures |
 
 When working on this loop:
 
 - Tool results must pass through `sanitizeForGemini` (a JSON round-trip) before being returned as a `genai.FunctionResponse`, or protobuf conversion fails on types that aren't plain `map[string]any` / `[]any`.
-- Adding or removing a tool means updating `agent_test.go`, which asserts **exactly 7** declarations and checks each by name.
+- Adding or removing a tool means updating `agent_test.go`, which asserts **exactly 8** declarations and checks each by name.
 - `get_transactions` has **no date filter** and returns the newest rows (default 20; a limit above 100 silently becomes 30). Questions about one shop or service must use its optional `merchant` filter (case-insensitive fragment) — before it existed, the coach could not answer "how much have I spent at Netflix?" and the evaluation traced 7 of 13 failures to it. The category filter is an escaped, case-insensitive prefix; the declaration lists the real category names because the model otherwise invents ones like "Healthcare".
 - `get_subscriptions` is deliberately **read-only**. The system prompt tells the model to send a user who says "I paid my Netflix" to the app's Mark paid button instead of calling `add_transaction` — that would log the expense but leave the bill's due date where it was.
 - Gemini arguments arrive as `float64` regardless of declared schema type, hence the `args["amount"].(float64)` conversions in `dispatchTool`.
@@ -67,11 +67,12 @@ When working on this loop:
 - Every exchange is persisted to `chat_messages` with the tool names used — that is what `get_recent_conversations` later reads back.
 - **Everything the model sees is Thai local time.** `get_recent_conversations` and `get_transactions` format through `summaries.Zone` (+07:00) — MongoDB hands back UTC, and passing that through unconverted put chat memory on the wrong *day*. The system prompt also carries the current date and month, because the model has no clock of its own and was otherwise inferring "today" from training data.
 - `get_recent_conversations` defaults to 20 messages. Note the guard in `retrieval_agent.go`: anything **above** 20 silently collapses to 6, so raising the default past the cap returns *fewer* messages, not more.
-- A `detect_spending_anomalies` tool and an external ML-service integration were both deliberately removed (commits `12827ac`, `53f79be`). Don't reintroduce either without asking.
+- **`get_spending_insights` answers "what are my bad expenses?"** (asked by the project advisor in Oct 2026; the coach had no way to answer it). The rules live in `internal/insights`, are deterministic, and judge a month only against the user's own earlier history: unusual purchases (median/MAD robust z ≥ 3.5, ≥ 3× the category's typical amount and ≥ ฿1,000), small habits (one merchant ≥ 4 times a month at ≤ ฿500 typical, ≥ ฿1,000 total), categories up ≥ 30% and ≥ ฿1,000 on the average of the previous 3 months (only months with expenses count, so a gap such as demo data followed by real use is not read as ฿0 months; at least 2 needed), the discretionary share, and two or more active subscriptions in one discretionary category. **Bills, Groceries, Health and Transport are never flagged**, and `Other` (mostly transfers to people) is not judged. Every item carries a `reason` with figures, and the prompt has the coach call them "worth reviewing", not bad. With no month (or `current`) and no expenses yet this month, it analyses the latest month that has expenses and says so in `note`.
+- It replaces `detect_spending_anomalies` (removed in `53f79be`), which used mean and standard deviation, so one big purchase inflated the spread enough to hide itself or a second one. The external ML-service integration (`12827ac`) stays removed. A trained classifier has no labels to learn "bad" from and could not be scored against ground truth.
 
 ### Evaluating the coach (`cmd/eval`)
 
-`cmd/eval` scores the coach against answers that can be checked. It creates throwaway `eval-<run>-*` users through the API (profile, the 44 seeded expenses, three bills dated relative to the run day), asks 28 scripted questions (`cmd/eval/cases.go`), and scores every answer **by rule against figures recomputed from MongoDB** — no LLM judge. The same questions go to two baselines on the same model and temperature: no retrieval, and one-shot RAG with the user's complete records pasted into the prompt.
+`cmd/eval` scores the coach against answers that can be checked. It creates throwaway `eval-<run>-*` users through the API (profile, the 53 seeded expenses, three bills dated relative to the run day), asks 30 scripted questions (`cmd/eval/cases.go`), and scores every answer **by rule against figures recomputed from MongoDB** — no LLM judge. The same questions go to two baselines on the same model and temperature: no retrieval, and one-shot RAG with the user's complete records pasted into the prompt.
 
 ```bash
 PORT=3001 COACH_EVAL_TRACE=1 go run cmd/main.go     # terminal 1: trace-enabled server
@@ -133,9 +134,13 @@ Two fallbacks hide failures from callers, so check them when evaluating: an unpa
 They are not interchangeable — check which one a caller actually needs.
 
 
-## Admin endpoints are unprotected and destructive
+## Admin endpoints are destructive and key-guarded
 
-Registered outside the `/api` group in `routes.go`:
+Registered outside the `/api` group in `routes.go`, behind `adminGuard` (`internal/routes/admin.go`): every request needs an `X-Admin-Key` header equal to `ADMIN_API_KEY`. **With `ADMIN_API_KEY` unset the routes are switched off** (404), so a deployment that forgets the variable fails closed — set it in your local `.env` to keep using them.
 
-- `POST /admin/seed-transactions?user_id=…` — inserts 44 hardcoded Nov 2025–Apr 2026 Thai expenses. This is what makes the coach and the dashboard charts demoable.
+- `POST /admin/seed-transactions?user_id=…` — inserts 53 hardcoded Nov 2025–Apr 2026 Thai expenses (`seed.go`). This is what makes the coach and the dashboard charts demoable. April carries the spending `get_spending_insights` flags (a concert ticket, repeated Starbucks and Line MAN orders); `seed_test.go` checks that, plus the shape the eval's fixed answers rely on (January the top month, Shopping December's top category). `cmd/eval` calls it and sends the key from its own `ADMIN_API_KEY`, so export the same value in the harness's shell.
 - `DELETE /admin/reset-summaries`, `DELETE /admin/reset-transactions` — wipe data. Never call these without an explicit instruction.
+
+## Deployment
+
+The chosen host is **Google Cloud Run** (asia-southeast1), not yet deployed. `Dockerfile` builds a static binary from `./cmd` with `golang:1.26` and runs it on `distroless/static` as non-root; `.dockerignore` keeps `.env` and `eval-slips/` out of the image. Secrets (`GEMINI_API_KEY`, `MONGODB_URI`, `ADMIN_API_KEY`) belong in Secret Manager, passed with `--set-secrets`. Atlas must allow `0.0.0.0/0`, since Cloud Run has no fixed outbound IP.

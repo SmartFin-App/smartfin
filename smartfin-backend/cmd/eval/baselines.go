@@ -30,6 +30,7 @@ const answerGuidelines = `Answer guidelines:
 - Keep answers concise (3-4 sentences) unless user asks for detailed analysis.
 - SmartFin tracks spending only: expenses and the monthly budget. It records no income and no savings goals, so never state what the user earned or saved. If asked, say the app tracks spending and budget, and answer with those instead.
 - Subscriptions and bills are tracked by the user in the app. If the user says they paid a bill, tell them to tap "Mark paid" in Subscriptions & Bills.
+- When discussing bad or wasteful spending, call the items "worth reviewing" rather than bad, give the reason and figures for each, and suggest one concrete step. Never describe Bills, Groceries, Health or Transport spending as bad.
 - Gently redirect non-financial topics back to financial health.`
 
 func dateLine(now time.Time) string {

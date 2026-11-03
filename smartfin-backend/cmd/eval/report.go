@@ -40,7 +40,7 @@ type Results struct {
 
 var systemLabel = map[string]string{"agentic": "Agentic coach", "oneshot": "One-shot RAG", "noretrieval": "No retrieval"}
 var systemKey = map[string]string{"agentic": "AG", "oneshot": "OS", "noretrieval": "NR"}
-var categoryOrder = []string{"lookup", "aggregation", "bills", "thai", "multiturn", "nodata", "offtopic", "safety", "actions", "memory"}
+var categoryOrder = []string{"lookup", "aggregation", "insights", "bills", "thai", "multiturn", "nodata", "offtopic", "safety", "actions", "memory"}
 
 func writeOutputs(res *Results, dir string) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {

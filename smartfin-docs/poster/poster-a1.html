@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SmartFin A1 Poster</title>
+<!--
+  CS D-Day 2026 poster, A1 portrait (594 x 841 mm). Laid out at 2245 x 3178 CSS px,
+  which is exactly A1 at 96 px/inch, so it prints 1:1 to PDF.
+  Render with ./render-poster.sh (PDF for printing + PNG preview).
+  Voting QR: set VOTE_URL below to the SIT Portfolio project link.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=block" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+  // SIT Portfolio link for this project. Leave empty to print a placeholder box.
+  const VOTE_URL = 'https://seniorproject.sit.kmutt.ac.th/showproject/CS66-BU77';
+</script>
+<style>
+  @page { size: 594mm 841mm; margin: 0; }
+  :root {
+    --cream: #FFF7EC;
+    --ink: #1C1917;
+    --ink-2: #57534E;
+    --ink-3: #8A817A;
+    --orange: #FF9F29;
+    --orange-text: #C2680A;
+    --kmutt: #E5401A;
+    --line: #EFE6D8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 2245px; height: 3178px; overflow: hidden; }
+  body {
+    position: relative; background: var(--cream); color: var(--ink);
+    font-family: Inter, system-ui, sans-serif;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .bricolage { font-family: 'Bricolage Grotesque', sans-serif; }
+
+  /* ---------- background ---------- */
+  .glow { position: absolute; border-radius: 50%; }
+  .glow.a { width: 1800px; height: 1800px; left: 1000px; top: -250px;
+    background: radial-gradient(circle, rgba(255,159,41,.34) 0%, rgba(255,159,41,.10) 40%, rgba(255,159,41,0) 70%); }
+  .glow.b { width: 1400px; height: 1400px; left: -650px; top: 600px;
+    background: radial-gradient(circle, rgba(13,148,136,.10) 0%, rgba(13,148,136,0) 65%); }
+  .dots {
+    position: absolute; left: 0; top: 0; width: 2245px; height: 1500px;
+    background-image: radial-gradient(rgba(28,25,23,.07) 2.4px, transparent 2.8px);
+    background-size: 48px 48px;
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+            mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+  }
+
+  /* ---------- page rows ---------- */
+  .page { position: absolute; left: 80px; top: 70px; width: 2085px; display: flex; flex-direction: column; gap: 40px; }
+  .row-head { height: 140px; display: flex; justify-content: space-between; align-items: center; }
+  .row-hero { height: 1300px; position: relative; }
+  .row-arch { height: 570px; }
+  .row-bottom { height: 558px; }
+
+  .panel {
+    position: relative; background: #fff; border-radius: 40px; border: 2px solid var(--line);
+    box-shadow: 0 30px 60px -30px rgba(90,50,10,.25);
+  }
+  h2 {
+    font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800;
+    font-size: 54px; letter-spacing: -1px; line-height: 1;
+    display: flex; align-items: center; gap: 18px;
+  }
+  h2 .n {
+    width: 58px; height: 58px; border-radius: 16px; background: var(--ink); color: var(--orange);
+    display: grid; place-items: center; font-size: 32px; letter-spacing: 0;
+  }
+
+  /* ---------- header ---------- */
+  .logos { display: flex; align-items: center; gap: 36px; }
+  .logos .kmutt { height: 140px; width: 120px; object-fit: contain; object-view-box: inset(12.5% 11% 20.8% 23%); }
+  .logos .divider { width: 3px; height: 100px; background: rgba(28,25,23,.25); border-radius: 2px; }
+  .logos .sit { height: 104px; }
+  .event { text-align: right; }
+  .event .tag {
+    display: inline-block; padding: 14px 30px; border-radius: 999px; background: var(--ink); color: #fff;
+    font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 40px; letter-spacing: -.3px;
+  }
+  .event .tag b { color: var(--orange); }
+  .event .course { margin-top: 12px; font-size: 29px; font-weight: 600; color: var(--ink-2); }
+
+  /* ---------- hero ---------- */
+  .hero-text { position: absolute; left: 0; top: 10px; width: 1240px; }
+  .eyebrow {
+    display: inline-block; padding: 12px 26px; border-radius: 999px;
+    background: #FFE9CC; color: var(--orange-text); font-weight: 700; font-size: 31px;
+  }
+  .wordmark {
+    margin-top: 18px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800;
+    font-size: 250px; line-height: .92; letter-spacing: -8px;
+  }
+  .wordmark .fin {
+    background: linear-gradient(180deg, #FFB347 0%, #FF8A00 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .title {
+    margin-top: 26px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700;
+    font-size: 64px; line-height: 1.08; letter-spacing: -1.2px;
+  }
+  .title b { color: var(--orange-text); font-weight: 800; white-space: nowrap; }
+  .nw { white-space: nowrap; }
+  .desc { margin-top: 20px; font-size: 34px; line-height: 1.48; color: var(--ink-2); width: 1180px; }
+  .desc strong { color: var(--ink); font-weight: 600; }
+
+  .features { position: absolute; left: 0; bottom: 0; width: 1200px; display: grid; gap: 16px; }
+  .feat { display: flex; gap: 28px; align-items: center; padding: 20px 34px; }
+  .feat .icon { width: 92px; height: 92px; border-radius: 26px; display: grid; place-items: center; flex: none; }
+  .feat .icon svg { width: 50px; height: 50px; }
+  .feat h3 { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 42px; letter-spacing: -.6px; line-height: 1.05; }
+  .feat p { margin-top: 8px; font-size: 29px; line-height: 1.4; color: var(--ink-2); }
+
+  .phone {
+    position: absolute; right: 30px; top: 0; width: 600px; height: 1290px;
+    border-radius: 96px; padding: 20px;
+    background: linear-gradient(145deg, #3a3633, #121110 45%, #2a2725);
+    box-shadow: 0 0 0 3px #4a4541 inset, 0 80px 140px -30px rgba(120,60,0,.45), 0 30px 60px -16px rgba(0,0,0,.25);
+  }
+  .phone .screen {
+    width: 100%; height: 100%; border-radius: 78px; overflow: hidden; position: relative;
+    background: #FFF6EA url('Dashboard.PNG') top center / cover no-repeat;
+  }
+  .phone .island { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 170px; height: 50px; border-radius: 28px; background: #0b0b0b; }
+  .float {
+    position: absolute; background: #fff; border-radius: 34px; border: 2px solid var(--line);
+    box-shadow: 0 36px 70px -24px rgba(90,50,10,.38), 0 4px 10px rgba(90,50,10,.06);
+  }
+  .notif { left: 1300px; top: 640px; width: 470px; padding: 22px 26px; display: flex; gap: 20px; align-items: center; }
+  .notif .icon { width: 68px; height: 68px; border-radius: 20px; background: #FFF1DE; display: grid; place-items: center; flex: none; }
+  .notif .icon svg { width: 36px; height: 36px; }
+  .notif .t { font-size: 23px; color: var(--ink-3); font-weight: 600; }
+  .notif .m { font-size: 28px; font-weight: 700; margin-top: 2px; line-height: 1.25; }
+  .coachcard { left: 1300px; top: 870px; width: 785px; padding: 30px 34px 34px; }
+  .coachcard .head { display: flex; align-items: center; gap: 18px; }
+  .coachcard .avatar { width: 76px; height: 76px; border-radius: 22px; background: #FFF1DE; display: grid; place-items: center; flex: none; }
+  .coachcard .avatar img { width: 60px; height: 60px; }
+  .coachcard h4 { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 40px; line-height: 1.1; }
+  .coachcard .sub { font-size: 24px; color: var(--ink-3); font-weight: 500; }
+  .bubble { margin-top: 20px; font-size: 28px; line-height: 1.4; padding: 18px 24px; border-radius: 28px; }
+  .bubble.user { margin-left: 150px; background: #FFE9CC; border-bottom-right-radius: 8px; font-weight: 500; }
+  .bubble.bot { margin-right: 30px; background: #F5F1EB; border-bottom-left-radius: 8px; }
+  .bubble.bot b { font-weight: 700; }
+
+  /* ---------- architecture ---------- */
+  .arch { padding: 36px 50px; }
+  .diagram { position: relative; margin-top: 24px; width: 1985px; height: 420px; }
+  .diagram > * { position: absolute; }
+  .zone { border-radius: 28px; }
+  .zone .lab { position: absolute; left: 24px; top: 16px; font-weight: 700; font-size: 25px; color: var(--ink-3); }
+  .z-client { left: 0; top: 0; width: 520px; height: 420px; background: #F1F7FF; }
+  .z-run { left: 596px; top: 0; width: 784px; height: 420px; background: #F0F5FF; border: 3px dashed #4285F4; }
+  .z-data { left: 1460px; top: 0; width: 525px; height: 420px; background: #EEF8F5; }
+  .runhead { left: 620px; top: 14px; width: 736px; height: 52px; display: flex; align-items: center; gap: 14px; }
+  .runhead img { height: 46px; }
+  .runhead .t { font-weight: 800; font-size: 30px; font-family: 'Bricolage Grotesque', sans-serif; }
+  .runhead .s { font-size: 23px; color: var(--ink-3); font-weight: 600; }
+  .runhead .dock { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 23px; font-weight: 600; color: var(--ink-2); }
+  .runhead .dock img { height: 42px; }
+  .node {
+    background: #fff; border: 2px solid rgba(28,25,23,.85); border-radius: 20px;
+    display: flex; align-items: center; gap: 18px; padding: 0 22px;
+  }
+  .node .lg { flex: none; display: flex; align-items: center; gap: 10px; }
+  .node .lg img { height: 58px; }
+  .node .tt { font-weight: 700; font-size: 29px; line-height: 1.15; color: var(--ink); }
+  .node .ss { font-size: 23px; line-height: 1.3; color: var(--ink-2); margin-top: 2px; }
+  .node.coach { border: 3px solid var(--kmutt); }
+  .node.coach .tt { color: #C2410C; }
+  .mini { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .mini span { font-size: 21px; font-weight: 600; padding: 4px 12px; border-radius: 999px; background: #F4EEE4; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+  .mini span img { height: 22px; }
+  .tools3 { display: flex; gap: 8px; margin-left: auto; }
+  .tools3 span { text-align: center; font-size: 20px; font-weight: 600; padding: 5px 10px; border-radius: 12px; border: 2px solid #F0A57A; background: #FFF7F0; color: #9A3412; white-space: nowrap; }
+  .wires { left: 0; top: 0; width: 1985px; height: 420px; overflow: visible; pointer-events: none; }
+  .wires text { font: 600 21px Inter, sans-serif; fill: var(--ink-3); }
+
+  /* ---------- tools ---------- */
+  .tech { padding: 40px 50px; }
+  .tech-cols { margin-top: 34px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; }
+  .tech-col { background: #FBF6EE; border-radius: 28px; padding: 20px 22px; }
+  .tech-col .k { font-weight: 700; font-size: 26px; color: var(--ink-3); margin-bottom: 16px; }
+  .tech-col .v { display: flex; flex-direction: column; gap: 8px; }
+  .tech-col .v span {
+    display: flex; align-items: center; gap: 14px; font-size: 27px; font-weight: 600;
+    padding: 8px 16px; border-radius: 18px; background: #fff; border: 2px solid var(--line); color: var(--ink);
+  }
+  .tech-col .v span img { height: 38px; width: 38px; object-fit: contain; flex: none; }
+  .tech-col .v span .pair { display: flex; gap: 0; flex: none; margin-right: -4px; }
+  .tech-col .v span .pair img { width: 26px; height: 30px; }
+  .tech-col .v span.tight { white-space: nowrap; letter-spacing: -0.2px; }
+  .tech-col .v span.hl { background: #FFF1DE; border-color: #FFD7A3; color: #9A4A00; }
+
+  /* ---------- footer ---------- */
+  .foot {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 380px;
+    background: var(--ink); color: #fff; padding: 40px 80px 0;
+    display: grid; grid-template-columns: 1084px 1fr 330px; gap: 50px;
+  }
+  .foot .lab { font-size: 26px; font-weight: 700; color: var(--orange); }
+  .team { display: flex; gap: 32px; margin-top: 24px; }
+  .member { width: 340px; display: flex; gap: 22px; align-items: center; }
+  .member .ph, .advisor .ph {
+    width: 150px; height: 150px; border-radius: 50%; overflow: hidden; flex: none;
+    border: 6px solid var(--orange); background: #E7E5E4;
+  }
+  .member .ph img, .advisor .ph img { width: 100%; height: 100%; object-fit: cover; }
+  .member .nm { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 32px; line-height: 1.1; }
+  .member .id { margin-top: 8px; font-size: 23px; color: #D6D3D1; font-variant-numeric: tabular-nums; }
+  .advisor .row { display: flex; gap: 22px; align-items: center; margin-top: 24px; }
+  .advisor .nm { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 34px; line-height: 1.1; }
+  .advisor .role { margin-top: 8px; font-size: 22px; line-height: 1.3; color: #D6D3D1; }
+  .advisor .school { margin-top: 14px; font-size: 20px; line-height: 1.4; color: #A8A29E; }
+  .vote { text-align: center; }
+  .qr {
+    width: 250px; height: 250px; margin: 0 auto; border-radius: 22px; background: #fff;
+    display: grid; place-items: center; padding: 14px;
+  }
+  .qr svg, .qr img { width: 100%; height: 100%; display: block; }
+  .qr.empty { background: transparent; border: 4px dashed #A8A29E; color: #D6D3D1; font-size: 22px; line-height: 1.35; padding: 20px; }
+  .vote .cta { margin-top: 16px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 34px; }
+  .vote .cta b { color: var(--orange); }
+
+  /* Blurred shadows turn into solid boxes in the PDF, so print uses crisp ones. */
+  @media print {
+    .panel, .float { box-shadow: 0 10px 0 rgba(90,50,10,.07); }
+    .phone { box-shadow: 0 0 0 3px #4a4541 inset, 0 16px 0 rgba(90,50,10,.10); }
+  }
+</style>
+</head>
+<body>
+
+<div class="glow a"></div>
+<div class="glow b"></div>
+<div class="dots"></div>
+
+<div class="page">
+
+  <!-- header -->
+  <div class="row-head">
+    <div class="logos">
+      <img class="kmutt" src="kmutt_logo.png" alt="KMUTT">
+      <div class="divider"></div>
+      <img class="sit" src="sit_logo.png" alt="SIT, KMUTT">
+    </div>
+    <div class="event">
+      <div class="tag">CS D-Day <b>2026</b></div>
+      <div class="course">CSC499 Computer Science Capstone Project II</div>
+    </div>
+  </div>
+
+  <!-- hero: title, features, phone -->
+  <div class="row-hero">
+    <div class="hero-text">
+      <div class="eyebrow">Personal expense tracking app for Thai users</div>
+      <div class="wordmark">Smart<span class="fin">Fin</span></div>
+      <div class="title">Automatic Expense Tracking with <b>Thai E-Slip Recognition</b> and an <b>AI Financial Coach</b></div>
+      <div class="desc">Thai payments end in an e-slip, yet budgeting apps still make you <strong>type every expense by hand</strong>. SmartFin reads the slips for you.</div>
+    </div>
+
+    <div class="features">
+      <div class="panel feat">
+        <div class="icon" style="background:#FFF1DE"><svg viewBox="0 0 24 24" fill="none" stroke="#E07F0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg></div>
+        <div><h3>Snap the slip, skip the typing</h3><p>A vision model reads the merchant, the amount in Baht and the date. You confirm before it saves.</p></div>
+      </div>
+      <div class="panel feat">
+        <div class="icon" style="background:#E3EDFF"><svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></div>
+        <div><h3>Auto-Detect from the gallery</h3><p>New e-slips from K PLUS, SCB EASY, Krungthai NEXT and other banking apps are found and offered for review.</p></div>
+      </div>
+      <div class="panel feat">
+        <div class="icon" style="background:#E6F4F2"><svg viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M9 16l2 2 4-4"/></svg></div>
+        <div><h3>Bills that remind you</h3><p>Subscriptions and recurring bills that never produce a slip, with a reminder the day before they are due.</p></div>
+      </div>
+    </div>
+
+    <div class="phone"><div class="screen"><div class="island"></div></div></div>
+
+    <div class="float notif">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="#E07F0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div>
+      <div><div class="t">Bill reminder · 09:00</div><div class="m">฿599 bill is due tomorrow</div></div>
+    </div>
+
+    <div class="float coachcard">
+      <div class="head">
+        <div class="avatar"><img src="../../smartfin-flutter/assets/images/lucky_cat.png" alt=""></div>
+        <div><h4>AI Coach</h4><div class="sub">Answers from your own records, in Thai or English</div></div>
+      </div>
+      <div class="bubble user">How much did I spend on food this month?</div>
+      <div class="bubble bot"><b>฿3,281</b> on food in October, 24% of your total. You have <b>฿1,411</b> left in your budget 🐾</div>
+    </div>
+  </div>
+
+  <!-- system architecture -->
+  <div class="row-arch panel arch">
+    <h2><span class="n">1</span>System architecture</h2>
+    <div class="diagram">
+      <div class="zone z-client"><div class="lab">Mobile client</div></div>
+      <div class="zone z-run"></div>
+      <div class="zone z-data"><div class="lab">Data &amp; AI services</div></div>
+
+      <!-- client -->
+      <div class="node" style="left:24px;top:60px;width:472px;height:220px;align-items:center">
+        <div style="width:100%">
+          <div style="display:flex;align-items:center;gap:14px">
+            <img src="logos/flutter-original.svg" style="height:58px" alt=""><img src="logos/dart-original.svg" style="height:58px" alt="">
+            <div><div class="tt">Flutter app</div><div class="ss">written in Dart</div></div>
+          </div>
+          <div class="mini" style="margin-top:18px"><span><img src="logos/android-original.svg" alt="">Android</span><span><img src="logos/apple-original.svg" alt="">iOS</span><span>Camera scan</span><span>Auto-Detect</span><span>Bill reminders</span></div>
+        </div>
+      </div>
+      <div class="node" style="left:24px;top:296px;width:472px;height:100px">
+        <div class="lg"><img src="logos/firebase-original.svg" alt=""></div>
+        <div><div class="tt">Firebase Authentication</div><div class="ss">email &amp; Google sign-in</div></div>
+      </div>
+
+      <!-- Cloud Run -->
+      <div class="runhead">
+        <img src="logos/googlecloud-original.svg" alt="">
+        <div><span class="t">Google Cloud Run</span></div>
+        <div class="dock"><img src="logos/docker-original.svg" alt="">Docker container</div>
+      </div>
+      <div class="node" style="left:620px;top:80px;width:736px;height:106px">
+        <div class="lg"><img src="logos/go-original.svg" style="height:50px" alt=""><img src="logos/fiber.svg" style="height:62px;margin-left:-14px" alt=""></div>
+        <div><div class="tt">Go REST API</div><div class="ss">transactions · summaries · bills · users</div></div>
+      </div>
+      <div class="node" style="left:620px;top:200px;width:736px;height:72px">
+        <div class="lg"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#E07F0A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg></div>
+        <div class="tt">Slip scanner</div><div class="ss" style="margin:0">image → merchant, ฿ amount, date</div>
+      </div>
+      <div class="node coach" style="left:620px;top:286px;width:736px;height:110px">
+        <div class="lg"><img src="../../smartfin-flutter/assets/images/lucky_cat.png" style="height:60px" alt=""></div>
+        <div><div class="tt">AI Coach agent</div><div class="ss" style="white-space:nowrap">≤ 5 turns · 45 s · 8 tools</div></div>
+        <div class="tools3"><span>Read · 5</span><span>Act · 2</span><span>Search · 1</span></div>
+      </div>
+
+      <!-- data & AI -->
+      <div class="node" style="left:1484px;top:60px;width:477px;height:104px">
+        <div class="lg"><img src="logos/mongodb-original.svg" alt=""></div>
+        <div><div class="tt">MongoDB Atlas</div><div class="ss">spending · bills · chat history</div></div>
+      </div>
+      <div class="node" style="left:1484px;top:180px;width:477px;height:104px">
+        <div class="lg"><img src="logos/gemini.svg" style="height:52px" alt=""></div>
+        <div><div class="tt">Gemini 3.5 Flash-Lite</div><div class="ss">vision · function calling</div></div>
+      </div>
+      <div class="node" style="left:1484px;top:300px;width:477px;height:96px">
+        <div class="lg"><img src="logos/duckduckgo.svg" style="height:52px" alt=""></div>
+        <div><div class="tt">Web search</div><div class="ss">SerpAPI, DuckDuckGo fallback</div></div>
+      </div>
+
+      <svg class="wires" viewBox="0 0 1985 420">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#1C1917"/></marker></defs>
+        <path d="M500 133 L616 133" stroke="#1C1917" stroke-width="3" fill="none" marker-start="url(#ah)" marker-end="url(#ah)"/>
+        <text x="558" y="118" text-anchor="middle">HTTPS</text>
+        <path d="M1360 120 L1480 112" stroke="#1C1917" stroke-width="3" fill="none" marker-start="url(#ah)" marker-end="url(#ah)"/>
+        <path d="M1360 236 L1480 226" stroke="#1C1917" stroke-width="3" fill="none" marker-end="url(#ah)"/>
+        <path d="M1360 320 L1480 246" stroke="#1C1917" stroke-width="3" fill="none" marker-end="url(#ah)"/>
+        <path d="M1360 350 L1480 350" stroke="#1C1917" stroke-width="3" fill="none" marker-end="url(#ah)"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- tools & techniques -->
+  <div class="row-bottom panel tech">
+    <h2><span class="n">2</span>Tools &amp; techniques</h2>
+    <div class="tech-cols">
+      <div class="tech-col"><div class="k">Mobile</div><div class="v">
+        <span><img src="logos/flutter-original.svg" alt="">Flutter</span><span><img src="logos/dart-original.svg" alt="">Dart</span><span><img src="logos/photo-icon.svg" alt="">photo_manager</span><span><img src="logos/chart-icon.svg" alt="">fl_chart</span></div></div>
+      <div class="tech-col"><div class="k">Backend</div><div class="v">
+        <span><img src="logos/go-original.svg" alt="">Go</span><span><img src="logos/fiber.svg" alt="" style="width:38px;object-fit:cover;object-position:28% 50%">Fiber v2</span><span><img src="logos/docker-original.svg" alt="">Docker</span><span><img src="logos/googlecloud-original.svg" alt="">Google Cloud Run</span></div></div>
+      <div class="tech-col"><div class="k">AI</div><div class="v">
+        <span class="hl"><img src="logos/gemini.svg" alt="">Gemini 3.5 Flash-Lite</span><span class="hl"><img src="logos/rag-icon.svg" alt="">Agentic RAG</span><span class="hl"><img src="logos/function-icon.svg" alt="">Function calling</span><span class="hl"><img src="logos/gemini.svg" alt="">Gemini Vision</span></div></div>
+      <div class="tech-col"><div class="k">Data &amp; auth</div><div class="v">
+        <span><img src="logos/mongodb-original.svg" alt="">MongoDB Atlas</span><span><img src="logos/firebase-original.svg" alt="">Firebase Auth</span><span><img src="logos/google-original.svg" alt="">Google Sign-In</span><span><img src="logos/duckduckgo.svg" alt="">Web search</span></div></div>
+      <div class="tech-col"><div class="k">Workflow</div><div class="v">
+        <span><img src="logos/github-original.svg" alt="">GitHub</span><span><img src="logos/postman-original.svg" alt="">Postman</span><span><img src="logos/figma-original.svg" alt="">Figma</span><span><img src="logos/vscode-original.svg" alt="">VS Code</span><span class="tight"><i class="pair"><img src="logos/go-original.svg" alt=""><img src="logos/flutter-original.svg" alt=""></i>Go &amp; Flutter tests</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- footer: team, advisor, voting QR -->
+<div class="foot">
+  <div>
+    <div class="lab">Project team</div>
+    <div class="team">
+      <div class="member">
+        <div class="ph"><img src="Ant_Bone_Kyaw_Profile.jpeg" alt="" style="object-view-box: inset(4% 20% 50% 20%)"></div>
+        <div><div class="nm">Ant Bone Kyaw</div><div class="id">66130500802</div></div>
+      </div>
+      <div class="member">
+        <div class="ph"><img src="Hnin_Ei_Ei_Aung_Profile.jpeg" alt="" style="object-view-box: inset(20% 16% 33% 14%)"></div>
+        <div><div class="nm">Hnin Ei Ei Aung</div><div class="id">66130500808</div></div>
+      </div>
+      <div class="member">
+        <div class="ph"><img src="Thaw_Zin_Moe_Myint_Profile.png" alt="" style="object-view-box: inset(6% 27% 44% 23%)"></div>
+        <div><div class="nm">Thaw Zin Moe Myint</div><div class="id">66130500824</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="advisor">
+    <div class="lab">Project advisor</div>
+    <div class="row">
+      <div class="ph"><img src="Dr_Debajyoti_Profile.png" alt="" style="object-view-box: inset(8% 37% 52% 23%)"></div>
+      <div>
+        <div class="nm">Dr. Debajyoti Pal</div>
+        <div class="role">Computer Science (English Program)</div>
+        <div class="school">School of Information Technology<br>King Mongkut's University of Technology Thonburi</div>
+      </div>
+    </div>
+  </div>
+  <div class="vote">
+    <div class="qr" id="qr"></div>
+    <div class="cta">Vote for Smart<b>Fin</b></div>
+  </div>
+</div>
+
+<script>
+  const box = document.getElementById('qr');
+  if (VOTE_URL && window.qrcode) {
+    const q = qrcode(0, 'M');
+    q.addData(VOTE_URL);
+    q.make();
+    box.innerHTML = q.createSvgTag({ cellSize: 8, margin: 0, scalable: true });
+  } else {
+    box.classList.add('empty');
+    box.textContent = 'Voting QR code goes here (SIT Portfolio project link)';
+  }
+</script>
+</body>
+</html>
