@@ -11,6 +11,7 @@ import 'package:smart_fin/widgets/page_title_row.dart';
 import 'package:smart_fin/widgets/smartfin_logo.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:smart_fin/features/transactions/data/transaction_repository_impl.dart';
+import 'package:smart_fin/features/dashboard/presentation/widgets/monthly_trend_card.dart';
 import 'package:smart_fin/features/subscriptions/data/subscription_repository_impl.dart';
 import 'package:smart_fin/features/subscriptions/services/bill_reminder_service.dart';
 import 'package:smart_fin/features/scanner/services/gallery_watcher_service.dart';
@@ -33,6 +34,9 @@ class _DashboardScreenState extends State<DashboardScreen>
   // Active bills overdue or due within 7 days, soonest first.
   List<Map<String, dynamic>> _upcomingBills = [];
   int _upcomingTotal = 0;
+
+  /// Earlier months for the trend card; empty hides it.
+  List<TrendMonth> _trend = const [];
   String _currentMonth = '';
 
   static const Map<String, ({IconData icon, Color color})> _categoryStyle = {
@@ -236,6 +240,18 @@ class _DashboardScreenState extends State<DashboardScreen>
             }
           },
         ),
+        // Past months — non-fatal like the bills below: the dashboard stands
+        // without the trend card.
+        () async {
+          try {
+            final res = await DioClient.dio.get('/api/summary/$uid/history');
+            final data = res.data;
+            if (!mounted || data is! Map) return;
+            setState(() => _trend = TrendMonth.fromHistory(data['history']));
+          } catch (e) {
+            debugPrint('Summary history unavailable: $e');
+          }
+        }(),
         // Upcoming bills — non-fatal, the rest of the dashboard stands without
         // them. Wrapped so a failure here cannot reject the whole Future.wait and
         // take the rest of the dashboard down with it.
@@ -859,6 +875,18 @@ class _DashboardScreenState extends State<DashboardScreen>
                       if (!_isLoading && _upcomingBills.isNotEmpty) ...[
                         const SizedBox(height: AppSpacing.lg),
                         _buildUpcomingBillsCard(),
+                      ],
+
+                      if (!_isLoading && _trend.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.lg),
+                        MonthlyTrendCard(
+                          months: _trend,
+                          // The month alone, with no category, so History's
+                          // total matches the bar.
+                          onOpenMonth: (month) => context.push(
+                            '/history?type=expense&month=$month',
+                          ),
+                        ),
                       ],
 
                       const SizedBox(height: AppSpacing.xl),

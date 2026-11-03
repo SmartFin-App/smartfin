@@ -2,8 +2,42 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:smart_fin/features/scanner/data/scanner_repository.dart';
 import 'package:smart_fin/features/scanner/data/scanner_repository_impl.dart';
+import 'package:smart_fin/features/scanner/services/slip_photo_check.dart';
 import 'package:smart_fin/widgets/ui/ui.dart';
+
+enum NotASlipChoice { retake, enterManually }
+
+/// Shown when a photo has no slip or receipt in it, whether the phone's own
+/// check or the server decided that. Dismissing it counts as a retake.
+Future<NotASlipChoice> showNotASlipDialog(BuildContext context) async {
+  final choice = await showDialog<NotASlipChoice>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text("This doesn't look like a slip"),
+      content: Text(
+        "We couldn't find a payment amount in this photo. Try a clear photo "
+        'of a bank e-slip or receipt, or enter the expense yourself.',
+        style: AppTextStyles.body,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, NotASlipChoice.enterManually),
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.textSecondary,
+          ),
+          child: const Text('Enter manually'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, NotASlipChoice.retake),
+          child: const Text('Try another photo'),
+        ),
+      ],
+    ),
+  );
+  return choice ?? NotASlipChoice.retake;
+}
 
 class ProcessingScreen extends StatefulWidget {
   final File? imageFile;
@@ -20,7 +54,7 @@ class ProcessingScreen extends StatefulWidget {
 
 class _ProcessingScreenState extends State<ProcessingScreen>
     with TickerProviderStateMixin {
-  String _statusMessage = 'Scanning your receipt';
+  String _statusMessage = 'Checking your photo';
 
   late AnimationController _bounceController;
   late Animation<double> _bounceAnimation;
@@ -72,11 +106,18 @@ class _ProcessingScreenState extends State<ProcessingScreen>
   Future<void> _processReceipt() async {
     if (widget.imageFile == null) return;
 
-    setState(() => _statusMessage = 'Reading your receipt');
-
     // Any throw here (a missing temp file, an unexpected response) would otherwise
     // leave this screen spinning forever with no way back.
     try {
+      // A photo with no amount in it is turned away here, before Gemini sees it.
+      final verdict = await SlipPhotoCheck.check(widget.imageFile!);
+      if (!mounted) return;
+      if (verdict == SlipPhotoVerdict.notSlip) {
+        await _rejectPhoto();
+        return;
+      }
+
+      setState(() => _statusMessage = 'Reading your receipt');
       final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
       final result = await ScannerRepositoryImpl().processReceipt(
         widget.imageFile!,
@@ -99,6 +140,8 @@ class _ProcessingScreenState extends State<ProcessingScreen>
             },
           );
         }
+      } else if (result.error == ScannerRepository.notASlipError) {
+        await _rejectPhoto();
       } else {
         showAppToast(
           context,
@@ -114,6 +157,14 @@ class _ProcessingScreenState extends State<ProcessingScreen>
       await Future.delayed(const Duration(milliseconds: 1500));
       if (mounted) context.go('/scanner');
     }
+  }
+
+  Future<void> _rejectPhoto() async {
+    final choice = await showNotASlipDialog(context);
+    if (!mounted) return;
+    context.go(
+      choice == NotASlipChoice.enterManually ? '/manual-add' : '/scanner',
+    );
   }
 
   @override

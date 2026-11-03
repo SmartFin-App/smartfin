@@ -19,7 +19,7 @@ go test ./cmd/eval                        # evaluation scoring rules (offline)
 
 `.env` is loaded by godotenv at startup; a missing `MONGODB_URI` or `DB_NAME` is a `log.Fatal`. Variables: `MONGODB_URI`, `DB_NAME`, `PORT`, `GEMINI_API_KEY`, optional `SERPAPI_API_KEY`, and `ADMIN_API_KEY` (unset = the `/admin` routes are off).
 
-Tests live in `internal/agents`, `internal/insights`, `internal/models`, `internal/routes` and `internal/summaries` (the date, projection and insight rules are pure functions tested against fixed data). The whole suite runs offline in about a second.
+Tests live in `internal/agents`, `internal/handlers` (only the scanner's not-a-slip rule), `internal/insights`, `internal/models`, `internal/routes` and `internal/summaries` (the date, projection and insight rules are pure functions tested against fixed data). The whole suite runs offline in about a second.
 
 ## Stack details that are easy to guess wrong
 
@@ -93,6 +93,8 @@ go run ./cmd/eval -cleanup                           # remove eval users left by
 The prompt also asks for a **category**, which the verify screen preselects. The reply passes through `models.NormalizeCategory`, so only the eight names in `models.ExpenseCategories` reach the client and anything else becomes `Other`. The prompt tells the model to answer `Other` for a transfer to a person's name: such a slip says nothing about what was bought, and before this every scan opened as a hardcoded "Food". `cmd/slipeval` does not score the category, because `labels.csv` has no category column.
 
 The extraction prompt is explicit about **Thai script transliteration and Buddhist-era years** (2567/2569 → Gregorian) because the inputs are Thai mobile-banking e-slips (PromptPay, K PLUS, SCB EASY, Krungthai NEXT, BBL). Keep both requirements if you rewrite it.
+
+**Photos that are not slips get a 422, not a guess.** The prompt asks for `is_slip`, and an explicit `false` returns `422 {"error", "code": "not_a_slip"}`, which the app shows as "This doesn't look like a slip". A reply without the field is still treated as a slip, so a model that drops it falls back to the old behaviour instead of refusing every scan. This is the backstop: the app reads each photo's text on the device first and never uploads one with no amount in it, so most non-slips never reach Gemini. Before either check, a photo of a meal opened verify as `Unknown Merchant` / ฿0. `cmd/slipeval` counts a 422 as an error, so a real slip turned away shows up there.
 
 This handler writes **nothing** to Mongo — the Flutter app creates the transaction separately after the user confirms on the verify screen.
 

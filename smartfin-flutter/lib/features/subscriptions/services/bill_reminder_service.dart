@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:intl/intl.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 /// On-device reminders for tracked bills: 09:00 the day before a bill is due,
-/// and 09:00 on the day. The server has no background jobs, so reminders are
+/// 09:00 on the day, and once it is overdue, 09:00 every day until it is marked
+/// paid (see [remindersFor]). The server has no background jobs, so reminders are
 /// scheduled here whenever the bill list is loaded — every load cancels the
 /// previous bill reminders and schedules afresh, so an edit, a payment, a pause
 /// or a deletion never leaves a stale reminder behind.
@@ -27,6 +29,11 @@ class BillReminderService {
   static const _payloadPrefix = 'bill:';
   static const _testPayload = 'test';
   static const _reminderHour = 9;
+
+  /// One-off overdue reminders scheduled ahead of time, on days 1 to 3 after
+  /// the due date, for someone who does not open the app in between.
+  static const _overdueDaysAhead = 3;
+
 
   // Above any id produced by [idFor], so a test never replaces a real reminder.
   static const _testNowId = 2147483000;
@@ -117,8 +124,9 @@ class BillReminderService {
     }
   }
 
-  /// A stable notification id for a bill's reminder [slot] (0 = the day before,
-  /// 1 = on the day). Built from the Mongo ObjectID, not `String.hashCode`, which
+  /// A stable notification id for a bill's reminder [slot]: 0 = the day before,
+  /// 1 = on the day, 2 = overdue (day 1, or the daily repeat), 3 and 4 = days 2
+  /// and 3 overdue. Built from the Mongo ObjectID, not `String.hashCode`, which
   /// is not guaranteed to be the same between runs — a changed id would leave
   /// the old reminder impossible to cancel. The last 7 hex digits are mostly the
   /// ObjectID's counter, so two of one user's bills do not collide in practice.
@@ -126,7 +134,94 @@ class BillReminderService {
     final hex = objectIdHex.length >= 7
         ? objectIdHex.substring(objectIdHex.length - 7)
         : objectIdHex.padLeft(7, '0');
-    return (int.tryParse(hex, radix: 16) ?? 0) * 2 + slot;
+    // At most 0xFFFFFFF × 5 + 4, about 1.34 billion: inside a 32-bit id and
+    // below the test ids.
+    return (int.tryParse(hex, radix: 16) ?? 0) * _slots + slot;
+  }
+
+  static const _slots = 5;
+
+  /// The reminders [bill] (as the API returns it) should have at [now], which
+  /// must be in Asia/Bangkok.
+  ///
+  /// A daily repeat can't be given a later start date: both platforms fire it
+  /// at the next matching 09:00, whatever date it was scheduled for. So the
+  /// repeat is set only once the bill is already overdue. Before that, the
+  /// overdue days are covered by one-off reminders, and the first time the app
+  /// is opened after the due date, the repeat replaces them. Paying the bill
+  /// reloads the list, and the resync clears every reminder for it.
+  @visibleForTesting
+  static List<PlannedReminder> remindersFor(
+    Map<String, dynamic> bill,
+    tz.TZDateTime now,
+  ) {
+    if (bill['active'] != true) return const [];
+    final id = bill['id'] as String? ?? '';
+    // due_date is the Thai calendar day as a plain string, so no conversion.
+    final due = DateTime.tryParse(bill['due_date'] as String? ?? '');
+    if (id.isEmpty || due == null) return const [];
+
+    final name = bill['name'] as String? ?? 'A bill';
+    final amount = bill['formatted_amount'] as String? ?? '';
+    final overdueTitle = '$name is overdue';
+    final overdueBody =
+        '$amount was due ${DateFormat('MMM d').format(due)} — tap "Mark paid" once it\'s done';
+
+    // Day overflow (Oct 31 + 1) rolls into the next month, as with DateTime.
+    tz.TZDateTime nineOn(int daysAfterDue) => tz.TZDateTime(
+      now.location,
+      due.year,
+      due.month,
+      due.day + daysAfterDue,
+      _reminderHour,
+    );
+
+    final today = DateTime(now.year, now.month, now.day);
+    if (today.isAfter(due)) {
+      var next = tz.TZDateTime(
+        now.location,
+        now.year,
+        now.month,
+        now.day,
+        _reminderHour,
+      );
+      if (!next.isAfter(now)) next = next.add(const Duration(days: 1));
+      return [
+        PlannedReminder(
+          id: idFor(id, 2),
+          when: next,
+          title: overdueTitle,
+          body: overdueBody,
+          daily: true,
+        ),
+      ];
+    }
+
+    return [
+          PlannedReminder(
+            id: idFor(id, 0),
+            when: nineOn(-1),
+            title: '$name is due tomorrow',
+            body: '$amount — open SmartFin to see your upcoming bills',
+          ),
+          PlannedReminder(
+            id: idFor(id, 1),
+            when: nineOn(0),
+            title: '$name is due today',
+            body: '$amount — tap "Mark paid" once it\'s done',
+          ),
+          for (var day = 1; day <= _overdueDaysAhead; day++)
+            PlannedReminder(
+              id: idFor(id, 1 + day),
+              when: nineOn(day),
+              title: overdueTitle,
+              body: overdueBody,
+            ),
+        ]
+        // zonedSchedule throws for a one-off time in the past, e.g. the
+        // day-before reminder of a bill due today.
+        .where((r) => r.when.isAfter(now.add(const Duration(seconds: 5))))
+        .toList();
   }
 
   /// Replaces every scheduled bill reminder with reminders for [subs], a list of
@@ -142,72 +237,47 @@ class BillReminderService {
       }
 
       final now = tz.TZDateTime.now(tz.local);
-      for (final s in subs) {
-        if (s['active'] != true) continue;
-        final id = s['id'] as String? ?? '';
-        // due_date is the Thai calendar day as a plain string, so no conversion.
-        final due = DateTime.tryParse(s['due_date'] as String? ?? '');
-        if (id.isEmpty || due == null) continue;
-
-        final name = s['name'] as String? ?? 'A bill';
-        final amount = s['formatted_amount'] as String? ?? '';
-        final onTheDay = tz.TZDateTime(tz.local, due.year, due.month, due.day, _reminderHour);
-
-        await _schedule(
-          id: idFor(id, 0),
-          when: onTheDay.subtract(const Duration(days: 1)),
-          title: '$name is due tomorrow',
-          body: '$amount — open SmartFin to see your upcoming bills',
-          payload: '$_payloadPrefix$id',
-          now: now,
-        );
-        await _schedule(
-          id: idFor(id, 1),
-          when: onTheDay,
-          title: '$name is due today',
-          body: '$amount — tap "Mark paid" once it\'s done',
-          payload: '$_payloadPrefix$id',
-          now: now,
-        );
+      for (final bill in subs) {
+        for (final reminder in remindersFor(bill, now)) {
+          await _schedule(reminder, payload: '$_payloadPrefix${bill['id']}');
+        }
       }
     } catch (e) {
       debugPrint('Bill reminders: sync failed: $e');
     }
   }
 
-  Future<void> _schedule({
-    required int id,
-    required tz.TZDateTime when,
-    required String title,
-    required String body,
+  Future<void> _schedule(
+    PlannedReminder reminder, {
     required String payload,
-    required tz.TZDateTime now,
   }) async {
-    // zonedSchedule throws for a time in the past, e.g. the day-before reminder
-    // of a bill due today, or today's 09:00 reminder after 09:00.
-    if (!when.isAfter(now.add(const Duration(seconds: 5)))) return;
     try {
       await _plugin.zonedSchedule(
-        id: id,
-        scheduledDate: when,
+        id: reminder.id,
+        scheduledDate: reminder.when,
         notificationDetails: _details,
         // Inexact: no exact-alarm permission needed, and a reminder a few minutes
         // late is fine.
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        title: title,
-        body: body,
+        // Repeats every day at the same time until cancelled.
+        matchDateTimeComponents: reminder.daily
+            ? DateTimeComponents.time
+            : null,
+        title: reminder.title,
+        body: reminder.body,
         payload: payload,
       );
     } catch (e) {
-      debugPrint('Bill reminders: could not schedule $id: $e');
+      debugPrint('Bill reminders: could not schedule ${reminder.id}: $e');
     }
   }
 
   Future<void> cancelFor(String subscriptionId) async {
     if (!enabled || !_ready || subscriptionId.isEmpty) return;
     try {
-      await _plugin.cancel(id: idFor(subscriptionId, 0));
-      await _plugin.cancel(id: idFor(subscriptionId, 1));
+      for (var slot = 0; slot < _slots; slot++) {
+        await _plugin.cancel(id: idFor(subscriptionId, slot));
+      }
     } catch (e) {
       debugPrint('Bill reminders: cancel failed: $e');
     }
@@ -266,4 +336,24 @@ class BillReminderService {
       return false;
     }
   }
+}
+
+/// One reminder [BillReminderService.remindersFor] wants scheduled.
+@visibleForTesting
+class PlannedReminder {
+  final int id;
+  final tz.TZDateTime when;
+  final String title;
+  final String body;
+
+  /// Repeats at the same time every day until cancelled.
+  final bool daily;
+
+  const PlannedReminder({
+    required this.id,
+    required this.when,
+    required this.title,
+    required this.body,
+    this.daily = false,
+  });
 }

@@ -83,6 +83,7 @@ func (h *ScannerHandler) ProcessReceipt(c *fiber.Ctx) error {
 Extract the following key financial information. Return ONLY a valid JSON object with no markdown, no code blocks, just pure JSON.
 
 Extract:
+- is_slip: true if the image is a payment slip, transfer confirmation, receipt, tax invoice or bill that shows an amount paid; false for anything else (people, pets, food, scenery, documents or app screens with no payment on them). When false, return {"is_slip":false} and nothing else.
 - merchant_name: the store, merchant, or recipient name (if written in Thai, transliterate to clear English, e.g. "Somchai Market" or "KFC Central World")
 - total_amount: the final transaction or payment amount as an integer number only (no currency symbols, no decimals, e.g. 150)
 - date: the date in YYYY-MM-DD format (if only DD/MM/YYYY or Thai Buddhist year like 2567/2569 is shown, convert properly to Gregorian YYYY-MM-DD; if not found use today's date)
@@ -90,9 +91,9 @@ Extract:
 - confidence: your confidence score from 0.0 to 1.0
 
 Example response:
-{"merchant_name":"Lotus's","total_amount":350,"date":"2026-04-01","category":"Groceries","confidence":0.95}
+{"is_slip":true,"merchant_name":"Lotus's","total_amount":350,"date":"2026-04-01","category":"Groceries","confidence":0.95}
 
-If you cannot read the image clearly, still return your best guess with a lower confidence score.`
+If it is a slip or receipt but you cannot read it clearly, still return your best guess with a lower confidence score.`
 
 	// Send image + prompt to Gemini
 	contents := []*genai.Content{
@@ -137,6 +138,17 @@ If you cannot read the image clearly, still return your best guess with a lower 
 		})
 	}
 
+	// The app checks photos on the device first, so this only catches what got
+	// past it. Without it a photo of a meal opened the verify screen as
+	// "Unknown Merchant" for ฿0.
+	if notASlip(result) {
+		log.Printf("Gemini found no slip in the image")
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"error": "This photo doesn't look like a payment slip or receipt",
+			"code":  "not_a_slip",
+		})
+	}
+
 	// Extract and return the fields
 	merchant := "Unknown Merchant"
 	if m, ok := result["merchant_name"].(string); ok && m != "" {
@@ -172,4 +184,12 @@ If you cannot read the image clearly, still return your best guess with a lower 
 		"confidence": confidence,
 		"raw_text":   responseText,
 	})
+}
+
+// notASlip reports whether the model said outright that the image holds no slip
+// or receipt. A reply without is_slip counts as a slip, so a model that drops
+// the field degrades to the old behaviour rather than refusing every scan.
+func notASlip(result map[string]interface{}) bool {
+	isSlip, ok := result["is_slip"].(bool)
+	return ok && !isSlip
 }

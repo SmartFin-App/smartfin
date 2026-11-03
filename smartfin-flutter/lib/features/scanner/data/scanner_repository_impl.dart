@@ -24,6 +24,12 @@ class ScannerRepositoryImpl implements ScannerRepository {
 
       return ApiResponse.success(response.data);
     } on DioException catch (e) {
+      final data = e.response?.data;
+      if (e.response?.statusCode == 422 &&
+          data is Map &&
+          data['code'] == ScannerRepository.notASlipError) {
+        return ApiResponse.error(ScannerRepository.notASlipError);
+      }
       debugPrint('ProcessReceipt Error Status: ${e.response?.statusCode}');
       debugPrint('ProcessReceipt Error Data: ${e.response?.data}');
       debugPrint('ProcessReceipt Request Path: ${e.requestOptions.path}');
