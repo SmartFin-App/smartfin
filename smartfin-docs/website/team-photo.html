@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SmartFin team</title>
+<!-- 800x600 team photo for the SIT Portfolio site; photo crops match the poster. Render from this folder:
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars --force-device-scale-factor=1 --virtual-time-budget=8000 --window-size=800,600 --screenshot="$PWD/team-800x600.png" "file://$PWD/team-photo.html" -->
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600&display=block" rel="stylesheet">
+<style>
+  :root { --ink: #1C1917; --ink-2: #57534E; --ink-3: #8A817A; --orange: #FF9F29; --cream: #FFF7EC; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 800px; height: 600px; overflow: hidden; }
+  body {
+    position: relative; background: var(--cream); color: var(--ink); font-family: 'Inter', sans-serif;
+    display: flex; flex-direction: column; align-items: center; padding: 64px 32px 0;
+  }
+  /* background: same layers as poster.html, scaled to 800x600 */
+  .bg { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .glow { position: absolute; border-radius: 50%; filter: blur(6px); }
+  .glow.a { width: 560px; height: 560px; left: 120px; top: 90px;
+    background: radial-gradient(circle, rgba(255,159,41,.30) 0%, rgba(255,159,41,.10) 40%, rgba(255,159,41,0) 70%); }
+  .glow.b { width: 420px; height: 420px; left: -170px; top: 240px;
+    background: radial-gradient(circle, rgba(13,148,136,.12) 0%, rgba(13,148,136,0) 65%); }
+  .glow.c { width: 420px; height: 420px; right: -170px; top: 220px;
+    background: radial-gradient(circle, rgba(229,64,26,.12) 0%, rgba(229,64,26,0) 65%); }
+  .dots {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(28,25,23,.07) 1.2px, transparent 1.4px);
+    background-size: 22px 22px;
+    -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 45%, transparent 35%, #000 80%);
+            mask-image: radial-gradient(ellipse 75% 70% at 50% 45%, transparent 35%, #000 80%);
+  }
+  .waves { position: absolute; left: 0; bottom: 0; width: 800px; height: 190px; }
+  body > :not(.bg) { position: relative; }
+  body > .logos { position: absolute; left: 20px; top: 18px; display: flex; align-items: center; gap: 10px; }
+  .logos .kmutt { height: 32px; width: 28px; object-fit: contain; object-view-box: inset(12.5% 11% 20.8% 23%); }
+  .logos .divider { width: 1px; height: 24px; background: rgba(28,25,23,.25); border-radius: 2px; }
+  .logos .sit { height: 24px; }
+  .brand { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px; letter-spacing: -0.5px; }
+  .brand b { color: var(--orange); font-weight: 800; }
+  h1 { margin-top: 10px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 44px; letter-spacing: -1px; }
+  .sub { margin-top: 8px; font-size: 16px; color: var(--ink-3); }
+  .team { margin-top: 50px; display: flex; gap: 22px; }
+  .member { width: 236px; text-align: center; }
+  .ph {
+    width: 184px; height: 184px; margin: 0 auto; border-radius: 50%; overflow: hidden;
+    border: 6px solid var(--orange); background: #E7E5E4;
+  }
+  .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .nm { margin-top: 20px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 22px; line-height: 1.15; white-space: nowrap; }
+  .id { margin-top: 6px; font-size: 15px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div class="bg">
+    <div class="glow a"></div>
+    <div class="glow b"></div>
+    <div class="glow c"></div>
+    <div class="dots"></div>
+    <svg class="waves" viewBox="0 0 1920 520" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="w1" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#FF9F29" stop-opacity=".40"/>
+          <stop offset=".45" stop-color="#FF9F29" stop-opacity=".05"/>
+          <stop offset=".55" stop-color="#FF9F29" stop-opacity=".05"/>
+          <stop offset="1" stop-color="#E5401A" stop-opacity=".35"/>
+        </linearGradient>
+        <linearGradient id="w2" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#0D9488" stop-opacity=".22"/>
+          <stop offset=".5" stop-color="#0D9488" stop-opacity="0"/>
+          <stop offset="1" stop-color="#FF9F29" stop-opacity=".28"/>
+        </linearGradient>
+        <linearGradient id="ln" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#FF9F29" stop-opacity=".9"/>
+          <stop offset=".4" stop-color="#FF9F29" stop-opacity="0"/>
+          <stop offset=".6" stop-color="#E5401A" stop-opacity="0"/>
+          <stop offset="1" stop-color="#E5401A" stop-opacity=".8"/>
+        </linearGradient>
+      </defs>
+      <path d="M0 300 C 260 200, 480 380, 760 300 S 1240 220, 1500 320 S 1800 260, 1920 200 L1920 520 L0 520 Z" fill="url(#w2)"/>
+      <path d="M0 380 C 300 290, 520 460, 820 390 S 1280 300, 1540 400 S 1820 330, 1920 300 L1920 520 L0 520 Z" fill="url(#w1)"/>
+      <path d="M0 360 C 300 270, 520 440, 820 370 S 1280 280, 1540 380 S 1820 310, 1920 280" fill="none" stroke="url(#ln)" stroke-width="3" vector-effect="non-scaling-stroke"/>
+      <path d="M0 410 C 300 330, 540 480, 840 420 S 1300 340, 1560 430 S 1830 360, 1920 340" fill="none" stroke="url(#ln)" stroke-width="1.5" opacity=".7" vector-effect="non-scaling-stroke"/>
+    </svg>
+  </div>
+  <div class="logos">
+    <img class="kmutt" src="../poster/kmutt_logo.png" alt="KMUTT">
+    <div class="divider"></div>
+    <img class="sit" src="../poster/sit_logo.png" alt="SIT, KMUTT">
+  </div>
+  <div class="brand">Smart<b>Fin</b></div>
+  <h1>Group Members</h1>
+  <div class="sub">CSC499 Computer Science Capstone · SIT, KMUTT</div>
+  <div class="team">
+    <div class="member">
+      <div class="ph"><img src="../poster/Ant_Bone_Kyaw_Profile.jpeg" alt="" style="object-view-box: inset(4% 20% 50% 20%)"></div>
+      <div class="nm">Ant Bone Kyaw</div><div class="id">66130500802</div>
+    </div>
+    <div class="member">
+      <div class="ph"><img src="../poster/Hnin_Ei_Ei_Aung_Profile.jpeg" alt="" style="object-view-box: inset(15.5% 9% 28.5% 7%)"></div>
+      <div class="nm">Hnin Ei Ei Aung</div><div class="id">66130500808</div>
+    </div>
+    <div class="member">
+      <div class="ph"><img src="../poster/Thaw_Zin_Moe_Myint_Profile.png" alt="" style="object-view-box: inset(6% 27% 44% 23%)"></div>
+      <div class="nm">Thaw Zin Moe Myint</div><div class="id">66130500824</div>
+    </div>
+  </div>
+</body>
+</html>
