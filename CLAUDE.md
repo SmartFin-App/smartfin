@@ -25,13 +25,14 @@ The root `README.md` says the backend uses **Gin**; it actually uses **Fiber v2*
 # Backend — Go 1.26
 cd smartfin-backend && go run cmd/main.go      # serves on $PORT (default 3000)
 cd smartfin-backend && go test ./...
+cd smartfin-backend && ./deploy.sh             # build and roll out to Cloud Run
 
 # Frontend — Dart ^3.11.1
 cd smartfin-flutter && flutter pub get && flutter run
 cd smartfin-flutter && flutter analyze && flutter test
 ```
 
-The backend must be running on port 3000 for the app to get past its auth screens. Per-target run flags, single-test invocations, and env vars are in the nested files.
+The app needs a reachable backend to get past its auth screens: a local one on port 3000, or the Cloud Run service passed as `API_BASE_URL`. Per-target run flags, single-test invocations, and env vars are in the nested files.
 
 ## How the halves fit together
 
@@ -39,7 +40,7 @@ The backend must be running on port 3000 for the app to get past its auth screen
 - **Slip scanning is stateless server-side.** `POST /api/scanner/process` extracts fields with Gemini Vision and persists nothing — the app's verify screen is what creates the transaction after the user confirms.
 - **The coach is a multi-turn agentic loop**, budgeted at 45s server-side, which is why the client's Dio receive timeout must stay above that (it is 60s). Some of its tools *write* to the database (budget limit, add expense) and report back as `actions_taken`.
 - **The client's base URL comes from `--dart-define=API_BASE_URL`**, falling back to the emulator/simulator loopback addresses. Real phones and release builds must pass it.
-- **The chosen host for the API is Google Cloud Run** (asia-southeast1, Singapore), built from `smartfin-backend/Dockerfile`, with `GEMINI_API_KEY`, `MONGODB_URI` and `ADMIN_API_KEY` from Secret Manager. As of Oct 2026 it is not deployed yet; the API still runs locally. The docs (Chapter 1–5 report, test design spec, proposal, technical profile) name Cloud Run, so keep them in step if the host changes.
+- **The API runs on Google Cloud Run** (since 15 Nov 2026): service `smartfin-api` in asia-southeast1 (Singapore), inside the app's Firebase project `fir-auth-login-udacity`. `smartfin-backend/deploy.sh` builds `smartfin-backend/Dockerfile` and deploys it, with `GEMINI_API_KEY`, `MONGODB_URI` and `ADMIN_API_KEY` from Secret Manager. A local server and Cloud Run share one Atlas database. The URL is kept out of this public repo (`gcloud run services describe smartfin-api --region asia-southeast1 --format 'value(status.url)'` prints it), but it is not a secret: it follows from the service name and the project number in the committed Firebase config, so only token verification would protect the data. The docs (Chapter 1–5 report, test design spec, proposal, technical profile) name Cloud Run, so keep them in step if the host changes.
 - **Time is Thai local (+07:00) on every surface the user or the model sees.** Month windows come from `summaries.Bounds`, and the agent is given the current date plus timestamps already converted to +07:00 — MongoDB returns UTC, and passing that through unconverted put the coach's memory on the wrong day.
 - **Subscriptions & bills are entered by hand and reminded on the device.** The API derives every due-date field in Thai time and makes paying a bill safe to repeat; the Flutter app schedules the reminders as local notifications, because the backend runs no background jobs. The coach can read the bills (`get_subscriptions`) but never pays one.
 - **The coach's transcript lives server-side** in `chat_messages` and is read back through `GET /api/coach/history/:user_id`. The Flutter coach screen is disposed on every tab switch, so it cannot hold the conversation itself.

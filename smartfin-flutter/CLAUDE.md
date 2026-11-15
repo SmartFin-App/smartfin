@@ -18,7 +18,7 @@ flutter test
 flutter test test/widget_test.dart -n 'name'    # single test
 ```
 
-The Go backend must be running on port 3000 for anything past the auth screens to work.
+Anything past the auth screens needs a backend: the Go server on port 3000, or the Cloud Run deployment passed as `API_BASE_URL` (the root `CLAUDE.md` says how to print its URL). Against Cloud Run, a physical phone works without being on the Mac's network.
 
 Adding or upgrading a package with native code (e.g. `flutter_local_notifications`) needs a full `flutter run` after `flutter pub get` — neither hot reload nor hot restart loads a new plugin, and the missing-plugin error looks like a bug in the feature.
 

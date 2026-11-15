@@ -15,6 +15,7 @@ go vet ./...
 go test ./...
 go test ./internal/agents -run TestFunctionDeclarations -v   # single test
 go test ./cmd/eval                        # evaluation scoring rules (offline)
+./deploy.sh                               # build and roll out to Cloud Run (see Deployment)
 ```
 
 `.env` is loaded by godotenv at startup; a missing `MONGODB_URI` or `DB_NAME` is a `log.Fatal`. Variables: `MONGODB_URI`, `DB_NAME`, `PORT`, `GEMINI_API_KEY`, optional `SERPAPI_API_KEY`, and `ADMIN_API_KEY` (unset = the `/admin` routes are off).
@@ -145,4 +146,12 @@ Registered outside the `/api` group in `routes.go`, behind `adminGuard` (`intern
 
 ## Deployment
 
-The chosen host is **Google Cloud Run** (asia-southeast1), not yet deployed. `Dockerfile` builds a static binary from `./cmd` with `golang:1.26` and runs it on `distroless/static` as non-root; `.dockerignore` keeps `.env` and `eval-slips/` out of the image. Secrets (`GEMINI_API_KEY`, `MONGODB_URI`, `ADMIN_API_KEY`) belong in Secret Manager, passed with `--set-secrets`. Atlas must allow `0.0.0.0/0`, since Cloud Run has no fixed outbound IP.
+The API runs on **Google Cloud Run** as service `smartfin-api` in asia-southeast1, inside the app's Firebase project `fir-auth-login-udacity` (first deployed 15 Nov 2026). `./deploy.sh` uploads this folder to Cloud Build, which builds the `Dockerfile` (a static binary from `./cmd` with `golang:1.26`, run on `distroless/static` as non-root), then rolls out a new revision. No local Docker is needed. `./deploy.sh --setup` is the one-time part: it enables the APIs, creates the runtime service account `smartfin-api@…`, and copies `GEMINI_API_KEY`, `MONGODB_URI` and `ADMIN_API_KEY` from `.env` into Secret Manager as `smartfin-gemini-api-key`, `smartfin-mongodb-uri` and `smartfin-admin-api-key`. Re-run it after changing one of those keys; it deploys afterwards, so the new value is in use straight away.
+
+- **The script is the service's configuration.** Every deploy sets the env vars, the secrets, `--max-instances 2`, `--timeout 120` (above the coach's 45s budget) and public access. A setting changed in the console is reverted by the next `./deploy.sh`, so change it in the script.
+- The runtime account can read those three secrets and nothing else. `DB_NAME` is a plain env var, and Cloud Run sets `PORT` (8080). The `Warning: Error loading .env file` lines at startup are expected, because the image has no `.env`.
+- **`.gcloudignore` decides what is uploaded.** Without it gcloud falls back to this folder's `.gitignore`, which does not list `eval-slips/` (the root one does), so real slips would be uploaded with the source. `.dockerignore` only keeps files out of the image.
+- **The first build on a fresh project fails with `PERMISSION_DENIED`** ("the default service account is missing required IAM permissions"). Builds run as the Compute Engine default account, which enabling Cloud Run creates with the Editor role, and the grant takes a few minutes to take effect. Run `./deploy.sh` again. This happened on the first deploy here.
+- **Atlas must allow `0.0.0.0/0`**, since Cloud Run has no fixed outbound IP. `ConnectDB` is fatal, so a revision that cannot reach Atlas never starts listening, and the deploy reports a container that failed to start.
+- **The service is public and verifies no tokens**, like the local server. The instance cap bounds cost, not access. Keep the URL out of this public repo, but don't treat it as a secret: it follows from the service name and the project number, which the committed Firebase config contains. `gcloud run services describe smartfin-api --region asia-southeast1 --format 'value(status.url)'` prints it.
+- Logs: `gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="smartfin-api"' --limit 50`, or the service's Logs tab in the Cloud Run console.

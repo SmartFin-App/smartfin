@@ -1,0 +1,17 @@
+# What `gcloud run deploy --source .` uploads to Cloud Build. Without this file
+# gcloud falls back to this folder's .gitignore, which does not list the
+# evaluation data (the repo-root .gitignore does), so real slips would be
+# uploaded with the source.
+.gcloudignore
+.git
+.gitignore
+.DS_Store
+
+# Secrets come from Secret Manager, never from the upload.
+.env
+*.env
+smartfin-credentials.json
+
+# Evaluation data: real slips carry names and account numbers.
+eval-slips/
+eval-results/
