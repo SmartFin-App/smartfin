@@ -6,12 +6,14 @@ import (
 	"time"
 
 	"github.com/SmartFin-App/smartfin-backend/config"
+	"github.com/SmartFin-App/smartfin-backend/internal/auth"
 	"github.com/SmartFin-App/smartfin-backend/internal/handlers"
 	"github.com/gofiber/fiber/v2"
 )
 
-// SetupRoutes registers all API routes with the Fiber app
-func SetupRoutes(app *fiber.App) {
+// SetupRoutes registers all API routes with the Fiber app. Every /api route
+// requires a verified Firebase ID token (see package auth); verifier checks it.
+func SetupRoutes(app *fiber.App, verifier auth.Verifier) {
 	// Create handler instances
 	userHandler := handlers.NewUserHandler()
 	transactionHandler := handlers.NewTransactionHandler()
@@ -21,29 +23,33 @@ func SetupRoutes(app *fiber.App) {
 	photoHandler := handlers.NewPhotoHandler()
 	subscriptionHandler := handlers.NewSubscriptionHandler()
 
-	// Setup an API group with prefix /api
-	api := app.Group("/api")
+	// Setup an API group with prefix /api. The auth middleware answers 401
+	// without a valid token and 403 when the query, body or form names another
+	// user; auth.OwnParam does the same for a user ID in the path.
+	api := app.Group("/api", auth.Middleware(verifier, os.Getenv("ADMIN_API_KEY")))
+	ownUID := auth.OwnParam("firebase_uid")
+	ownUser := auth.OwnParam("user_id")
 
 	// User routes under /api/users
 	users := api.Group("/users")
 	users.Post("", userHandler.CreateUser)
-	users.Get("/:firebase_uid", userHandler.GetUserByFirebaseUID)
-	users.Put("/:firebase_uid", userHandler.UpdateUser)
-	users.Patch("/:firebase_uid", userHandler.UpdateUser) // alias for Flutter PATCH calls
-	users.Delete("/:firebase_uid", userHandler.DeleteUser)
+	users.Get("/:firebase_uid", ownUID, userHandler.GetUserByFirebaseUID)
+	users.Put("/:firebase_uid", ownUID, userHandler.UpdateUser)
+	users.Patch("/:firebase_uid", ownUID, userHandler.UpdateUser) // alias for Flutter PATCH calls
+	users.Delete("/:firebase_uid", ownUID, userHandler.DeleteUser)
 
 	// Profile photo (stored in GridFS, referenced by a relative path)
-	users.Post("/:firebase_uid/photo", photoHandler.UploadPhoto)
-	users.Get("/:firebase_uid/photo", photoHandler.GetPhoto)
-	users.Delete("/:firebase_uid/photo", photoHandler.DeletePhoto)
+	users.Post("/:firebase_uid/photo", ownUID, photoHandler.UploadPhoto)
+	users.Get("/:firebase_uid/photo", ownUID, photoHandler.GetPhoto)
+	users.Delete("/:firebase_uid/photo", ownUID, photoHandler.DeletePhoto)
 
 	// Transaction routes under /api/transactions
 	transactions := api.Group("/transactions")
 	transactions.Post("", transactionHandler.CreateTransaction)
-	transactions.Get("/:user_id", transactionHandler.GetTransactions)
+	transactions.Get("/:user_id", ownUser, transactionHandler.GetTransactions)
 	transactions.Get("/detail/:id", transactionHandler.GetTransactionByID)
-	transactions.Get("/summary/:user_id", transactionHandler.GetTransactionSummary)
-	transactions.Get("/duplicates/:user_id", transactionHandler.FindPossibleDuplicates)
+	transactions.Get("/summary/:user_id", ownUser, transactionHandler.GetTransactionSummary)
+	transactions.Get("/duplicates/:user_id", ownUser, transactionHandler.FindPossibleDuplicates)
 	transactions.Put("/:id", transactionHandler.UpdateTransaction)
 	transactions.Delete("/:id", transactionHandler.DeleteTransaction)
 
@@ -51,7 +57,7 @@ func SetupRoutes(app *fiber.App) {
 	subscriptions := api.Group("/subscriptions")
 	subscriptions.Post("", subscriptionHandler.CreateSubscription)
 	subscriptions.Post("/:id/pay", subscriptionHandler.MarkPaid)
-	subscriptions.Get("/:user_id", subscriptionHandler.GetSubscriptions)
+	subscriptions.Get("/:user_id", ownUser, subscriptionHandler.GetSubscriptions)
 	subscriptions.Put("/:id", subscriptionHandler.UpdateSubscription)
 	subscriptions.Delete("/:id", subscriptionHandler.DeleteSubscription)
 
@@ -62,12 +68,12 @@ func SetupRoutes(app *fiber.App) {
 	// Coach routes under /api/coach
 	coach := api.Group("/coach")
 	coach.Post("/ask", coachHandler.AskCoach)
-	coach.Get("/history/:user_id", coachHandler.GetHistory)
+	coach.Get("/history/:user_id", ownUser, coachHandler.GetHistory)
 
 	// Summary routes under /api/summary
 	summary := api.Group("/summary")
-	summary.Get("/:user_id/history", summaryHandler.GetSummaryHistory)
-	summary.Get("/:user_id", summaryHandler.GetMonthlySummary)
+	summary.Get("/:user_id/history", ownUser, summaryHandler.GetSummaryHistory)
+	summary.Get("/:user_id", ownUser, summaryHandler.GetMonthlySummary)
 
 	// Admin routes: seed and wipe data, so they need the X-Admin-Key header
 	// (see adminGuard). Without ADMIN_API_KEY set they are switched off.

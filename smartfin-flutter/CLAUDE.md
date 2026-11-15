@@ -59,7 +59,7 @@ Routing is one top-level `GoRouter` in `lib/core/router/app_router.dart`; every 
 
 Anything running on a **real phone needs the define**: a LAN IP (`http://192.168.x.x:3000`) for local development, or the deployed backend's URL for a release build. A release built without it silently points at the emulator address and every request fails.
 
-Dio timeouts are 10s connect / **60s receive**. The receive value must stay above the backend's own 45s coach budget — both clocks start together, so an equal value aborts requests the server has just finished. Never lower it below 45s. A single `InterceptorsWrapper` logs every request and rewraps `DioException` into `ApiException` with a human-readable message.
+Dio timeouts are 10s connect / **60s receive**. The receive value must stay above the backend's own 45s coach budget — both clocks start together, so an equal value aborts requests the server has just finished. Never lower it below 45s. A single `InterceptorsWrapper` logs every request, **adds the signed-in user's Firebase ID token** (`Authorization: Bearer …`, from `getIdToken()`, which refreshes it before expiry), and rewraps `DioException` into `ApiException` with a human-readable message. The API refuses every `/api` request without that token (401) and any request naming another user (403), so **every API call must go through `DioClient.dio`**. An `/api` URL loaded outside Dio, such as the profile photo's `NetworkImage`, passes `DioClient.authHeaders` (the last token the interceptor sent).
 
 Repositories return `ApiResponse<T>` (`ApiResponse.success(data)` / `ApiResponse.error(msg)`) rather than throwing — callers check `.success`. Keep new data-layer methods consistent with that.
 

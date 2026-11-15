@@ -97,7 +97,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (url.startsWith('http')) return NetworkImage(url);
     // The path is stable across replacements, so without a version the cached
     // bytes would survive an upload and the picture would appear not to change.
-    return NetworkImage('${DioClient.baseUrl}$url?v=$_photoVersion');
+    // The photo route needs the ID token like every other /api route.
+    return NetworkImage(
+      '${DioClient.baseUrl}$url?v=$_photoVersion',
+      headers: DioClient.authHeaders,
+    );
   }
 
   Future<void> _changePhoto() async {

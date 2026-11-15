@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 
 class ApiException implements Exception {
@@ -39,6 +40,15 @@ class DioClient {
   /// emulator or simulator can reach. A real phone always needs the define:
   /// 'localhost' there means the phone itself, and a LAN IP baked in here went
   /// stale whenever the Mac's address changed.
+  /// The most recent ID token the interceptor sent. Image widgets load API
+  /// URLs outside Dio and cannot await a token, so they send this one through
+  /// [authHeaders]; any Dio request made earlier on the screen has refreshed it.
+  static String? _idToken;
+
+  /// Headers for loading an /api URL outside Dio, such as the profile photo.
+  static Map<String, String> get authHeaders =>
+      _idToken == null ? const {} : {'Authorization': 'Bearer $_idToken'};
+
   static String get baseUrl {
     const override = String.fromEnvironment('API_BASE_URL');
     if (override.isNotEmpty) {
@@ -67,8 +77,28 @@ class DioClient {
 
     dio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) {
+        // The API refuses every /api request without the signed-in user's
+        // Firebase ID token (401), and any request naming another user (403).
+        // getIdToken() returns the cached token and refreshes it before it
+        // expires, so this costs nothing on most requests.
+        onRequest: (options, handler) async {
           debugPrint("REQUEST: ${options.method} ${options.path}");
+          final user = FirebaseAuth.instance.currentUser;
+          if (user != null) {
+            try {
+              final token = await user.getIdToken();
+              if (token != null && token.isNotEmpty) {
+                _idToken = token;
+                options.headers['Authorization'] = 'Bearer $token';
+              }
+            } catch (e) {
+              // Sent without a token: the server answers 401, which surfaces
+              // as a normal API error instead of a hung request.
+              debugPrint("Could not get a Firebase ID token: $e");
+            }
+          } else {
+            _idToken = null;
+          }
           return handler.next(options);
         },
         onResponse: (response, handler) {

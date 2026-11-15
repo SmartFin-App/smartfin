@@ -15,6 +15,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/SmartFin-App/smartfin-backend/config"
+	"github.com/SmartFin-App/smartfin-backend/internal/auth"
 	"github.com/SmartFin-App/smartfin-backend/internal/routes"
 )
 
@@ -57,8 +58,15 @@ func main() {
 		})
 	})
 
+	// Every /api request must carry a Firebase ID token. Fatal on failure: an API
+	// that cannot verify tokens must not start and serve requests unchecked.
+	verifier, err := auth.NewFirebaseVerifier(context.Background())
+	if err != nil {
+		log.Fatal("Failed to set up Firebase token verification: ", err)
+	}
+
 	// Register all API routes
-	routes.SetupRoutes(app)
+	routes.SetupRoutes(app, verifier)
 
 	// Read the PORT from .env
 	port := os.Getenv("PORT")

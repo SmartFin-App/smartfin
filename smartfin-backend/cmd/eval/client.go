@@ -61,11 +61,10 @@ func (c *Client) send(ctx context.Context, method, path string, body any) (int, 
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	// The seed route is guarded by the server's ADMIN_API_KEY; the harness
-	// sends the same key from its own environment.
-	if strings.HasPrefix(path, "/admin/") {
-		req.Header.Set("X-Admin-Key", os.Getenv("ADMIN_API_KEY"))
-	}
+	// The harness has no Firebase sign-in. It sends the server's ADMIN_API_KEY
+	// on every request: that unlocks the seed route, and on /api it lets the
+	// harness act as its own eval- users (and only those).
+	req.Header.Set("X-Admin-Key", os.Getenv("ADMIN_API_KEY"))
 	resp, err := c.http.Do(req)
 	if err != nil {
 		return 0, nil, err

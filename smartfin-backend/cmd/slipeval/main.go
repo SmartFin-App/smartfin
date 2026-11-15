@@ -160,6 +160,9 @@ func scan(client *http.Client, api, path string, timeout time.Duration) *Trial {
 	defer cancel()
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(api, "/")+"/api/scanner/process", &body)
 	req.Header.Set("Content-Type", w.FormDataContentType())
+	// No Firebase sign-in here: the server's ADMIN_API_KEY lets the harness
+	// scan as its eval- user.
+	req.Header.Set("X-Admin-Key", os.Getenv("ADMIN_API_KEY"))
 
 	start := time.Now()
 	resp, err := client.Do(req)

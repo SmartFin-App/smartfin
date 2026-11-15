@@ -162,9 +162,9 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 // summaries, coach conversations and tracked subscriptions. It is irreversible and there is no soft
 // delete, so it must only be reachable behind a client-side reauthentication.
 //
-// NOTE: like the rest of this API it does not verify a Firebase token, so
-// possession of a UID is currently enough to wipe that user. Whoever adds token
-// verification should treat this handler as the first thing to cover.
+// The route requires the signed-in user's Firebase ID token and auth.OwnParam,
+// so only the account's owner (or the eval harness, for its own eval- users)
+// can reach it.
 func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 	firebaseUID := c.Params("firebase_uid")
 	if firebaseUID == "" {
