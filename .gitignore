@@ -61,3 +61,6 @@ smartfin-backend/eval-results/
 smartfin-backend/eval-slips/
 smartfin-credentials.json
 **/smartfin-credentials.json
+
+# Demo video working files (may hold personal slips)
+demo-assets/
