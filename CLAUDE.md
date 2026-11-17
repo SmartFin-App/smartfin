@@ -17,8 +17,6 @@ Consequences that apply on both sides of the wire:
 - **Slip parsing must handle Thai script and Buddhist-era years** (2567/2569 → Gregorian), which is why the extraction prompt in `scanner_handler.go` is explicit about both.
 - The coach persona is warm and uses a 🐾 paw emoji. **Cat imagery and the paw belong to the AI Coach only**: the coach screen, its replies and the backend prompts. The rest of the app (toasts, empty states, notifications, sheet titles) uses plain copy with no paw. Its mascot is the lucky cat, named **Kwak** (from แมวกวัก, the Thai beckoning cat), but the name appears **only** in the greeting and when the coach introduces itself; the feature is "AI Coach" everywhere else — tab, screen title, slides and report. The Flutter greeting and the backend system prompt (`orchestrator.go`, mirrored in `cmd/eval/baselines.go`) must agree.
 
-The root `README.md` says the backend uses **Gin**; it actually uses **Fiber v2**.
-
 ## Commands
 
 ```bash
