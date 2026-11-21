@@ -64,3 +64,6 @@ smartfin-credentials.json
 
 # Demo video working files (may hold personal slips)
 demo-assets/
+
+# CSC490 capstone writing: course templates, schedule and report drafts
+smartfin-docs/csc490-capstone-project-writing/
