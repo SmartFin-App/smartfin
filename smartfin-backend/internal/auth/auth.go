@@ -17,6 +17,7 @@ import (
 	firebase "firebase.google.com/go/v4"
 	fbauth "firebase.google.com/go/v4/auth"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/utils"
 	"google.golang.org/api/option"
 )
 
@@ -83,8 +84,8 @@ func NewFirebaseVerifier(ctx context.Context) (Verifier, error) {
 //     name test users (see testUIDPrefixes).
 //
 // It answers 401 when neither is present or the token is invalid, and 403 when
-// a user_id or firebase_uid in the query string, JSON body or form names
-// anyone else. Path parameters are checked per route by OwnParam, because a
+// a user_id or firebase_uid in the query string or the body, in any format the
+// handlers can parse, names anyone else. Path parameters are checked per route by OwnParam, because a
 // group middleware runs before the route's parameters are known.
 func Middleware(v Verifier, adminKey string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
@@ -162,8 +163,17 @@ func bearerToken(header string) (string, bool) {
 }
 
 // claimedUIDs collects every user ID the request names outside its path: the
-// user_id / firebase_uid query parameters, the same fields of a JSON body, and
-// the user_id field of a form (the scanner's multipart upload).
+// user_id / firebase_uid query parameters and any user ID in the body.
+//
+// The body is read the way the handlers read it, not the way the app happens
+// to send it. Handlers call Fiber's BodyParser into fields named UserID and
+// FirebaseUID tagged json:"user_id" / json:"firebase_uid", and BodyParser also
+// accepts vendor and text JSON types (application/vnd.api+json, text/json),
+// XML, and forms whose keys match the field name in any case ("UserID",
+// "userid"). An earlier check that read only application/json and the form key
+// user_id let a signed-in user name someone else in those formats. So the body
+// is parsed here with that same call into fields shaped like the handlers', and
+// form keys are also compared after normalisation, as a second guard.
 func claimedUIDs(c *fiber.Ctx) []string {
 	var ids []string
 	add := func(s string) {
@@ -173,10 +183,23 @@ func claimedUIDs(c *fiber.Ctx) []string {
 	}
 	add(c.Query("user_id"))
 	add(c.Query("firebase_uid"))
+	if len(c.Body()) == 0 {
+		return ids
+	}
 
-	ctype := strings.ToLower(c.Get(fiber.HeaderContentType))
-	switch {
-	case strings.HasPrefix(ctype, fiber.MIMEApplicationJSON):
+	// 1. Exactly what a handler would read. Keep these field names and tags in
+	// step with the handlers' request structs.
+	var asHandlers struct {
+		UserID      string `json:"user_id"`
+		FirebaseUID string `json:"firebase_uid"`
+	}
+	if err := c.BodyParser(&asHandlers); err == nil {
+		add(asHandlers.UserID)
+		add(asHandlers.FirebaseUID)
+	}
+
+	switch ctype := bodyMediaType(c); {
+	case strings.HasSuffix(ctype, "json"):
 		var body struct {
 			UserID      any `json:"user_id"`
 			FirebaseUID any `json:"firebase_uid"`
@@ -195,16 +218,48 @@ func claimedUIDs(c *fiber.Ctx) []string {
 				}
 			}
 		}
-	case strings.HasPrefix(ctype, fiber.MIMEMultipartForm):
+	case ctype == fiber.MIMEMultipartForm:
 		if form, err := c.MultipartForm(); err == nil {
-			for _, v := range form.Value["user_id"] {
-				add(v)
+			for key, values := range form.Value {
+				if isUIDKey(key) {
+					for _, v := range values {
+						add(v)
+					}
+				}
 			}
 		}
-	case strings.HasPrefix(ctype, fiber.MIMEApplicationForm):
-		add(c.FormValue("user_id"))
+	case ctype == fiber.MIMEApplicationForm:
+		c.Request().PostArgs().VisitAll(func(key, value []byte) {
+			if isUIDKey(string(key)) {
+				add(string(value))
+			}
+		})
 	}
 	return ids
+}
+
+// bodyMediaType is the body's media type as Fiber's BodyParser decides it:
+// lower-cased, vendor types folded ("application/vnd.api+json" becomes
+// "application/json") and parameters such as charset dropped.
+func bodyMediaType(c *fiber.Ctx) string {
+	ctype := utils.ParseVendorSpecificContentType(strings.ToLower(c.Get(fiber.HeaderContentType)))
+	if i := strings.IndexByte(ctype, ';'); i != -1 {
+		ctype = ctype[:i]
+	}
+	return ctype
+}
+
+// isUIDKey reports whether a form key names a user ID: user_id, firebase_uid,
+// or the struct field names Fiber also matches, in any case or punctuation.
+func isUIDKey(key string) bool {
+	var b strings.Builder
+	for _, r := range strings.ToLower(key) {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+		}
+	}
+	k := b.String()
+	return k == "userid" || k == "firebaseuid"
 }
 
 var errForbidden = errors.New("this request names a different user than the one signed in")

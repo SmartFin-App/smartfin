@@ -150,6 +150,82 @@ func TestMiddlewareMultipart(t *testing.T) {
 	}
 }
 
+// Every body format a handler can parse must be checked, not only the ones the
+// app sends. Fiber's BodyParser also reads vendor and text JSON types, XML,
+// and form keys that match a field name in any case, and each of these once
+// let a signed-in user act as someone else. The handler here parses the body
+// the way the real handlers do and echoes the UID it would act on.
+func TestMiddlewareEveryBodyFormat(t *testing.T) {
+	app := fiber.New()
+	app.Group("/api", Middleware(fakeVerifier{}, adminKey)).Post("/coach/ask", func(c *fiber.Ctx) error {
+		var body struct {
+			UserID string `json:"user_id"`
+		}
+		_ = c.BodyParser(&body)
+		return c.SendString(body.UserID)
+	})
+	formField := func(key, uid string) (string, string) {
+		var buf bytes.Buffer
+		w := multipart.NewWriter(&buf)
+		_ = w.WriteField(key, uid)
+		_ = w.Close()
+		return buf.String(), w.FormDataContentType()
+	}
+	formats := []struct {
+		name  string
+		build func(uid string) (body, ctype string)
+	}{
+		{"json with charset", func(u string) (string, string) { return `{"user_id":"` + u + `"}`, "application/json; charset=utf-8" }},
+		{"vendor json", func(u string) (string, string) { return `{"user_id":"` + u + `"}`, "application/vnd.api+json" }},
+		{"text json", func(u string) (string, string) { return `{"user_id":"` + u + `"}`, "text/json" }},
+		{"upper-case json key", func(u string) (string, string) { return `{"USER_ID":"` + u + `"}`, "APPLICATION/JSON" }},
+		{"xml", func(u string) (string, string) { return `<r><UserID>` + u + `</UserID></r>`, "application/xml" }},
+		{"text xml", func(u string) (string, string) { return `<r><UserID>` + u + `</UserID></r>`, "text/xml" }},
+		{"form user_id", func(u string) (string, string) { return "user_id=" + u, "application/x-www-form-urlencoded" }},
+		{"form field name", func(u string) (string, string) { return "UserID=" + u, "application/x-www-form-urlencoded" }},
+		{"form lower-case field name", func(u string) (string, string) {
+			return "userid=" + u, "application/x-www-form-urlencoded; charset=utf-8"
+		}},
+		{"multipart field name", func(u string) (string, string) { return formField("UserID", u) }},
+		{"multipart user_id", func(u string) (string, string) { return formField("user_id", u) }},
+	}
+	send := func(t *testing.T, body, ctype string) (int, string) {
+		t.Helper()
+		hr := httptest.NewRequest("POST", "/api/coach/ask", strings.NewReader(body))
+		hr.Header.Set("Authorization", "Bearer tok-"+alice)
+		hr.Header.Set("Content-Type", ctype)
+		resp, err := app.Test(hr)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, _ := io.ReadAll(resp.Body)
+		return resp.StatusCode, string(b)
+	}
+	for _, f := range formats {
+		t.Run(f.name, func(t *testing.T) {
+			body, ctype := f.build(bob)
+			if code, got := send(t, body, ctype); code != http.StatusForbidden {
+				t.Fatalf("naming another user: status %d, handler acted as %q", code, got)
+			}
+			body, ctype = f.build(alice)
+			if code, got := send(t, body, ctype); code != http.StatusOK || (got != alice && got != "") {
+				t.Fatalf("naming yourself: status %d, handler acted as %q", code, got)
+			}
+		})
+	}
+}
+
+func TestIsUIDKey(t *testing.T) {
+	for key, want := range map[string]bool{
+		"user_id": true, "UserID": true, "userid": true, "USER-ID": true, "firebase_uid": true, "FirebaseUID": true,
+		"uid": false, "user": false, "message": false, "user_id_2": false,
+	} {
+		if got := isUIDKey(key); got != want {
+			t.Errorf("isUIDKey(%q) = %v, want %v", key, got, want)
+		}
+	}
+}
+
 // With ADMIN_API_KEY unset, sending an empty admin key must not count as a
 // match and open the harness path.
 func TestMiddlewareNoAdminKeyConfigured(t *testing.T) {
